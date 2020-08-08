@@ -2,7 +2,7 @@
 
 ## Features
 
-![Showcase](https://raw.githubusercontent.com/CaptainUnbrauchbar/ASP-Language-Support/master/images/showcase.gif)
+![Showcase](https://raw.githubusercontent.com/CaptainUnbrauchbar/asp-language-support/master/images/19286215.png)
 
 [Potassco](https://potassco.org/)            [Clingo](https://potassco.org/clingo/)
 
