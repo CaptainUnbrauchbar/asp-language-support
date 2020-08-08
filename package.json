@@ -1,0 +1,133 @@
+{
+	"name": "answer-set-programming-language-support",
+	"displayName": "Answer Set Programming Language Support",
+	"version": "0.2.9",
+	"description": "Language Support for Clingo ASP (developed by University of Potsdam).",
+	"publisher": "ffrankreiter",
+	"engines": {
+		"vscode": "^1.46.0"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/CaptainUnbrauchbar/ASP-Language-Support"
+	},
+	"icon": "images/19286215.png",
+	"activationEvents": [
+		"onLanguage:asp"
+	],
+	"main": "./extension.js",
+	"contributes": {
+		"languages": [
+			{
+				"id": "asp",
+				"aliases": [
+					"Answer Set Programming",
+					"asp",
+					"Clingo",
+					"Potassco"
+				],
+				"extensions": [
+					".lp",
+					".ilp",
+					".cl",
+					".clp",
+					".iclp",
+					".Clp",
+					".iClp",
+					".blp",
+					".iblp"
+				]
+			}
+		],
+		"configuration": [
+			{
+				"title": "ASPLanguage",
+				"properties": {
+					"aspLanguage.selectOperatingSystem": {
+						"description": "Please select your OS so the correct Clingo Version is used",
+						"type": "string",
+						"default": "windows",
+						"enum": [
+							"Windows",
+							"MacOS",
+							"Linux"
+						],
+						"enumDescriptions": [
+							"Any Windows Version",
+							"Any MacOS Version",
+							"Any Linux Distribution"
+						]
+					},
+					"aspLanguage.terminalMode": {
+							"description": "Create new Terminal after every execution?",
+							"type": "boolean",
+							"default": false
+					}
+				},
+				"type": "string",
+				"default": "windows",
+				"description": "Select your Operating System (macos, linux, windows):"
+			}
+		],
+		"commands": [
+			{
+				"command": "answer-set-programming-language-support.runinterminalall",
+				"title": "> Compute all Answer Sets"
+			},
+			{
+				"command": "answer-set-programming-language-support.runinterminalsingle",
+				"title": "> Compute the first Answer Set"
+			}
+		],
+		"menus": {
+			"editor/context": [
+				{
+					"when": "resourceLangId == asp",
+					"command": "answer-set-programming-language-support.runinterminalall",
+					"group": "z_commands"
+				},
+				{
+					"when": "resourceLangId == asp",
+					"command": "answer-set-programming-language-support.runinterminalsingle",
+					"group": "z_commands"
+				}
+			]
+		},
+		"keybindings": [
+			{
+				"command": "answer-set-programming-language-support.runinterminalall",
+				"key": "ctrl+shift+a",
+				"mac": "cmd+shift+f1",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "answer-set-programming-language-support.runinterminalsingle",
+				"key": "ctrl+shift+s",
+				"mac": "cmd+shift+f1",
+				"when": "editorTextFocus"
+			}
+		]
+	},
+	"scripts": {
+		"lint": "eslint .",
+		"pretest": "npm run lint",
+		"test": "node ./test/runTest.js"
+	},
+	"extensionDependencies": [
+		"abelcour.asp-syntax-highlight"
+	],
+	"devDependencies": {
+		"@types/vscode": "^1.46.0",
+		"@types/glob": "^7.1.1",
+		"@types/mocha": "^7.0.2",
+		"@types/node": "^13.11.0",
+		"eslint": "^6.8.0",
+		"glob": "^7.1.6",
+		"mocha": "^7.1.2",
+		"typescript": "^3.8.3",
+		"vscode-test": "^1.3.0"
+	}
+}
