@@ -2,6 +2,14 @@
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
 
+function detectOS() {
+	switch (process.platform) {
+		case "darwin": return "MacOS";
+		case "win32": return "Windows";
+		default: return "Linux";
+	}
+}
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 
@@ -14,6 +22,10 @@ function activate(context) {
 	var os = vscode.workspace.getConfiguration('aspLanguage').get("selectOperatingSystem");
 	var newTerminal = vscode.workspace.getConfiguration('aspLanguage').get("terminalMode");
 	var n = (vscode.window).terminals.length;
+
+	if (os === "auto" || os === "Auto") {
+		os = detectOS();
+	}
 
 	if (os == "windows" || os == "Windows") {
 		var path = context.asAbsolutePath("clingo_win.exe");

@@ -49,8 +49,9 @@
 					"aspLanguage.selectOperatingSystem": {
 						"description": "Please select your OS so the correct Clingo Version is used",
 						"type": "string",
-						"default": "windows",
+						"default": "auto",
 						"enum": [
+							"Auto",
 							"Windows",
 							"MacOS",
 							"Linux"
@@ -62,9 +63,9 @@
 						]
 					},
 					"aspLanguage.terminalMode": {
-							"description": "Create new Terminal after every execution?",
-							"type": "boolean",
-							"default": false
+						"description": "Create new Terminal after every execution?",
+						"type": "boolean",
+						"default": false
 					}
 				},
 				"type": "string",
