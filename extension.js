@@ -1,6 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
+const which = require('which');
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -23,6 +24,15 @@ function activate(context) {
 	}
 	else if (os == "linux" || os == "Linux") {
 		var path = context.asAbsolutePath("clingo_linux");
+	}
+
+	const usePathClingo = vscode.workspace.getConfiguration('aspLanguage').get("usePathClingo");
+	if (usePathClingo) {
+		try {
+			var path = which.sync("clingo");
+		} catch (e) {
+			vscode.window.showErrorMessage("clingo was not found on your PATH. Disable the 'usePathClingo' option to use the bundled version of clingo");
+		}
 	}
 
 	let disposable = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalall', function () {
