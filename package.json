@@ -1,7 +1,7 @@
 {
 	"name": "answer-set-programming-language-support",
 	"displayName": "Answer Set Programming Language Support",
-	"version": "0.2.9",
+	"version": "0.3.0",
 	"description": "Language Support for Clingo ASP (developed by University of Potsdam).",
 	"publisher": "ffrankreiter",
 	"engines": {
@@ -57,6 +57,7 @@
 							"Linux"
 						],
 						"enumDescriptions": [
+							"Auto Detect Operating System",
 							"Any Windows Version",
 							"Any MacOS Version",
 							"Any Linux Distribution"
@@ -64,6 +65,11 @@
 					},
 					"aspLanguage.usePathClingo": {
 						"description": "Set this option if you would like to use the Clingo version from your PATH instead of the version included",
+						"type": "boolean",
+						"default": false
+					},
+					"aspLanguage.turnMessagesOff": {
+						"description": "Set this option if you want to turn off all Messages (bottom right)",
 						"type": "boolean",
 						"default": false
 					},

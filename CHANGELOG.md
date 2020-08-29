@@ -2,6 +2,15 @@
 
 All notable changes to the "answer-set-programming-language-support" extension will be documented in this file.
 
+## 0.3.0
+
+- Added 2 Configuration Options
+- Added PATH Clingo compatibility (please enable in options!)
+- Added Auto Detect OS option (enabled by default)
+- You don't have to restart VSCode anymore to apply changes in settings (such wow)
+
+- Big Thanks to Spencer Killen ([sjkillen](https://github.com/sjkillen)) for contributing **Auto Detect OS Feature** and **PATH compatibility** on GitHub!
+
 ### 0.2.9
 
 - Minor Fix
@@ -33,7 +42,7 @@ All notable changes to the "answer-set-programming-language-support" extension w
 
 - Small Hotfix for new Commands
 
-### 0.2.0
+## 0.2.0
 
 - Added "Compute first Answer Set" Option
 - Added "Compute all Answer Sets" Option
@@ -50,7 +59,7 @@ All notable changes to the "answer-set-programming-language-support" extension w
 
 - Small Hotfix
 
-### 0.0.1
+## 0.0.1
 
 Initial release
 - Single file support
