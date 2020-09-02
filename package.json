@@ -92,6 +92,10 @@
 			{
 				"command": "answer-set-programming-language-support.runinterminalsingle",
 				"title": "> Compute the first Answer Set"
+			},
+			{
+				"command": "answer-set-programming-language-support.interactiveWindow",
+				"title": "> Run in Interactive Window"
 			}
 		],
 		"menus": {
@@ -104,6 +108,11 @@
 				{
 					"when": "resourceLangId == asp",
 					"command": "answer-set-programming-language-support.runinterminalsingle",
+					"group": "z_commands"
+				},
+				{
+					"when": "resourceLangId == asp",
+					"command": "answer-set-programming-language-support.interactiveWindow",
 					"group": "z_commands"
 				}
 			]
@@ -118,7 +127,13 @@
 			{
 				"command": "answer-set-programming-language-support.runinterminalsingle",
 				"key": "ctrl+shift+s",
-				"mac": "cmd+shift+f1",
+				"mac": "cmd+shift+f2",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "answer-set-programming-language-support.interactiveWindow",
+				"key": "ctrl+shift+w",
+				"mac": "cmd+shift+f3",
 				"when": "editorTextFocus"
 			}
 		]
