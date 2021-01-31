@@ -98,6 +98,10 @@
 			{
 				"command": "answer-set-programming-language-support.runinterminalsingle",
 				"title": "> Compute the first Answer Set"
+			},
+			{
+				"command": "answer-set-programming-language-support.runinterminalconfig",
+				"title": "> Compute Answer Sets (config.json)"
 			}
 		],
 		"menus": {
@@ -110,6 +114,11 @@
 				{
 					"when": "resourceLangId == asp",
 					"command": "answer-set-programming-language-support.runinterminalsingle",
+					"group": "z_commands"
+				},
+				{
+					"when": "resourceLangId == asp",
+					"command": "answer-set-programming-language-support.runinterminalconfig",
 					"group": "z_commands"
 				}
 			]
@@ -149,6 +158,7 @@
 		"vscode-test": "^1.3.0"
 	},
 	"dependencies": {
+		"ajv": "^7.0.3",
 		"which": "^2.0.2"
 	}
 }

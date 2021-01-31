@@ -1,6 +1,5 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-const { dirname } = require('path');
 const vscode = require('vscode');
 const which = require('which');
 const { readConfig } = require('./configReader.js');
@@ -68,59 +67,53 @@ function activate(context) {
 	var additionalArgs = vscode.workspace.getConfiguration('aspLanguage').get("additionalArgs");
 	var setConfig = vscode.workspace.getConfiguration('aspLanguage').get("setConfig");
 	var path;
-	var n = (vscode.window).terminals.length;
+	var terminalCount = (vscode.window).terminals.length;
 
-	getNewPath()
+	getNewPath();
 
 	//double if to prevent unnecessary info messages
 	if (usePathClingo) {
 		usePath()
 	}
 
+	function createTerminal() {
+		if (newTerminal || terminalCount === 0) {
+			terminalCount = (vscode.window).terminals.length + 1;
+			terminal = vscode.window.createTerminal("ASP Terminal");
+		}
+	}
 	
 
-	let disposable = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalall', function () {
-		if (newTerminal == true) {
-			n = (vscode.window).terminals.length + 1;
-			terminal = vscode.window.createTerminal("ASP Terminal");
+	const computeAllSetsCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalall', function () {
+		createTerminal();
 
-		}
-		if ((vscode.window).terminals.length === 0) {
-			n = (vscode.window).terminals.length + 1;
-			terminal = vscode.window.createTerminal("ASP Terminal");
-
-		}
-		additionalArgs.concat(readConfig(setConfig));
-		//vscode.window.showInformationMessage("Running in Terminal " + n + " ...");
 		terminal.show();
-		terminal.sendText(`${path} ${vscode.window.activeTextEditor.document.fileName} 0 ${additionalArgs}`);
+		terminal.sendText(`${path} ${vscode.window.activeTextEditor.document.fileName} 0`);
 	});
 
-	let disposable2 = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalsingle', function () {
-		if (newTerminal == true) {
-			n = (vscode.window).terminals.length + 1;
+	const computeSingleSetCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalsingle', function () {
+		createTerminal();
 
-			terminal = vscode.window.createTerminal("ASP Terminal");
-
-		}
-		if ((vscode.window).terminals.length === 0) {
-			n = (vscode.window).terminals.length + 1;
-			terminal = vscode.window.createTerminal("ASP Terminal");
-			
-		}
-		readConfig(setConfig);
-		//vscode.window.showInformationMessage("Running in Terminal " + n + " ...");
 		terminal.show();
-		//terminal.sendText(path + " " + vscode.window.activeTextEditor.document.fileName + " " + additionalArgs);
+		terminal.sendText(`${path} ${vscode.window.activeTextEditor.document.fileName}`);
+	});
+
+	const computeConfigCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalconfig', function () {
+		createTerminal();
+
+		additionalArgs = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
+
+		terminal.show();
 		terminal.sendText(`${path} ${vscode.window.activeTextEditor.document.fileName} ${additionalArgs}`);
 	});
 
-	context.subscriptions.push(disposable);
-	context.subscriptions.push(disposable2);
+	context.subscriptions.push(computeAllSetsCommand);
+	context.subscriptions.push(computeSingleSetCommand);
+	context.subscriptions.push(computeConfigCommand);
 
 	//Listeners for Configuration Options 
 	vscode.workspace.onDidChangeConfiguration(event => {
-        let affected = event.affectsConfiguration("aspLanguage.selectOperatingSystem");
+        const affected = event.affectsConfiguration("aspLanguage.selectOperatingSystem");
         if (affected) {
 			os = vscode.workspace.getConfiguration('aspLanguage').get("selectOperatingSystem");
 			getNewPath()
@@ -128,21 +121,21 @@ function activate(context) {
 	})
 
 	vscode.workspace.onDidChangeConfiguration(event => {
-        let affected = event.affectsConfiguration("aspLanguage.terminalMode");
+        const affected = event.affectsConfiguration("aspLanguage.terminalMode");
         if (affected) {
 			newTerminal = vscode.workspace.getConfiguration('aspLanguage').get("terminalMode");
         }
 	})
 
 	vscode.workspace.onDidChangeConfiguration(event => {
-        let affected = event.affectsConfiguration("aspLanguage.turnMessagesOff");
+        const affected = event.affectsConfiguration("aspLanguage.turnMessagesOff");
         if (affected) {
 			turnMessagesOff = vscode.workspace.getConfiguration('aspLanguage').get("turnMessagesOff");
         }
 	})
 	
 	vscode.workspace.onDidChangeConfiguration(event => {
-        let affected = event.affectsConfiguration("aspLanguage.usePathClingo");
+        const affected = event.affectsConfiguration("aspLanguage.usePathClingo");
         if (affected) {
 			usePathClingo = vscode.workspace.getConfiguration('aspLanguage').get("usePathClingo");
 			usePath()
@@ -150,14 +143,14 @@ function activate(context) {
 	})
 	
 	vscode.workspace.onDidChangeConfiguration(event => {
-        let affected = event.affectsConfiguration("aspLanguage.additionalArgs");
+        const affected = event.affectsConfiguration("aspLanguage.additionalArgs");
         if (affected) {
 			additionalArgs = vscode.workspace.getConfiguration('aspLanguage').get("additionalArgs");
         }
 	})
 	
 	vscode.workspace.onDidChangeConfiguration(event => {
-        let affected = event.affectsConfiguration("aspLanguage.setConfig");
+        const affected = event.affectsConfiguration("aspLanguage.setConfig");
         if (affected) {
 			setConfig = vscode.workspace.getConfiguration('aspLanguage').get("setConfig");
 			
@@ -165,7 +158,6 @@ function activate(context) {
     })
 
 }
-//exports.activate = activate;
 
 // this method is called when your extension is deactivated
 function deactivate() {
