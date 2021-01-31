@@ -41,7 +41,7 @@ function validateConfigSchema(config,contextAbsolutePath) {
     const schema = require(contextAbsolutePath+"\\schema.json");
     const validate = ajv.compile(schema);
     const valid = validate(config);
-    if (!valid) vscode.window.showInformationMessage("Config file does not match Schema");
+    if (!valid) vscode.window.showInformationMessage("Config file is not as expected!");
 }
 
 function readFiles() {

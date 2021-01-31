@@ -16,7 +16,7 @@
                     "type": "object",
                     "properties": {
                         "useParallelMode": {"type": "boolean"},
-                        "mode": {"type": "string"},
+                        "mode": {"type": "string", "enum": ["compete", "split"]},
                         "threads": {"type": "integer"}
                     },
                     "required": ["useParallelMode", "mode", "threads"]

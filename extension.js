@@ -143,13 +143,6 @@ function activate(context) {
 	})
 	
 	vscode.workspace.onDidChangeConfiguration(event => {
-        const affected = event.affectsConfiguration("aspLanguage.additionalArgs");
-        if (affected) {
-			additionalArgs = vscode.workspace.getConfiguration('aspLanguage').get("additionalArgs");
-        }
-	})
-	
-	vscode.workspace.onDidChangeConfiguration(event => {
         const affected = event.affectsConfiguration("aspLanguage.setConfig");
         if (affected) {
 			setConfig = vscode.workspace.getConfiguration('aspLanguage').get("setConfig");
