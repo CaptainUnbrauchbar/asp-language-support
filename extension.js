@@ -1,7 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
+const { dirname } = require('path');
 const vscode = require('vscode');
 const which = require('which');
+const { readConfig } = require('./configReader.js');
 
 function detectOS() {
 	switch (process.platform) {
@@ -63,7 +65,8 @@ function activate(context) {
 	var newTerminal = vscode.workspace.getConfiguration('aspLanguage').get("terminalMode");
 	var turnMessagesOff = vscode.workspace.getConfiguration('aspLanguage').get("turnMessagesOff");
 	var usePathClingo = vscode.workspace.getConfiguration('aspLanguage').get("usePathClingo");
-
+	var additionalArgs = vscode.workspace.getConfiguration('aspLanguage').get("additionalArgs");
+	var setConfig = vscode.workspace.getConfiguration('aspLanguage').get("setConfig");
 	var path;
 	var n = (vscode.window).terminals.length;
 
@@ -73,6 +76,8 @@ function activate(context) {
 	if (usePathClingo) {
 		usePath()
 	}
+
+	
 
 	let disposable = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalall', function () {
 		if (newTerminal == true) {
@@ -85,9 +90,10 @@ function activate(context) {
 			terminal = vscode.window.createTerminal("ASP Terminal");
 
 		}
+		additionalArgs.concat(readConfig(setConfig));
 		//vscode.window.showInformationMessage("Running in Terminal " + n + " ...");
 		terminal.show();
-		terminal.sendText(path + " " + vscode.window.activeTextEditor.document.fileName + " 0");
+		terminal.sendText(`${path} ${vscode.window.activeTextEditor.document.fileName} 0 ${additionalArgs}`);
 	});
 
 	let disposable2 = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalsingle', function () {
@@ -102,9 +108,11 @@ function activate(context) {
 			terminal = vscode.window.createTerminal("ASP Terminal");
 			
 		}
+		readConfig(setConfig);
 		//vscode.window.showInformationMessage("Running in Terminal " + n + " ...");
 		terminal.show();
-		terminal.sendText(path + " " + vscode.window.activeTextEditor.document.fileName);
+		//terminal.sendText(path + " " + vscode.window.activeTextEditor.document.fileName + " " + additionalArgs);
+		terminal.sendText(`${path} ${vscode.window.activeTextEditor.document.fileName} ${additionalArgs}`);
 	});
 
 	context.subscriptions.push(disposable);
@@ -139,10 +147,25 @@ function activate(context) {
 			usePathClingo = vscode.workspace.getConfiguration('aspLanguage').get("usePathClingo");
 			usePath()
         }
+	})
+	
+	vscode.workspace.onDidChangeConfiguration(event => {
+        let affected = event.affectsConfiguration("aspLanguage.additionalArgs");
+        if (affected) {
+			additionalArgs = vscode.workspace.getConfiguration('aspLanguage').get("additionalArgs");
+        }
+	})
+	
+	vscode.workspace.onDidChangeConfiguration(event => {
+        let affected = event.affectsConfiguration("aspLanguage.setConfig");
+        if (affected) {
+			setConfig = vscode.workspace.getConfiguration('aspLanguage').get("setConfig");
+			
+        }
     })
 
 }
-exports.activate = activate;
+//exports.activate = activate;
 
 // this method is called when your extension is deactivated
 function deactivate() {

@@ -77,11 +77,17 @@
 						"description": "Create new Terminal after every execution?",
 						"type": "boolean",
 						"default": false
+					},
+					"aspLanguage.additionalArgs": {
+						"description": "Add custom arguments to start clingo with:",
+						"type": "string"
+					},
+					"aspLanguage.setConfig": {
+						"description": "Enter your config name:",
+						"type": "string",
+						"default": ""
 					}
-				},
-				"type": "string",
-				"default": "windows",
-				"description": "Select your Operating System (macos, linux, windows):"
+				}
 			}
 		],
 		"commands": [
