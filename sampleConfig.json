@@ -1,0 +1,26 @@
+{
+    "name": "SampleConfig",
+    "version": "0.1.0",
+    "description": "A sample configuration for Clingo 5.4.0",
+    "author": "John Doe",
+    "additionalFiles": [
+        "filename.lp"
+    ],
+    "args": {
+        "verboseMode": 1,
+        "outputFormat": 0,
+        "parallelMode": {
+            "useParallelMode": false,
+            "mode": "compete",
+            "threads": 2
+        },
+        "timeLimit": 0,
+        "solveLimit": {
+            "conflicts": 0,
+            "restarts": 0
+        },
+        "preProcessor": false, 
+        "models": 0,
+        "customArgs": ""
+    }
+}
