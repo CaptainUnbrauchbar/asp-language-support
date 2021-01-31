@@ -7,6 +7,8 @@ All notable changes to the "answer-set-programming-language-support" extension w
 - Added Multi-File Support! (use with config file)
 - Added Option to use a configuration file for clingo arguments
 - Added VSCode command to create sample config file
+- Optimization
+- Big Thanks to Richard ([richilino](https://github.com/richilino)) for contributing the new features and helping optimize the extension code!
 
 ## 0.3.0
 
@@ -14,7 +16,6 @@ All notable changes to the "answer-set-programming-language-support" extension w
 - Added PATH Clingo compatibility (please enable in options!)
 - Added Auto Detect OS option (enabled by default)
 - You don't have to restart VSCode anymore to apply changes in settings (such wow)
-
 - Big Thanks to Spencer Killen ([sjkillen](https://github.com/sjkillen)) for contributing **Auto Detect OS Feature** and **PATH compatibility** on GitHub!
 
 ### 0.2.9

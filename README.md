@@ -42,5 +42,8 @@ This extension contributes the following features:
 
 ## 0.4.0
 
+- Added Multi-File Support! (use with config file)
 - Added Option to use a configuration file for clingo arguments
 - Added VSCode command to create sample config file
+- Optimization
+- Big Thanks to Richard ([richilino](https://github.com/richilino)) for contributing the new features and helping optimize the extension code!
