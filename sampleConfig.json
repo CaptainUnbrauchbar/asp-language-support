@@ -1,13 +1,13 @@
 {
-    "name": "TestConfig",
+    "name": "SampleConfig",
     "version": "0.1.0",
-    "description": "",
+    "description": "A sample configuration for Clingo 5.4.0",
     "author": "John Doe",
     "additionalFiles": [
-        "file"
+        "filename.lp"
     ],
     "args": {
-        "verboseMode": 0,
+        "verboseMode": 1,
         "outputFormat": 0,
         "parallelMode": {
             "useParallelMode": false,

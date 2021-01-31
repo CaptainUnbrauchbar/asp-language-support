@@ -1,4 +1,5 @@
 const { dirname } = require('path');
+const fs = require('fs');
 const vscode = require('vscode');
 const Ajv = require("ajv").default
 var jsonConfig;
@@ -11,7 +12,7 @@ function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
 
     const pathToConfig = `${dirname(vscode.window.activeTextEditor.document.fileName)}\\${setConfig}`;
     if (setConfig.match(/json$/i)) {
-            jsonConfig = require(pathToConfig);
+            jsonConfig = JSON.parse(fs.readFileSync(pathToConfig).toString());
 
             validateConfigSchema(jsonConfig,contextAbsolutePath);
 
@@ -57,7 +58,7 @@ function readFiles() {
 
 function readParallelMode() {
     if (jsonConfig.args.parallelMode && jsonConfig.args.parallelMode.useParallelMode) {
-        const mode = jsonConfig.args.parallelMode.mode == undefined ? "compete" : jsonConfig.args.parallelMode.mode;
+        const mode = jsonConfig.args.parallelMode.mode === undefined ? "compete" : jsonConfig.args.parallelMode.mode;
         return ` --parallel-mode ${jsonConfig.args.parallelMode.threads},${mode}`;
     } else {
         return ``;

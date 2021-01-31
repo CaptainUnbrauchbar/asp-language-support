@@ -1,7 +1,7 @@
 {
 	"name": "answer-set-programming-language-support",
 	"displayName": "Answer Set Programming Language Support",
-	"version": "0.3.0",
+	"version": "0.4.1",
 	"description": "Language Support for Clingo ASP (developed by University of Potsdam).",
 	"publisher": "ffrankreiter",
 	"engines": {
@@ -101,7 +101,7 @@
 			},
 			{
 				"command": "answer-set-programming-language-support.initClingoConfig",
-				"title": "Initialize clingo config file in current working directory"
+				"title": "ASPLanguage: Initialize clingo config file in current working directory"
 			}
 		],
 		"menus": {
@@ -147,13 +147,12 @@
 		"abelcour.asp-syntax-highlight"
 	],
 	"devDependencies": {
-		"@types/vscode": "^1.46.0",
 		"@types/glob": "^7.1.1",
 		"@types/mocha": "^7.0.2",
 		"@types/node": "^13.11.0",
+		"@types/vscode": "^1.46.0",
 		"eslint": "^6.8.0",
 		"glob": "^7.1.6",
-		"mocha": "^7.1.2",
 		"typescript": "^3.8.3",
 		"vscode-test": "^1.3.0"
 	},

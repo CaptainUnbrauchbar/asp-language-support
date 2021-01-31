@@ -8,7 +8,7 @@ All notable changes to the "answer-set-programming-language-support" extension w
 - Added Option to use a configuration file for clingo arguments
 - Added VSCode command to create sample config file
 - Optimization
-- Big Thanks to Richard ([richilino](https://github.com/richilino)) for contributing the new features and helping optimize the extension code!
+- Big Thanks to Richard Hegewald ([richilino](https://github.com/richilino)) for contributing the new features and helping optimize the extension code!
 
 ## 0.3.0
 

@@ -11,8 +11,17 @@ If you have any suggestions for a new feature or anything else please E-Mail me:
 
 ## Usage
 
-Just right click anywhere on a logic program (.lp) file and select "> Compute all Answer Sets" or "> Compute the first Answer Set".
+Just right click anywhere on a logic program (.lp) file and select `> Compute all Answer Sets` or `> Compute the first Answer Set`.
 A new Terminal will open with the results!
+
+If you want to add **additional startup arguments** you can use the `> Compute Answer Sets (config.json)` option.
+
+First generate a **sample config.json** file with the `ASPLanguage: Initialize clingo config file in current working directory` command. *(Press Ctrl+Shift+P)*
+This will create a config file with all supported arguments/settings in your current working directory. 
+If you want to use your **own config file**, just change the config file name in the extension settings.
+Additionally you can use arguments **not directly supported** by the config.json by passing them in the **"customArgs" setting** as a String.
+
+You can also specify **additional files** to interpret in this config using the relative path from the current working directory.
 
 If you want to use your own Version of Clingo with this extension please enable **"Use PATH Clingo"** Option in settings!
 
@@ -46,4 +55,4 @@ This extension contributes the following features:
 - Added Option to use a configuration file for clingo arguments
 - Added VSCode command to create sample config file
 - Optimization
-- Big Thanks to Richard ([richilino](https://github.com/richilino)) for contributing the new features and helping optimize the extension code!
+- Big Thanks to Richard Hegewald ([richilino](https://github.com/richilino)) for contributing the new features and helping optimize the extension code!
