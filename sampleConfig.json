@@ -1,0 +1,26 @@
+{
+    "name": "TestConfig",
+    "version": "0.1.0",
+    "description": "",
+    "author": "John Doe",
+    "additionalFiles": [
+        "file"
+    ],
+    "args": {
+        "verboseMode": 0,
+        "outputFormat": 0,
+        "parallelMode": {
+            "useParallelMode": false,
+            "mode": "compete",
+            "threads": 2
+        },
+        "timeLimit": 0,
+        "solveLimit": {
+            "conflicts": 0,
+            "restarts": 0
+        },
+        "preProcessor": false, 
+        "models": 0,
+        "customArgs": ""
+    }
+}

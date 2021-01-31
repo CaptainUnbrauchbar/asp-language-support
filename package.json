@@ -98,6 +98,10 @@
 			{
 				"command": "answer-set-programming-language-support.runinterminalconfig",
 				"title": "> Compute Answer Sets (config.json)"
+			},
+			{
+				"command": "answer-set-programming-language-support.initClingoConfig",
+				"title": "Initialize clingo config file in current working directory"
 			}
 		],
 		"menus": {

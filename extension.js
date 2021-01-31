@@ -1,7 +1,7 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
 const which = require('which');
+const { dirname } = require('path');
+const fs = require('fs');
 const { readConfig } = require('./configReader.js');
 
 function detectOS() {
@@ -13,9 +13,6 @@ function detectOS() {
 }
 
 
-
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -107,9 +104,19 @@ function activate(context) {
 		terminal.sendText(`${path} ${vscode.window.activeTextEditor.document.fileName} ${additionalArgs}`);
 	});
 
+	const initClingoConfig = vscode.commands.registerCommand('answer-set-programming-language-support.initClingoConfig', function () {
+		createTerminal();
+
+		const sampleConfig = fs.readFileSync(`${context.asAbsolutePath("")}\\sampleConfig.json`);
+		fs.writeFileSync(`${dirname(vscode.window.activeTextEditor.document.fileName)}\\config.json`, sampleConfig);
+		
+		vscode.workspace.getConfiguration('aspLanguage').update("setConfig", "config.json");
+	});
+
 	context.subscriptions.push(computeAllSetsCommand);
 	context.subscriptions.push(computeSingleSetCommand);
 	context.subscriptions.push(computeConfigCommand);
+	context.subscriptions.push(initClingoConfig);
 
 	//Listeners for Configuration Options 
 	vscode.workspace.onDidChangeConfiguration(event => {

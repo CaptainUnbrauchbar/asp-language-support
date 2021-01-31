@@ -2,6 +2,12 @@
 
 All notable changes to the "answer-set-programming-language-support" extension will be documented in this file.
 
+## 0.4.0
+
+- Added Multi-File Support! (use with config file)
+- Added Option to use a configuration file for clingo arguments
+- Added VSCode command to create sample config file
+
 ## 0.3.0
 
 - Added 2 Configuration Options
@@ -62,4 +68,5 @@ All notable changes to the "answer-set-programming-language-support" extension w
 ## 0.0.1
 
 Initial release
+
 - Single file support
