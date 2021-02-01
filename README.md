@@ -1,8 +1,8 @@
 # Answer Set Programming Language Support (for Clingo)
 
-## Features
+ | [Potassco](https://potassco.org/) | [Potassco on Github](https://github.com/potassco) | [Clingo](https://potassco.org/clingo/) | 
 
-[Potassco](https://potassco.org/) [Clingo](https://potassco.org/clingo/)
+## Features
 
 This Extension uses Clingo Answer Set Solver (bundled), developed by Potassco (University of Potsdam).
 We added multi-file support with v0.4.0!
@@ -16,12 +16,15 @@ A new Terminal will open with the results!
 
 If you want to add **additional startup arguments** you can use the `> Compute Answer Sets (config.json)` option.
 
-First generate a **sample config.json** file with the `ASPLanguage: Initialize clingo config file in current working directory` command. *(Press Ctrl+Shift+P)*
+First generate a **sample config.json** file with the `ASPLanguage: Initialize clingo config file in current working directory` command *(Press Ctrl+Shift+P)*. 
+
 This will create a config file with all supported arguments/settings in your current working directory. 
 If you want to use your **own config file**, just change the config file name in the extension settings.
-Additionally you can use arguments **not directly supported** by the config.json by passing them in the **"customArgs" setting** as a String.
+Additionally you can use **arguments not directly supported** by the config.json by passing them in the **"customArgs" setting** as a String.
 
 You can also specify **additional files** to interpret in this config using the relative path from the current working directory.
+
+See the Clingo [Documentation](https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf) for more details!
 
 If you want to use your own Version of Clingo with this extension please enable **"Use PATH Clingo"** Option in settings!
 

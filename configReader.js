@@ -6,15 +6,16 @@ var jsonConfig;
 
 /**
  * @param {string} setConfig
+ * @param {boolean} turnMessagesOff
+ * @param {string} contextAbsolutePath
  */
 function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
     let args = "";
-
     const pathToConfig = `${dirname(vscode.window.activeTextEditor.document.fileName)}\\${setConfig}`;
     if (setConfig.match(/json$/i)) {
             jsonConfig = JSON.parse(fs.readFileSync(pathToConfig).toString());
 
-            validateConfigSchema(jsonConfig,contextAbsolutePath);
+            validateConfigSchema(contextAbsolutePath,pathToConfig);
 
             args += readFiles();
             args += readParallelMode();
@@ -28,21 +29,25 @@ function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
             args += readCustomArgs();
 
             if (!turnMessagesOff) {
-                vscode.window.showInformationMessage(`Running with ${jsonConfig.name} ${jsonConfig.version} by ${jsonConfig.author}:\n ${args}`);
+                vscode.window.showInformationMessage(`Running with ${jsonConfig.name} ${jsonConfig.version} by ${jsonConfig.author}:\n ${args}    (this message can be turned off in options)`);
             }
     } else {
-        vscode.window.showInformationMessage(`Could not find config file ${pathToConfig}`);
+        vscode.window.showInformationMessage(`Invalid config file ${pathToConfig}`);
     }
 
     return args;
 }
 
-function validateConfigSchema(config,contextAbsolutePath) {
+/**
+ * @param {string} contextAbsolutePath
+ * @param {string} pathToConfig
+ */
+function validateConfigSchema(contextAbsolutePath,pathToConfig) {
     const ajv = new Ajv();``
     const schema = require(contextAbsolutePath+"\\schema.json");
     const validate = ajv.compile(schema);
-    const valid = validate(config);
-    if (!valid) vscode.window.showInformationMessage("Config file is not as expected!");
+    const valid = validate(jsonConfig);
+    if (!valid) vscode.window.showInformationMessage(`Config file ${pathToConfig} is not as expected: ${validate.errors}`);
 }
 
 function readFiles() {
@@ -133,5 +138,6 @@ function readCustomArgs() {
 }
 
 module.exports = {
-    readConfig
+    readConfig,
+    jsonConfig
 }
