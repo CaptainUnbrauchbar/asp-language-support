@@ -1,7 +1,7 @@
 {
-    "name": "SampleConfig",
+    "name": "Sample Config",
     "version": "0.1.0",
-    "description": "A sample configuration for Clingo 5.4.0",
+    "description": "Documentation: https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf",
     "author": "John Doe",
     "additionalFiles": [
         "filename.lp"

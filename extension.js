@@ -4,6 +4,10 @@ const { dirname } = require('path');
 const fs = require('fs');
 const { readConfig } = require('./configReader.js');
 
+/**
+ * Auto detecs the users operating System
+ * @returns String with name of Operating System
+ */
 function detectOS() {
 	switch (process.platform) {
 		case "darwin": return "MacOS";
@@ -12,10 +16,8 @@ function detectOS() {
 	}
 }
 
-
-
 /**
- * @param {vscode.ExtensionContext} context
+ * @param {vscode.ExtensionContext} context Context of VSCode
  */
 function activate(context) {
 	
@@ -41,7 +43,7 @@ function activate(context) {
 			try {
 				path = which.sync("clingo");
 				if (!turnMessagesOff) {
-					vscode.window.showInformationMessage("Using your own version of Clingo: \"" + path + "\"   (this message can be turned off in options)");
+					vscode.window.showInformationMessage("Using your own version of Clingo: \"" + path + "\"    (this message can be turned off in options)");
 				}
 			} catch (e) {
 				vscode.window.showErrorMessage("Clingo was not found on your PATH. Disable the 'usePathClingo' option to use the bundled version of Clingo");
@@ -50,7 +52,7 @@ function activate(context) {
 		else {
 			getNewPath()
 			if (!turnMessagesOff) {
-				vscode.window.showInformationMessage("Using bundled version of Clingo!   (this message can be turned off in options)");
+				vscode.window.showInformationMessage("Using bundled version of Clingo!    (this message can be turned off in options)");
 			}
 		}
 	}
@@ -64,7 +66,6 @@ function activate(context) {
 	var additionalArgs = vscode.workspace.getConfiguration('aspLanguage').get("additionalArgs");
 	var setConfig = vscode.workspace.getConfiguration('aspLanguage').get("setConfig");
 	var path;
-	var terminalCount = (vscode.window).terminals.length;
 
 	getNewPath();
 
@@ -74,8 +75,7 @@ function activate(context) {
 	}
 
 	function createTerminal() {
-		if (newTerminal || terminalCount === 0) {
-			terminalCount = (vscode.window).terminals.length + 1;
+		if (newTerminal || (vscode.window).terminals.length === 0) {
 			terminal = vscode.window.createTerminal("ASP Terminal");
 		}
 	}
@@ -98,10 +98,21 @@ function activate(context) {
 	const computeConfigCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalconfig', function () {
 		createTerminal();
 
-		additionalArgs = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
+		if (fs.existsSync(`${dirname(vscode.window.activeTextEditor.document.fileName)}\\${setConfig}`)) {
+			additionalArgs = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
 
-		terminal.show();
-		terminal.sendText(`${path} ${vscode.window.activeTextEditor.document.fileName} ${additionalArgs}`);
+			terminal.show();
+			terminal.sendText(`${path} ${vscode.window.activeTextEditor.document.fileName} ${additionalArgs}`);
+		}
+		else {
+			const chosenOption = Promise.resolve(vscode.window.showInformationMessage(`Could not find config File ${setConfig} in working directory. Do you want to create a new config?`,"Yes","No"));
+			chosenOption.then(function(value) {
+				if (value === "Yes") {
+					vscode.commands.executeCommand("answer-set-programming-language-support.initClingoConfig");
+					vscode.window.showInformationMessage(`Config config.json created in working directory!`);
+				}
+			});
+		}
 	});
 
 	const initClingoConfig = vscode.commands.registerCommand('answer-set-programming-language-support.initClingoConfig', function () {

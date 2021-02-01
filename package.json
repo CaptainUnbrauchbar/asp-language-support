@@ -25,9 +25,12 @@
 				"id": "asp",
 				"aliases": [
 					"Answer Set Programming",
+					"Answer Set",
 					"asp",
 					"Clingo",
-					"Potassco"
+					"Potassco",
+					"Logic Program",
+					"Declarative Programming"
 				],
 				"extensions": [
 					".lp",
@@ -127,13 +130,19 @@
 			{
 				"command": "answer-set-programming-language-support.runinterminalall",
 				"key": "ctrl+shift+a",
-				"mac": "cmd+shift+f1",
+				"mac": "cmd+shift+a",
 				"when": "editorTextFocus"
 			},
 			{
 				"command": "answer-set-programming-language-support.runinterminalsingle",
 				"key": "ctrl+shift+s",
-				"mac": "cmd+shift+f1",
+				"mac": "cmd+shift+s",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "answer-set-programming-language-support.runinterminalconfig",
+				"key": "ctrl+shift+c",
+				"mac": "cmd+shift+c",
 				"when": "editorTextFocus"
 			}
 		]
