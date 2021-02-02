@@ -1,7 +1,7 @@
 {
 	"name": "answer-set-programming-language-support",
 	"displayName": "Answer Set Programming Language Support",
-	"version": "0.4.1",
+	"version": "0.4.2",
 	"description": "Language Support for Clingo ASP (developed by University of Potsdam).",
 	"publisher": "ffrankreiter",
 	"engines": {
