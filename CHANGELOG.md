@@ -2,9 +2,13 @@
 
 All notable changes to the "answer-set-programming-language-support" extension will be documented in this file.
 
+## 0.4.3
+
+- Updates bundled Clingo version to ([5.4.0](https://github.com/potassco/clingo/releases/tag/v5.4.0)
+
 ## 0.4.2
 
-- Made usage more untuitive and optimized stuff
+- Made Usage more intuitive and optimizations
 
 ## 0.4.1
 

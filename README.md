@@ -24,9 +24,9 @@ Additionally you can use **arguments not directly supported** by the config.json
 
 You can also specify **additional files** to interpret in this config using the relative path from the current working directory.
 
-See the Clingo [Documentation](https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf) for more details!
+See the Clingo [Documentation](https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf) for more details on the config settings!
 
-If you want to use your own Version of Clingo with this extension please enable **"Use PATH Clingo"** Option in settings!
+If you want to use your own Version of Clingo from PATH with this extension, please enable **"Use PATH Clingo"** option in settings!
 
 ## Requirements
 
