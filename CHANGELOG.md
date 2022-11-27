@@ -2,6 +2,10 @@
 
 All notable changes to the "answer-set-programming-language-support" extension will be documented in this file.
 
+## 0.7.0
+
+- Fixed issues ([#9](https://github.com/CaptainUnbrauchbar/asp-language-support/issues/9) and ([#10](https://github.com/CaptainUnbrauchbar/asp-language-support/issues/10)
+
 ## 0.4.3
 
 - Updates bundled Clingo version to ([5.4.0](https://github.com/potassco/clingo/releases/tag/v5.4.0)

@@ -66,6 +66,7 @@ function activate(context) {
 	var additionalArgs = vscode.workspace.getConfiguration('aspLanguage').get("additionalArgs");
 	var setConfig = vscode.workspace.getConfiguration('aspLanguage').get("setConfig");
 	var path;
+	var terminalType = vscode.workspace.getConfiguration('terminal').get("integrated.defaultProfile.windows");
 
 	getNewPath();
 
@@ -75,24 +76,32 @@ function activate(context) {
 	}
 
 	function createTerminal() {
-		if (newTerminal || (vscode.window).terminals.length === 0) {
+		if (newTerminal || ((vscode.window).terminals.filter(terminal=>terminal.name === "ASP Terminal").length === 0)) {
 			terminal = vscode.window.createTerminal("ASP Terminal");
 		}
+	} 
+
+	function getPath() {
+		if (terminalType === "Git Bash") {
+			return `"${path}"`
+		} 
+		else {
+			return `${path}`
+		}
 	}
-	
 
 	const computeAllSetsCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalall', function () {
 		createTerminal();
 
 		terminal.show();
-		terminal.sendText(`${path} ${vscode.window.activeTextEditor.document.fileName} 0`);
+		terminal.sendText(`${getPath()} "${vscode.window.activeTextEditor.document.fileName}" 0`);
 	});
 
 	const computeSingleSetCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalsingle', function () {
 		createTerminal();
 
 		terminal.show();
-		terminal.sendText(`${path} ${vscode.window.activeTextEditor.document.fileName}`);
+		terminal.sendText(`${getPath()} "${vscode.window.activeTextEditor.document.fileName}"`);
 	});
 
 	const computeConfigCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalconfig', function () {
@@ -102,7 +111,7 @@ function activate(context) {
 			additionalArgs = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
 
 			terminal.show();
-			terminal.sendText(`${path} ${vscode.window.activeTextEditor.document.fileName} ${additionalArgs}`);
+			terminal.sendText(`${getPath()} "${vscode.window.activeTextEditor.document.fileName}" ${additionalArgs}`);
 		}
 		else {
 			const chosenOption = Promise.resolve(vscode.window.showInformationMessage(`Could not find config File ${setConfig} in working directory. Do you want to create a new config?`,"Yes","No"));
@@ -131,43 +140,35 @@ function activate(context) {
 
 	//Listeners for Configuration Options 
 	vscode.workspace.onDidChangeConfiguration(event => {
-        const affected = event.affectsConfiguration("aspLanguage.selectOperatingSystem");
-        if (affected) {
+		const confOperatingSystem = event.affectsConfiguration("aspLanguage.selectOperatingSystem");
+        const confTerminalMode = event.affectsConfiguration("aspLanguage.terminalMode");
+		const confTurnMessagesOff = event.affectsConfiguration("aspLanguage.turnMessagesOff");
+		const confUsePathClingo = event.affectsConfiguration("aspLanguage.usePathClingo");
+		const confSetConfig = event.affectsConfiguration("aspLanguage.setConfig");
+		const confTerminalProfile = event.affectsConfiguration("terminal.integrated.defaultProfile.windows");
+
+		if (confOperatingSystem) {
 			os = vscode.workspace.getConfiguration('aspLanguage').get("selectOperatingSystem");
 			getNewPath()
         }
-	})
-
-	vscode.workspace.onDidChangeConfiguration(event => {
-        const affected = event.affectsConfiguration("aspLanguage.terminalMode");
-        if (affected) {
+        if (confTerminalMode) {
 			newTerminal = vscode.workspace.getConfiguration('aspLanguage').get("terminalMode");
-        }
-	})
-
-	vscode.workspace.onDidChangeConfiguration(event => {
-        const affected = event.affectsConfiguration("aspLanguage.turnMessagesOff");
-        if (affected) {
+        } 
+		if (confTurnMessagesOff) {
 			turnMessagesOff = vscode.workspace.getConfiguration('aspLanguage').get("turnMessagesOff");
         }
-	})
-	
-	vscode.workspace.onDidChangeConfiguration(event => {
-        const affected = event.affectsConfiguration("aspLanguage.usePathClingo");
-        if (affected) {
+		if (confUsePathClingo) {
 			usePathClingo = vscode.workspace.getConfiguration('aspLanguage').get("usePathClingo");
 			usePath()
         }
-	})
-	
-	vscode.workspace.onDidChangeConfiguration(event => {
-        const affected = event.affectsConfiguration("aspLanguage.setConfig");
-        if (affected) {
+		if (confSetConfig) {
 			setConfig = vscode.workspace.getConfiguration('aspLanguage').get("setConfig");
-			
         }
-    })
+		if (confTerminalProfile) {
+			terminalType = vscode.workspace.getConfiguration('terminal').get("integrated.defaultProfile.windows");
+        }
 
+	})
 }
 
 // this method is called when your extension is deactivated
