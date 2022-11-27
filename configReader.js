@@ -53,7 +53,7 @@ function validateConfigSchema(contextAbsolutePath,pathToConfig) {
 function readFiles() {
     if (jsonConfig.additionalFiles != undefined) {
         const fileList = jsonConfig.additionalFiles.map(file => 
-            `${dirname(vscode.window.activeTextEditor.document.fileName)}\\${file}`
+            `"${dirname(vscode.window.activeTextEditor.document.fileName)}\\${file}"`
         );
         return ` ${fileList}`
     } else {
