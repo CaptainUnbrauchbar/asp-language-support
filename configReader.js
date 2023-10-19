@@ -1,4 +1,4 @@
-const { dirname } = require('path');
+const { dirname,join } = require('path');
 const fs = require('fs');
 const vscode = require('vscode');
 const Ajv = require("ajv").default
@@ -11,7 +11,7 @@ var jsonConfig;
  */
 function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
     let args = "";
-    const pathToConfig = `${dirname(vscode.window.activeTextEditor.document.fileName)}\\${setConfig}`;
+    const pathToConfig = join(dirname(vscode.window.activeTextEditor.document.fileName), setConfig);
     if (setConfig.match(/json$/i)) {
             jsonConfig = JSON.parse(fs.readFileSync(pathToConfig).toString());
 
@@ -43,8 +43,8 @@ function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
  * @param {string} pathToConfig
  */
 function validateConfigSchema(contextAbsolutePath,pathToConfig) {
-    const ajv = new Ajv();``
-    const schema = require(contextAbsolutePath+"\\schema.json");
+    const ajv = new Ajv();
+    const schema = require(join(contextAbsolutePath, `schema.json`));
     const validate = ajv.compile(schema);
     const valid = validate(jsonConfig);
     if (!valid) vscode.window.showInformationMessage(`Config file ${pathToConfig} is not as expected: ${validate.errors}`);
@@ -53,7 +53,7 @@ function validateConfigSchema(contextAbsolutePath,pathToConfig) {
 function readFiles() {
     if (jsonConfig.additionalFiles != undefined) {
         const fileList = jsonConfig.additionalFiles.map(file => 
-            `"${dirname(vscode.window.activeTextEditor.document.fileName)}\\${file}"`
+            `"${join(dirname(vscode.window.activeTextEditor.document.fileName), file)}"`
         );
         return ` ${fileList}`
     } else {

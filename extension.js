@@ -1,6 +1,6 @@
 const vscode = require('vscode');
 const which = require('which');
-const { dirname } = require('path');
+const { dirname,join } = require('path');
 const fs = require('fs');
 const { readConfig } = require('./configReader.js');
 
@@ -107,7 +107,7 @@ function activate(context) {
 	const computeConfigCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalconfig', function () {
 		createTerminal();
 
-		if (fs.existsSync(`${dirname(vscode.window.activeTextEditor.document.fileName)}\\${setConfig}`)) {
+		if (fs.existsSync(join(dirname(vscode.window.activeTextEditor.document.fileName), setConfig))) {
 			additionalArgs = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
 
 			terminal.show();
@@ -127,8 +127,8 @@ function activate(context) {
 	const initClingoConfig = vscode.commands.registerCommand('answer-set-programming-language-support.initClingoConfig', function () {
 		createTerminal();
 
-		const sampleConfig = fs.readFileSync(`${context.asAbsolutePath("")}\\sampleConfig.json`);
-		fs.writeFileSync(`${dirname(vscode.window.activeTextEditor.document.fileName)}\\config.json`, sampleConfig);
+		const sampleConfig = fs.readFileSync(join(context.asAbsolutePath(""), `sampleConfig.json`));
+		fs.writeFileSync(join(dirname(vscode.window.activeTextEditor.document.fileName), `config.json`), sampleConfig);
 		
 		vscode.workspace.getConfiguration('aspLanguage').update("setConfig", "config.json");
 	});
