@@ -55,7 +55,7 @@ function readFiles() {
         const fileList = jsonConfig.additionalFiles.map(file => 
             `"${join(dirname(vscode.window.activeTextEditor.document.fileName), file)}"`
         );
-        return ` ${fileList}`
+        return ` ${fileList.join(' ')}`
     } else {
         return ``;
     }
