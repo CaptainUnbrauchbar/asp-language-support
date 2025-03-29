@@ -1,8 +1,9 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CaptainUnbrauchbar/asp-language-support/badge)](https://scorecard.dev/viewer/?uri=github.com/CaptainUnbrauchbar/asp-language-support)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](/LICENSE.md)
 
 # Answer Set Programming Language Support (for Clingo)
 
- | [Potassco](https://potassco.org/) | [Potassco on Github](https://github.com/potassco) | [Clingo](https://potassco.org/clingo/) |
+| [Potassco](https://potassco.org/) | [Potassco on Github](https://github.com/potassco) | [Clingo](https://potassco.org/clingo/) |
 
 ## Features
 
@@ -18,7 +19,7 @@ A new Terminal will open with the results!
 
 If you want to add **additional startup arguments** you can use the `> Compute Answer Sets (config.json)` option.
 
-First generate a **sample config.json** file with the `ASPLanguage: Initialize clingo config file in current working directory` command *(Press Ctrl+Shift+P)*.
+First generate a **sample config.json** file with the `ASPLanguage: Initialize clingo config file in current working directory` command _(Press Ctrl+Shift+P)_.
 
 This will create a config file with all supported arguments/settings in your current working directory.
 If you want to use your **own config file**, just change the config file name in the extension settings.

@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Enable version updates for github-actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    rebase-strategy: disabled
+    commit-message:
+      prefix: "ci: :construction_worker:"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci: :arrow-up:"
