@@ -8,7 +8,6 @@
     ],
     "args": {
         "verboseMode": 1,
-        "outputFormat": 0,
         "parallelMode": {
             "useParallelMode": false,
             "mode": "compete",
