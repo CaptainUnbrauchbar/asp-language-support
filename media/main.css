@@ -12,7 +12,7 @@ body {
 
 .output-box {
     width: 100%; /* Adjust width to fit content */
-    height: 6em; /* Adjust height to fit content */
+    height: 100vh; /* Adjust height to fit content */
     resize: none;
     padding: 0.5em;
     font-family: var(--vscode-editor-font-family);

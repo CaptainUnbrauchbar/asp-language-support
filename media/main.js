@@ -71,7 +71,7 @@ Result: ${result.result}
             });
         }
         if (message.type === 'updateOutputString') {
-            updateOutputBox(message.output);
+            updateOutputBox(message.answers);
         }
     });
 
