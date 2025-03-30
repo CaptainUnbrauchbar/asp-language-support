@@ -1,0 +1,64 @@
+body {
+	background-color: transparent;
+}
+
+.output-container {
+    margin-top: 1em;
+    padding: 0.5em;
+    background-color: var(--vscode-editor-background);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 4px;
+}
+
+.output-box {
+    width: 100%; /* Adjust width to fit content */
+    height: 100vh; /* Adjust height to fit content */
+    resize: none;
+    padding: 0.5em;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    color: var(--vscode-input-foreground);
+    background-color: var(--vscode-input-background);
+    border: none;
+    outline: none;
+	/* Add colored padding effect */
+    box-shadow: 0 0 0 2px var(--vscode-input-border); /* 10px "padding" with border color */
+    box-sizing: border-box; /* Ensure padding and shadow are included in the element's size */
+}
+
+.info-container {
+    display: flex; /* Use flexbox to align items side by side */
+    gap: 1em; /* Add spacing between the boxes */
+    margin-bottom: 1em; /* Add spacing below the container */
+}
+
+.info-box {
+    width: 30em; /* Each box takes up 50% of the container width */
+    height: auto; /* Allow height to adjust dynamically */
+    resize: none; /* Disable manual resizing */
+    padding: 0.5em;
+    font-family: var(--vscode-editor-font-family);
+    font-weight: bold; /* Make the text bold */
+    font-size: var(--vscode-editor-font-size);
+    color: var(--vscode-input-foreground);
+    background-color: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 4px;
+    box-sizing: border-box; /* Include padding and border in the box size */
+}
+
+.answer-container {
+    margin-bottom: 1em; /* Add spacing between answers */
+}
+
+.answer-label-box {
+    background-color: var(--vscode-input-background); /* Match VS Code theme */
+    color: var(--vscode-input-foreground); /* Match text color */
+    padding: 0.1em 0.1em; /* Add padding inside the label box */
+    font-weight: bold; /* Make the text bold */
+    font-size: var(--vscode-editor-font-size); /* Match font size */
+    margin-bottom: 0.5em; /* Add spacing below the label box */
+    display: inline-block; /* Ensure it doesn't stretch */
+    box-shadow: 0 0 0 2px var(--vscode-input-border); /* 10px "padding" with border color */
+    box-sizing: border-box; /* Ensure padding and shadow are included in the element's size */
+}
