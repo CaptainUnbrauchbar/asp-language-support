@@ -4,6 +4,7 @@ const { dirname,join } = require('path');
 const fs = require('fs');
 const { readConfig } = require('./configReader.js');
 const clingo = require('clingo-wasm');
+const { spawn } = require('child_process');
 
 class WebviewProvider {
 
@@ -37,6 +38,7 @@ class WebviewProvider {
         const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css'));
         const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css'));
         const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.css'));
+		const clingoSolver = vscode.workspace.getConfiguration('aspLanguage').get("usePathClingo") ? "your own version of Clingo from PATH" : "the bundled WASM Clingo Solver";
         // Use a nonce to only allow a specific script to be run.
         const nonce = getNonce();
         return `<!DOCTYPE html>
@@ -60,9 +62,14 @@ class WebviewProvider {
 				<title>ASP Output</title>
 			</head>
 			<body>
-				<div class="output-container">
-					<textarea class="output-box" readonly></textarea>
-				</div>
+            <div class="output-container">
+                <textarea class="output-box" readonly>
+Welcome to Clingo!
+Using ${clingoSolver}.
+
+Use the buttons in the top right to compute all sets, a single set or a config file.
+                </textarea>
+            </div>
 
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
@@ -227,59 +234,89 @@ function activate(context) {
 	}
 
 	const computeAllSetsCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalall', async function () {
-		if (usePathClingo) {
-			createTerminal();
-			terminal.show();
-			terminal.sendText(`${getPath()} "${vscode.window.activeTextEditor.document.fileName}" 0`);
+		if (!vscode.window.activeTextEditor) {
+			vscode.window.showErrorMessage("No active text editor found. Please open a file to run Clingo on.");
 		} else {
-			const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, 0);
-			const answers = formatWasmResult(clingoResult);
-			provider._view?.webview.postMessage({ type: 'updateOutput', answers });
-		}
-	});
-
-	const computeSingleSetCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalsingle', async function () {
-		if (usePathClingo) {
-			createTerminal();
-			terminal.show();
-			terminal.sendText(`${getPath()} "${vscode.window.activeTextEditor.document.fileName}" 1`);
-		} else {
-			const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, 1);
-			const answers = formatWasmResult(clingoResult);
-			provider._view?.webview.postMessage({ type: 'updateOutput', answers });
-		}
-	});
-
-	const computeConfigCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalconfig', async function () {
-		createTerminal();
-
-		if (fs.existsSync(join(dirname(vscode.window.activeTextEditor.document.fileName), setConfig))) {
 			if (usePathClingo) {
-				createTerminal();
-				additionalArgs = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath("")).join(" ");
-
-				terminal.show();
-				terminal.sendText(`${getPath()} "${vscode.window.activeTextEditor.document.fileName}" ${additionalArgs}`);
+				// Run the terminal command in the background
+				const command = getPath();
+				const args = [`"${vscode.window.activeTextEditor.document.fileName}"`, "0"];
+				const process = spawn(command, args, { shell: true });
+	
+				let output = '';
+				let errorOutput = '';
+	
+				process.stdout.on('data', (data) => {
+					output += data.toString();
+				});
+	
+				process.stderr.on('data', (data) => {
+					errorOutput += data.toString();
+				});
+	
+				process.on('close', (code) => {
+					if (code === 30) {
+						provider._view?.webview.postMessage({ type: 'updateOutputString', output });
+					} else {
+						vscode.window.showErrorMessage(`Clingo process exited with code ${code}: ${errorOutput}`);
+					}
+				});
 			} else {
-				createTerminal();
-				
-				additionalArgs = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
-				const models = additionalArgs.find(arg => arg.startsWith("--models")).split(" ")[1]
-				additionalArgs = additionalArgs.filter(arg => !arg.startsWith("--models"))
-
-				const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, parseInt(models), additionalArgs);
+				const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, 0);
 				const answers = formatWasmResult(clingoResult);
 				provider._view?.webview.postMessage({ type: 'updateOutput', answers });
 			}
 		}
-		else {
-			const chosenOption = Promise.resolve(vscode.window.showInformationMessage(`Could not find config File ${setConfig} in working directory. Do you want to create a new config?`,"Yes","No"));
-			chosenOption.then(function(value) {
-				if (value === "Yes") {
-					vscode.commands.executeCommand("answer-set-programming-language-support.initClingoConfig");
-					vscode.window.showInformationMessage(`Config config.json created in working directory!`);
+	});
+
+	const computeSingleSetCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalsingle', async function () {
+		if (!vscode.window.activeTextEditor) {
+			vscode.window.showErrorMessage("No active text editor found. Please open a file to run Clingo on.");
+		} else {
+			if (usePathClingo) {
+				createTerminal();
+				terminal.show();
+				terminal.sendText(`${getPath()} "${vscode.window.activeTextEditor.document.fileName}" 1`);
+			} else {
+				const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, 1);
+				const answers = formatWasmResult(clingoResult);
+				provider._view?.webview.postMessage({ type: 'updateOutput', answers });
+			}
+		}
+		
+	});
+
+	const computeConfigCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalconfig', async function () {
+		if (!vscode.window.activeTextEditor) {
+			vscode.window.showErrorMessage("No active text editor found. Please open a file to run Clingo on.");
+		} else {
+			if (fs.existsSync(join(dirname(vscode.window.activeTextEditor.document.fileName), setConfig))) {
+				if (usePathClingo) {
+					createTerminal();
+					additionalArgs = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath("")).join(" ");
+
+					terminal.show();
+					terminal.sendText(`${getPath()} "${vscode.window.activeTextEditor.document.fileName}" ${additionalArgs}`);
+				} else {
+					
+					const cfgFile = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
+					const models = cfgFile.find(arg => arg.startsWith("--models")).split(" ")[1]
+					additionalArgs = cfgFile.filter(arg => !arg.startsWith("--models"))
+
+					const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, parseInt(models), additionalArgs);
+					const answers = formatWasmResult(clingoResult);
+					provider._view?.webview.postMessage({ type: 'updateOutput', answers, cfgFile });
 				}
-			});
+			}
+			else {
+				const chosenOption = Promise.resolve(vscode.window.showInformationMessage(`Could not find config File ${setConfig} in working directory. Do you want to create a new config?`,"Yes","No"));
+				chosenOption.then(function(value) {
+					if (value === "Yes") {
+						vscode.commands.executeCommand("answer-set-programming-language-support.initClingoConfig");
+						vscode.window.showInformationMessage(`Config config.json created in working directory!`);
+					}
+				});
+			}
 		}
 	});
 
@@ -315,6 +352,11 @@ function activate(context) {
 		if (confUsePathClingo) {
 			usePathClingo = vscode.workspace.getConfiguration('aspLanguage').get("usePathClingo");
 			usePath()
+
+			// Refresh the webview HTML
+			if (provider._view) {
+				provider._view.webview.html = provider._getHtmlForWebview(provider._view.webview);
+			}
         }
 		if (confSetConfig) {
 			setConfig = vscode.workspace.getConfiguration('aspLanguage').get("setConfig");
