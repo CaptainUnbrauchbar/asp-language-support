@@ -20,6 +20,24 @@
 	],
 	"main": "./extension.js",
 	"contributes": {
+		"viewsContainers": {
+			"panel": [
+				{
+					"id": "aspContainer",
+					"title": "ASP",
+					"icon": "images/19286215.png"
+				}
+			]
+		},
+		"views": {
+			"aspContainer": [
+				{
+					"type": "webview",
+					"id": "ASP.aspView",
+					"name": "ASP View"
+				}
+			]
+		},
 		"languages": [
 			{
 				"id": "asp",
@@ -75,15 +93,18 @@
 		"commands": [
 			{
 				"command": "answer-set-programming-language-support.runinterminalall",
-				"title": "> Compute all Answer Sets"
+				"title": "Compute all Answer Sets",
+				"icon": "$(notebook-execute-all)"
 			},
 			{
 				"command": "answer-set-programming-language-support.runinterminalsingle",
-				"title": "> Compute the first Answer Set"
+				"title": "Compute the first Answer Set",
+				"icon": "$(notebook-execute)"
 			},
 			{
 				"command": "answer-set-programming-language-support.runinterminalconfig",
-				"title": "> Compute Answer Sets (config.json)"
+				"title": "Compute Answer Sets (config.json)",
+				"icon": "$(multi-diff-editor-label-icon)"
 			},
 			{
 				"command": "answer-set-programming-language-support.initClingoConfig",
@@ -107,6 +128,23 @@
 					"command": "answer-set-programming-language-support.runinterminalconfig",
 					"group": "z_commands"
 				}
+			],
+			"view/title": [
+			{
+				"command": "answer-set-programming-language-support.runinterminalall",
+				"when": "view == ASP.aspView",
+				"group": "navigation"
+			},
+			{
+				"command": "answer-set-programming-language-support.runinterminalsingle",
+				"when": "view == ASP.aspView",
+				"group": "navigation"
+			},
+			{
+				"command": "answer-set-programming-language-support.runinterminalconfig",
+				"when": "view == ASP.aspView",
+				"group": "navigation"
+			}
 			]
 		},
 		"keybindings": [
@@ -146,6 +184,7 @@
 	"dependencies": {
 		"ajv": "^8.17.1",
 		"clingo-wasm": "^0.2.1",
-		"which": "^5.0.0"
+		"which": "^5.0.0",
+		"@vscode/codicons": "0.0.36"
 	}
 }

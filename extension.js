@@ -5,10 +5,88 @@ const fs = require('fs');
 const { readConfig } = require('./configReader.js');
 const clingo = require('clingo-wasm');
 
+class WebviewProvider {
+
+	constructor(_extensionUri) {
+		this._extensionUri = _extensionUri;
+	}
+	resolveWebviewView(webviewView, _context, _token) {
+        this._view = webviewView;
+        webviewView.webview.options = {
+            // Allow scripts in the webview
+            enableScripts: true,
+            localResourceRoots: [
+                this._extensionUri
+            ]
+        };
+        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        webviewView.webview.onDidReceiveMessage(data => {
+            switch (data.type) {
+                case 'colorSelected':
+                    {
+                        vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));
+                        break;
+                    }
+            }
+        });
+    }
+	_getHtmlForWebview(webview) {
+        // Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
+        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js'));
+        // Do the same for the stylesheet.
+        const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css'));
+        const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css'));
+        const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'main.css'));
+        // Use a nonce to only allow a specific script to be run.
+        const nonce = getNonce();
+        return `<!DOCTYPE html>
+			<html lang="en">
+			<head>
+				<meta charset="UTF-8">
+
+				<!--
+					Use a content security policy to only allow loading styles from our extension directory,
+					and only allow scripts that have a specific nonce.
+					(See the 'webview-sample' extension sample for img-src content security policy examples)
+				-->
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+				<link href="${styleResetUri}" rel="stylesheet">
+				<link href="${styleVSCodeUri}" rel="stylesheet">
+				<link href="${styleMainUri}" rel="stylesheet">
+
+				<title>ASP Output</title>
+			</head>
+			<body>
+				<div class="output-container">
+					<textarea class="output-box" readonly></textarea>
+				</div>
+
+				<script nonce="${nonce}" src="${scriptUri}"></script>
+			</body>
+			</html>`;
+    }
+}
+
+WebviewProvider.viewType = 'ASP.aspView';
+
+function getNonce() {
+	let text = '';
+	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	for (let i = 0; i < 32; i++) {
+		text += possible.charAt(Math.floor(Math.random() * possible.length));
+	}
+	return text;
+}
+
 /**
  * @param {vscode.ExtensionContext} context Context of VSCode
  */
 function activate(context) {
+
+	const provider = new WebviewProvider(context.extensionUri);
 
 	async function runClingoWasmForFile(filePath, models = undefined, options = undefined) {
 		try {
@@ -83,6 +161,23 @@ function activate(context) {
 	`;
 	}
 
+	function formatWasmResult(result) {
+		return {
+			solver: result.Solver,
+			models: `${result.Models.Number} (${result.Models.More})`,
+			calls: result.Calls,
+			time: {
+				total: result.Time.Total,
+				solve: result.Time.Solve,
+				model: result.Time.Model
+			},
+			answers: result.Call.flatMap(call =>
+				call.Witnesses.map(witness => witness.Value.join(', '))
+			),
+			result: result.Result
+		};
+	}
+
 	//Function to set path to system PATH if configuration option aspLanguage.usePathClingo is enabled
 	function usePath() {
 		if (usePathClingo) {
@@ -137,11 +232,9 @@ function activate(context) {
 			terminal.show();
 			terminal.sendText(`${getPath()} "${vscode.window.activeTextEditor.document.fileName}" 0`);
 		} else {
-			createTerminal();
-			terminal.show();
-			const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, 0)
-			const formattedResult = printWasmResult(clingoResult); // Format the result
-            terminal.sendText(`"${formattedResult}"`, false); // Print the escaped string
+			const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, 0);
+			const answers = formatWasmResult(clingoResult);
+			provider._view?.webview.postMessage({ type: 'updateOutput', answers });
 		}
 	});
 
@@ -151,11 +244,9 @@ function activate(context) {
 			terminal.show();
 			terminal.sendText(`${getPath()} "${vscode.window.activeTextEditor.document.fileName}" 1`);
 		} else {
-			createTerminal();
-			terminal.show();
-			const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, 1)
-			const formattedResult = printWasmResult(clingoResult); // Format the result
-            terminal.sendText(`"${formattedResult}"`, false); // Print the escaped string
+			const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, 1);
+			const answers = formatWasmResult(clingoResult);
+			provider._view?.webview.postMessage({ type: 'updateOutput', answers });
 		}
 	});
 
@@ -176,12 +267,9 @@ function activate(context) {
 				const models = additionalArgs.find(arg => arg.startsWith("--models")).split(" ")[1]
 				additionalArgs = additionalArgs.filter(arg => !arg.startsWith("--models"))
 
-
-				terminal.show();
-
-				const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, parseInt(models), additionalArgs)
-				const formattedResult = printWasmResult(clingoResult); // Format the result
-				terminal.sendText(`"${formattedResult}"`, false); // Print the escaped string
+				const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, parseInt(models), additionalArgs);
+				const answers = formatWasmResult(clingoResult);
+				provider._view?.webview.postMessage({ type: 'updateOutput', answers });
 			}
 		}
 		else {
@@ -204,6 +292,7 @@ function activate(context) {
 		vscode.workspace.getConfiguration('aspLanguage').update("setConfig", "config.json");
 	});
 
+	context.subscriptions.push(vscode.window.registerWebviewViewProvider(WebviewProvider.viewType, provider));
 	context.subscriptions.push(computeAllSetsCommand);
 	context.subscriptions.push(computeSingleSetCommand);
 	context.subscriptions.push(computeConfigCommand);
