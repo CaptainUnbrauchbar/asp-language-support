@@ -5,6 +5,7 @@ const fs = require('fs');
 const { readConfig } = require('./configReader.js');
 const clingo = require('clingo-wasm');
 const { spawn } = require('child_process');
+const crypto = require("crypto");
 
 //E_SAT       = 10, !< At least one model was found.
 //E_EXHAUST   = 20, !< Search-space was completely examined. 
@@ -75,7 +76,6 @@ Using ${clingoSolver}.
 Use the buttons in the top right to compute all sets, a single set or a config file.
                 </textarea>
             </div>
-
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
 			</html>`;
@@ -85,12 +85,7 @@ Use the buttons in the top right to compute all sets, a single set or a config f
 WebviewProvider.viewType = 'ASP.aspView';
 
 function getNonce() {
-	let text = '';
-	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-	for (let i = 0; i < 32; i++) {
-		text += possible.charAt(Math.floor(Math.random() * possible.length));
-	}
-	return text;
+	return crypto.randomBytes(32).toString("base64");
 }
 
 /**
@@ -148,8 +143,7 @@ function activate(context) {
 
 			return wasmResult;
 		} catch (error) {
-			// Log and display errors
-			console.error(`Error in runClingoWasmForFile: ${error.message}`, error);
+			// Display errors
 			vscode.window.showErrorMessage(`Error reading file or running Clingo WASM: ${error.message}`);
 			return null;
 		}
