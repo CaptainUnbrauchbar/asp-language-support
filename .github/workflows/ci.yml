@@ -43,10 +43,10 @@ jobs:
           pat: stub
           # do not publish to marketplace, only package vsix
           dryRun: true
-          retention-days: 5
 
       - name: Upload Extension Package as Artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: VSIX Extension File
           path: ${{ steps.packageExtension.outputs.vsixPath }}
+          retention-days: 5
