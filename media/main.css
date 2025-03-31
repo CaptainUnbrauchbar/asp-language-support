@@ -52,13 +52,23 @@ body {
 }
 
 .answer-label-box {
-    background-color: var(--vscode-input-background); /* Match VS Code theme */
+    width: 30em; /* Adjust width to fit content */
+    background-color: var(--vscode-input-border); /* Match VS Code theme */
     color: var(--vscode-input-foreground); /* Match text color */
     padding: 0.1em 0.1em; /* Add padding inside the label box */
     font-weight: bold; /* Make the text bold */
     font-size: var(--vscode-editor-font-size); /* Match font size */
-    margin-bottom: 0.5em; /* Add spacing below the label box */
+    margin-bottom: 0.3em; /* Add spacing below the label box */
     display: inline-block; /* Ensure it doesn't stretch */
-    box-shadow: 0 0 0 2px var(--vscode-input-border); /* 10px "padding" with border color */
+    box-shadow: 0 0 0 2px var(--vscode-editor-background); /* 10px "padding" with border color */
     box-sizing: border-box; /* Ensure padding and shadow are included in the element's size */
+    border-radius: 2px;
+}
+
+.answer-label-box:hover {
+    cursor: pointer; /* Change cursor to pointer on hover */
+    background-color: var(--vscode-input-border); /* Match VS Code theme */
+}
+.answer-label-box:active {
+    background-color: var(--vscode-button-activeBackground); /* Match VS Code theme */
 }

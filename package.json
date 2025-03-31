@@ -104,7 +104,7 @@
 			{
 				"command": "answer-set-programming-language-support.runinterminalconfig",
 				"title": "Compute Answer Sets (config.json)",
-				"icon": "$(multi-diff-editor-label-icon)"
+				"icon": "$(notebook-render-output)"
 			},
 			{
 				"command": "answer-set-programming-language-support.initClingoConfig",
@@ -133,17 +133,17 @@
 				{
 					"command": "answer-set-programming-language-support.runinterminalall",
 					"when": "view == ASP.aspView && resourceLangId == asp",
-					"group": "navigation"
+					"group": "navigation@2"
 				},
 				{
 					"command": "answer-set-programming-language-support.runinterminalsingle",
 					"when": "view == ASP.aspView && resourceLangId == asp",
-					"group": "navigation"
+					"group": "navigation@1"
 				},
 				{
 					"command": "answer-set-programming-language-support.runinterminalconfig",
 					"when": "view == ASP.aspView && resourceLangId == asp",
-					"group": "navigation"
+					"group": "navigation@3"
 				}
 			]
 		},

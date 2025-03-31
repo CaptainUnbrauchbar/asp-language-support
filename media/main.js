@@ -54,16 +54,19 @@ Result: ${result.result}
                 const answerContainer = document.createElement('div');
                 answerContainer.className = 'answer-container';
 
-                const labelBox = document.createElement('div');
+                const labelBox = document.createElement('button');
                 labelBox.className = 'answer-label-box';
-                labelBox.textContent = `Answer ${index + 1}`;
+                labelBox.textContent = `Answer ${index + 1}/${result.answers.length}`;
+                labelBox.addEventListener('click', () => {
+                    buttonCopyToClickboard(index+1, answer);
+                });
                 answerContainer.appendChild(labelBox);
 
                 const outputBox = document.createElement('textarea');
                 outputBox.className = 'output-box';
                 outputBox.readOnly = true;
                 outputBox.value = answer;
-                outputBox.style.height = '10em';
+                outputBox.style.height = '8em';
                 answerContainer.appendChild(outputBox);
                 outputContainer.appendChild(answerContainer);
             });
@@ -82,6 +85,11 @@ Result: ${result.result}
         outputBox.value = text;
     }
 
+    function buttonCopyToClickboard(answerNumber, answer) {
+        // Use the Clipboard API to copy the answer to the clipboard
+        navigator.clipboard.writeText(answer);
+    }
+    
 }());
 
 

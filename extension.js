@@ -73,7 +73,8 @@ class WebviewProvider {
 Welcome to Clingo!
 Using ${clingoSolver}.
 
-Use the buttons in the top right to compute all sets, a single set or a config file.
+> Use the buttons in the top right to compute all sets, a single set or a config file.
+> Click the button above each answer to copy its content to the clipboard.
                 </textarea>
             </div>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
@@ -96,57 +97,51 @@ function activate(context) {
 	const provider = new WebviewProvider(context.extensionUri);
 
 	async function runClingoWasmForFile(filePath, models = undefined, options = undefined) {
-		try {
-			// Validate the file path
-			if (!fs.existsSync(filePath)) {
-				vscode.window.showErrorMessage(`File not found: ${filePath}`);
-				return null;
-			}
+		return await vscode.window.withProgress({
+			location: vscode.ProgressLocation.Window,
+			title: "Clingo is running",
+		}, async (progress) => {
 
-			// Read the main file content
-			let fileContent = fs.readFileSync(filePath, 'utf8');
-			if (!fileContent.trim()) {
-				vscode.window.showErrorMessage(`File is empty: ${filePath}`);
-				return null;
-			}
+			progress.report({ increment: 0, message: "Starting Clingo..." });
 
-			// Read and merge contents of additional files
+			let fileContent;
+			fileContent = await fs.promises.readFile(filePath, 'utf8');
+
 			const additionalFiles = options?.filter(arg => arg && !arg.startsWith("--"))
 				.map(filePath => filePath.replace(/"/g, ''));
 
 			if (additionalFiles?.length) {
-				additionalFiles.forEach(additionalFilePath => {
-					if (fs.existsSync(additionalFilePath)) {
-						const additionalContent = fs.readFileSync(additionalFilePath, 'utf8');
-						if (additionalContent.trim()) {
-							fileContent += `\n${additionalContent}`;
-						} else {
-							vscode.window.showWarningMessage(`Additional file is empty: ${additionalFilePath}`);
-						}
+				for (const additionalFilePath of additionalFiles) {
+					await fs.promises.access(additionalFilePath);
+					const additionalContent = await fs.promises.readFile(additionalFilePath, 'utf8');
+					if (additionalContent.trim()) {
+						fileContent += `\n${additionalContent}`;
 					} else {
-						vscode.window.showWarningMessage(`Additional file not found: ${additionalFilePath}`);
+						vscode.window.showWarningMessage(`Additional file is empty: ${additionalFilePath}`);
 					}
-				});
+				}
 			}
 
 			// Filter options for Clingo
-			const clingoOptions = options?.filter(arg => arg.startsWith("--")) ?? [];
+			const clingoOptions = options?.filter(arg => arg.startsWith("--"));
 
-			// Run Clingo WASM
+			// Remove all sections starting with % and ending with \r\n
+			fileContent = fileContent.replace(/%.*?\r\n/g, '');
+
+			progress.report({ increment: 50, message: "Running Clingo WASM..." });
+
+			// Run Clingo WASM with timeout
 			const wasmResult = await clingo.run(fileContent, models, clingoOptions);
 
+			progress.report({ increment: 100, message: "Clingo finished successfully!" });
 			// Validate the result
-			if (!wasmResult || typeof wasmResult !== 'object') {
-				vscode.window.showErrorMessage(`Invalid result from Clingo WASM.`);
+			if (wasmResult.Result === "ERROR") {
+				vscode.window.showErrorMessage(`Clingo WASM Error: ${wasmResult.Error}`);
 				return null;
+			} else {
+				return wasmResult;
 			}
-
-			return wasmResult;
-		} catch (error) {
-			// Display errors
-			vscode.window.showErrorMessage(`Error reading file or running Clingo WASM: ${error.message}`);
-			return null;
-		}
+		});
 	}
 
 	function printWasmResult(result) {
@@ -237,7 +232,6 @@ function activate(context) {
 			vscode.window.showErrorMessage("No active text editor found. Please open a file to run Clingo on.");
 		} else {
 			if (usePathClingo) {
-				// Run the terminal command in the background
 				const command = getPath();
 				const args = [`"${vscode.window.activeTextEditor.document.fileName}"`, "0"];
 				const process = spawn(command, args, { shell: true });
@@ -255,8 +249,7 @@ function activate(context) {
 
 				process.on('close', (code) => {
 					if (CLINGO_SUCCESS_CODES.includes(code)) {
-						// Send the output to the webview
-						provider._view?.webview.postMessage({ type: 'updateOutputString', answers: output});
+						provider._view?.webview.postMessage({ type: 'updateOutputString', answers: output });
 					} else {
 						vscode.window.showErrorMessage(`Clingo process exited with code ${code}: ${errorOutput}`);
 					}
@@ -274,7 +267,6 @@ function activate(context) {
 			vscode.window.showErrorMessage("No active text editor found. Please open a file to run Clingo on.");
 		} else {
 			if (usePathClingo) {
-				// Run the terminal command in the background
 				const command = getPath();
 				const args = [`"${vscode.window.activeTextEditor.document.fileName}"`, "1"];
 				const process = spawn(command, args, { shell: true });
@@ -292,8 +284,7 @@ function activate(context) {
 
 				process.on('close', (code) => {
 					if (CLINGO_SUCCESS_CODES.includes(code)) {
-						// Send the output to the webview
-						provider._view?.webview.postMessage({ type: 'updateOutputString', answers: output});
+						provider._view?.webview.postMessage({ type: 'updateOutputString', answers: output });
 					} else {
 						vscode.window.showErrorMessage(`Clingo process exited with code ${code}: ${errorOutput}`);
 					}
@@ -304,7 +295,6 @@ function activate(context) {
 				provider._view?.webview.postMessage({ type: 'updateOutput', answers });
 			}
 		}
-
 	});
 
 	const computeConfigCommand = vscode.commands.registerCommand('answer-set-programming-language-support.runinterminalconfig', async function () {
@@ -313,10 +303,8 @@ function activate(context) {
 		} else {
 			if (fs.existsSync(join(dirname(vscode.window.activeTextEditor.document.fileName), setConfig))) {
 				if (usePathClingo) {
-
 					additionalArgs = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
 
-					// Run the terminal command in the background
 					const command = getPath();
 					const args = [`"${vscode.window.activeTextEditor.document.fileName}"`, ...additionalArgs];
 					const process = spawn(command, args, { shell: true });
@@ -334,24 +322,21 @@ function activate(context) {
 
 					process.on('close', (code) => {
 						if (CLINGO_SUCCESS_CODES.includes(code)) {
-							// Send the output to the webview
-							provider._view?.webview.postMessage({ type: 'updateOutputString', answers: output});
+							provider._view?.webview.postMessage({ type: 'updateOutputString', answers: output });
 						} else {
 							vscode.window.showErrorMessage(`Clingo process exited with code ${code}: ${errorOutput}`);
 						}
 					});
 				} else {
-
 					const cfgFile = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
-					const models = cfgFile.find(arg => arg.startsWith("--models")).split(" ")[1]
-					additionalArgs = cfgFile.filter(arg => !arg.startsWith("--models"))
+					const models = cfgFile.find(arg => arg.startsWith("--models")).split(" ")[1];
+					additionalArgs = cfgFile.filter(arg => !arg.startsWith("--models"));
 
 					const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, parseInt(models), additionalArgs);
 					const answers = formatWasmResult(clingoResult);
 					provider._view?.webview.postMessage({ type: 'updateOutput', answers, cfgFile });
 				}
-			}
-			else {
+			} else {
 				const chosenOption = Promise.resolve(vscode.window.showInformationMessage(`Could not find config File ${setConfig} in working directory. Do you want to create a new config?`, "Yes", "No"));
 				chosenOption.then(function (value) {
 					if (value === "Yes") {
@@ -377,6 +362,7 @@ function activate(context) {
 	context.subscriptions.push(computeSingleSetCommand);
 	context.subscriptions.push(computeConfigCommand);
 	context.subscriptions.push(initClingoConfig);
+
 
 	//Listeners for Configuration Options 
 	vscode.workspace.onDidChangeConfiguration(event => {
