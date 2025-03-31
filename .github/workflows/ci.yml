@@ -46,7 +46,7 @@ jobs:
           retention-days: 5
 
       - name: Upload Extension Package as Artifact
-        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2 # v2.3.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: VSIX Extension File
           path: ${{ steps.packageExtension.outputs.vsixPath }}
