@@ -11,7 +11,6 @@
             "type": "object",
             "properties": {
                 "verboseMode": {"type": "integer"},
-                "outputFormat": {"type": "integer"},
                 "parallelMode": {
                     "type": "object",
                     "properties": {
