@@ -1,4 +1,4 @@
-const { dirname,join } = require('path');
+const { dirname, join } = require('path');
 const fs = require('fs');
 const vscode = require('vscode');
 const Ajv = require("ajv").default
@@ -41,7 +41,7 @@ function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
  * @param {string} contextAbsolutePath
  * @param {string} pathToConfig
  */
-function validateConfigSchema(contextAbsolutePath,pathToConfig) {
+function validateConfigSchema(contextAbsolutePath, pathToConfig) {
     const ajv = new Ajv();
     const schema = require(join(contextAbsolutePath, `schema.json`));
     const validate = ajv.compile(schema);
@@ -51,7 +51,7 @@ function validateConfigSchema(contextAbsolutePath,pathToConfig) {
 
 function readFiles() {
     if (jsonConfig.additionalFiles != undefined) {
-        const fileList = jsonConfig.additionalFiles.map(file => 
+        const fileList = jsonConfig.additionalFiles.map(file =>
             `"${join(dirname(vscode.window.activeTextEditor.document.fileName), file)}"`
         );
         return fileList;

@@ -45,7 +45,7 @@ Result: ${result.result}
                 // Append the config box to the info container
                 infoContainer.appendChild(configBox);
             }
-            
+
             // Append the info container to the output container
             outputContainer.appendChild(infoContainer);
 
@@ -58,7 +58,7 @@ Result: ${result.result}
                 labelBox.className = 'answer-label-box';
                 labelBox.textContent = `Answer ${index + 1}/${result.answers.length}`;
                 labelBox.addEventListener('click', () => {
-                    buttonCopyToClickboard(index+1, answer);
+                    buttonCopyToClickboard(index + 1, answer);
                 });
                 answerContainer.appendChild(labelBox);
 
@@ -73,6 +73,9 @@ Result: ${result.result}
         }
         if (message.type === 'updateOutputString') {
             updateOutputBox(message.answers);
+            //scroll to bottom
+            const outputBox = document.querySelector('.output-box');
+            outputBox.scrollTop = outputBox.scrollHeight;
         }
     });
 
@@ -89,7 +92,7 @@ Result: ${result.result}
         // Use the Clipboard API to copy the answer to the clipboard
         navigator.clipboard.writeText(answer);
     }
-    
+
 }());
 
 
