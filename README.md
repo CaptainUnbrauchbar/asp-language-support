@@ -1,5 +1,9 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CaptainUnbrauchbar/asp-language-support/badge)](https://scorecard.dev/viewer/?uri=github.com/CaptainUnbrauchbar/asp-language-support)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](/LICENSE.md)
+[![Version on Marketplace](https://vsmarketplacebadges.dev/version-short/ffrankreiter.answer-set-programming-language-support.svg)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
+[![Downloads](https://vsmarketplacebadges.dev/downloads-short/ffrankreiter.answer-set-programming-language-support.svg)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
+[![Rating](https://vsmarketplacebadges.dev/rating-short/ffrankreiter.answer-set-programming-language-support.svg)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
+
 
 # Answer Set Programming Language Support (for Clingo)
 
