@@ -55,7 +55,7 @@ This extension contributes the following features:
 ## Contributing
 
 If you have any suggestions for a new feature or anything else please open an issue on GitHub: [ASP-LANGUAGE-SUPPORT](https://github.com/CaptainUnbrauchbar/asp-language-support)
-As this repository is actively being maintained Pull Requests are also welcome anytime, if you don't receive feedback within 48h feel free to also email one of the codeowners!
+The repository is being actively maintained and pull requests are welcome anytime. If you don't receive feedback within 48h feel free to also email one of the codeowners!
 
 ## Acknowledgements
 
