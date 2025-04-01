@@ -25,7 +25,7 @@ If you want to use your **own config file**, just change the config file name in
 Additionally you can use **arguments not directly supported** by the config.json by passing them in the **"customArgs" setting** as a string.
 
 If you need to work with multiple files specify them in **additional files** in this config file using the relative path from the current working directory.
-See the Clingo [Documentation](https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf) for more details on the config settings!
+See the Clingo [Documentation](https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf) (PDF) for more details on the config settings!
 
 If you want to use your own Version of Clingo from PATH with this extension, please enable `ASPLanguage: Use PATH Clingo` option in your settings.
 
