@@ -5,7 +5,7 @@ const fs = require("fs");
 const { readConfig } = require("./configReader.js");
 const clingo = require("clingo-wasm");
 const { spawn } = require("child_process");
-const { WebviewProvider } = require("./WebviewProvider.js");
+const { WebviewProvider } = require("./webviewProvider.js");
 
 //E_SAT       = 10, !< At least one model was found.
 //E_EXHAUST   = 20, !< Search-space was completely examined.

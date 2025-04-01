@@ -1,7 +1,7 @@
 const vscode = require("vscode");
 const crypto = require("crypto");
 
-class WebviewProvider {
+class WebviewProvider { 
   constructor(_extensionUri) {
     this._extensionUri = _extensionUri;
   }
