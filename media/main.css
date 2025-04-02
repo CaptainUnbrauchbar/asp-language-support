@@ -1,5 +1,5 @@
 body {
-	background-color: transparent;
+    background-color: transparent;
 }
 
 .output-container {
@@ -21,7 +21,7 @@ body {
     background-color: var(--vscode-input-background);
     border: none;
     outline: none;
-	/* Add colored padding effect */
+    /* Add colored padding effect */
     box-shadow: 0 0 0 2px var(--vscode-input-border); /* 10px "padding" with border color */
     box-sizing: border-box; /* Ensure padding and shadow are included in the element's size */
 }
@@ -70,5 +70,7 @@ body {
     background-color: var(--vscode-input-border); /* Match VS Code theme */
 }
 .answer-label-box:active {
-    background-color: var(--vscode-button-activeBackground); /* Match VS Code theme */
+    background-color: var(
+        --vscode-button-activeBackground
+    ); /* Match VS Code theme */
 }

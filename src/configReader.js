@@ -1,7 +1,7 @@
-const { dirname, join } = require('path');
-const fs = require('fs');
-const vscode = require('vscode');
-const Ajv = require("ajv").default
+const { dirname, join } = require("path");
+const fs = require("fs");
+const vscode = require("vscode");
+const Ajv = require("ajv").default;
 var jsonConfig;
 
 /**
@@ -11,7 +11,10 @@ var jsonConfig;
  */
 function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
     let args = [];
-    const pathToConfig = join(dirname(vscode.window.activeTextEditor.document.fileName), setConfig);
+    const pathToConfig = join(
+        dirname(vscode.window.activeTextEditor.document.fileName),
+        setConfig
+    );
     if (setConfig.match(/json$/i)) {
         jsonConfig = JSON.parse(fs.readFileSync(pathToConfig).toString());
 
@@ -28,10 +31,18 @@ function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
         args.push(...readFiles());
 
         if (!turnMessagesOff) {
-            vscode.window.showInformationMessage(`Running with ${jsonConfig.name} ${jsonConfig.version} by ${jsonConfig.author}:\n ${args.join(' ')}    (this message can be turned off in options)`);
+            vscode.window.showInformationMessage(
+                `Running with ${jsonConfig.name} ${jsonConfig.version} by ${
+                    jsonConfig.author
+                }:\n ${args.join(
+                    " "
+                )}    (this message can be turned off in options)`
+            );
         }
     } else {
-        vscode.window.showInformationMessage(`Invalid config file ${pathToConfig}`);
+        vscode.window.showInformationMessage(
+            `Invalid config file ${pathToConfig}`
+        );
     }
 
     return args;
@@ -46,13 +57,20 @@ function validateConfigSchema(contextAbsolutePath, pathToConfig) {
     const schema = require(join(contextAbsolutePath, `schema.json`));
     const validate = ajv.compile(schema);
     const valid = validate(jsonConfig);
-    if (!valid) vscode.window.showInformationMessage(`Config file ${pathToConfig} is not as expected: ${validate.errors}`);
+    if (!valid)
+        vscode.window.showInformationMessage(
+            `Config file ${pathToConfig} is not as expected: ${validate.errors}`
+        );
 }
 
 function readFiles() {
     if (jsonConfig.additionalFiles != undefined) {
-        const fileList = jsonConfig.additionalFiles.map(file =>
-            `"${join(dirname(vscode.window.activeTextEditor.document.fileName), file)}"`
+        const fileList = jsonConfig.additionalFiles.map(
+            (file) =>
+                `"${join(
+                    dirname(vscode.window.activeTextEditor.document.fileName),
+                    file
+                )}"`
         );
         return fileList;
     } else {
@@ -61,9 +79,17 @@ function readFiles() {
 }
 
 function readParallelMode() {
-    if (jsonConfig.args.parallelMode && jsonConfig.args.parallelMode.useParallelMode) {
-        const mode = jsonConfig.args.parallelMode.mode === undefined ? "compete" : jsonConfig.args.parallelMode.mode;
-        return [`--parallel-mode ${jsonConfig.args.parallelMode.threads},${mode}`];
+    if (
+        jsonConfig.args.parallelMode &&
+        jsonConfig.args.parallelMode.useParallelMode
+    ) {
+        const mode =
+            jsonConfig.args.parallelMode.mode === undefined
+                ? "compete"
+                : jsonConfig.args.parallelMode.mode;
+        return [
+            `--parallel-mode ${jsonConfig.args.parallelMode.threads},${mode}`,
+        ];
     } else {
         return [];
     }
@@ -122,7 +148,7 @@ function readModels() {
 
 function readCustomArgs() {
     if (jsonConfig.args.customArgs != undefined) {
-        return jsonConfig.args.customArgs.split(' ');
+        return jsonConfig.args.customArgs.split(" ");
     } else {
         return [];
     }
@@ -130,5 +156,5 @@ function readCustomArgs() {
 
 module.exports = {
     readConfig,
-    jsonConfig
-}
+    jsonConfig,
+};
