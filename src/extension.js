@@ -205,7 +205,10 @@ function activate(context) {
                 return;
             }
 
-            const configPath = join(dirname(vscode.window.activeTextEditor.document.fileName), setConfig);
+            const configPath = join(
+                dirname(vscode.window.activeTextEditor.document.fileName),
+                setConfig.replace(/^(..(\/|\|$))+/, "")
+            );
             if (fs.existsSync(configPath)) {
                 if (usePathClingo) {
                     additionalArgs = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));

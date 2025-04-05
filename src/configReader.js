@@ -13,7 +13,7 @@ function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
     let args = [];
     const pathToConfig = join(
         dirname(vscode.window.activeTextEditor.document.fileName),
-        setConfig
+        setConfig.replace(/^(..(\/|\|$))+/, "")
     );
     if (setConfig.match(/json$/i)) {
         jsonConfig = JSON.parse(fs.readFileSync(pathToConfig).toString());
@@ -32,17 +32,13 @@ function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
 
         if (!turnMessagesOff) {
             vscode.window.showInformationMessage(
-                `Running with ${jsonConfig.name} ${jsonConfig.version} by ${
-                    jsonConfig.author
-                }:\n ${args.join(
+                `Running with ${jsonConfig.name} ${jsonConfig.version} by ${jsonConfig.author}:\n ${args.join(
                     " "
                 )}    (this message can be turned off in options)`
             );
         }
     } else {
-        vscode.window.showInformationMessage(
-            `Invalid config file ${pathToConfig}`
-        );
+        vscode.window.showInformationMessage(`Invalid config file ${pathToConfig}`);
     }
 
     return args;
@@ -58,9 +54,7 @@ function validateConfigSchema(contextAbsolutePath, pathToConfig) {
     const validate = ajv.compile(schema);
     const valid = validate(jsonConfig);
     if (!valid)
-        vscode.window.showInformationMessage(
-            `Config file ${pathToConfig} is not as expected: ${validate.errors}`
-        );
+        vscode.window.showInformationMessage(`Config file ${pathToConfig} is not as expected: ${validate.errors}`);
 }
 
 function readFiles() {
@@ -69,7 +63,7 @@ function readFiles() {
             (file) =>
                 `"${join(
                     dirname(vscode.window.activeTextEditor.document.fileName),
-                    file
+                    file.replace(/^(..(\/|\|$))+/, "")
                 )}"`
         );
         return fileList;
@@ -79,17 +73,9 @@ function readFiles() {
 }
 
 function readParallelMode() {
-    if (
-        jsonConfig.args.parallelMode &&
-        jsonConfig.args.parallelMode.useParallelMode
-    ) {
-        const mode =
-            jsonConfig.args.parallelMode.mode === undefined
-                ? "compete"
-                : jsonConfig.args.parallelMode.mode;
-        return [
-            `--parallel-mode ${jsonConfig.args.parallelMode.threads},${mode}`,
-        ];
+    if (jsonConfig.args.parallelMode && jsonConfig.args.parallelMode.useParallelMode) {
+        const mode = jsonConfig.args.parallelMode.mode === undefined ? "compete" : jsonConfig.args.parallelMode.mode;
+        return [`--parallel-mode ${jsonConfig.args.parallelMode.threads},${mode}`];
     } else {
         return [];
     }
