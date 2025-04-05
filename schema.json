@@ -3,29 +3,32 @@
     "description": "",
     "type": "object",
     "properties": {
-        "name": {"type": "string"},
-        "author": {"type": "string"},
-        "version": {"type": "string"},
-        "additionalFile": {"type": "array"},
+        "name": { "type": "string" },
+        "author": { "type": "string" },
+        "version": { "type": "string" },
+        "additionalFile": { "type": "array" },
         "args": {
             "type": "object",
             "properties": {
-                "verboseMode": {"type": "integer"},
-                "outputFormat": {"type": "integer"},
+                "verboseMode": { "type": "integer" },
                 "parallelMode": {
                     "type": "object",
                     "properties": {
-                        "useParallelMode": {"type": "boolean"},
-                        "mode": {"type": "string", "enum": ["compete", "split"]},
-                        "threads": {"type": "integer"}
+                        "useParallelMode": { "type": "boolean" },
+                        "mode": {
+                            "type": "string",
+                            "enum": ["compete", "split"]
+                        },
+                        "threads": { "type": "integer" }
                     },
                     "required": ["useParallelMode", "mode", "threads"]
                 },
-                "timeLimit": {"type": "integer"},
-                "preProcessor": {"type": "boolean"},
-                "models": {"type": "integer"},
-                "customArgs": {"type": "string"}
+                "timeLimit": { "type": "integer" },
+                "preProcessor": { "type": "boolean" },
+                "models": { "type": "integer" },
+                "customArgs": { "type": "string" }
             }
         }
     },
-    "required":["name", "version", "author"]}
+    "required": ["name", "version", "author"]
+}
