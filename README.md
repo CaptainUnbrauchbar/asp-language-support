@@ -1,9 +1,10 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CaptainUnbrauchbar/asp-language-support/badge)](https://scorecard.dev/viewer/?uri=github.com/CaptainUnbrauchbar/asp-language-support)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10389/badge)](https://www.bestpractices.dev/projects/10389)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](/LICENSE.md)
 [![Version on Marketplace](https://vsmarketplacebadges.dev/version-short/ffrankreiter.answer-set-programming-language-support.svg)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
 [![Downloads](https://vsmarketplacebadges.dev/downloads-short/ffrankreiter.answer-set-programming-language-support.svg)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
 [![Rating](https://vsmarketplacebadges.dev/rating-short/ffrankreiter.answer-set-programming-language-support.svg)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
-
+[![GitHub branch status](https://img.shields.io/github/checks-status/CaptainUnbrauchbar/asp-language-support/informaticup)](https://github.com/CaptainUnbrauchbar/asp-language-support/actions)
 
 # Answer Set Programming Language Support (for Clingo)
 
@@ -38,19 +39,19 @@ For the extension to work properly, please install the Answer Set Programming sy
 
 This extension contributes the following settings:
 
-- `ASPLanguage: Select Operating System`: Select your Operating System, so the currect clingo version is used! (default: Auto)
-- `ASPLanguage: Terminal Mode`: Select if you want a new Terminal after every execution! (default: False)
-- `ASPLanguage: Use PATH Clingo`: Set this option if you would like to use the Clingo version from your PATH instead of the version included! (default: False)
-- `ASPLanguage: Turn Messages Off`: Set this option if you want to turn off all Messages (bottom right)! (default: False)
-- `ASPLanguage: Set Config`: Set a .json file if you want to use a specific config file for clingo (default: empty)
+-   `ASPLanguage: Select Operating System`: Select your Operating System, so the currect clingo version is used! (default: Auto)
+-   `ASPLanguage: Terminal Mode`: Select if you want a new Terminal after every execution! (default: False)
+-   `ASPLanguage: Use PATH Clingo`: Set this option if you would like to use the Clingo version from your PATH instead of the version included! (default: False)
+-   `ASPLanguage: Turn Messages Off`: Set this option if you want to turn off all Messages (bottom right)! (default: False)
+-   `ASPLanguage: Set Config`: Set a .json file if you want to use a specific config file for clingo (default: empty)
 
 ## Extension Features
 
 This extension contributes the following features:
 
-- `Compute all Answer Sets`: Get all answer sets for the current logic program file!
-- `Compute the first Answer Set`: Get the first answer set for the current logic program file!
-- `Compute Answer Sets (config.json)`: Compute answer sets using the clingo configuration from a config file
+-   `Compute all Answer Sets`: Get all answer sets for the current logic program file!
+-   `Compute the first Answer Set`: Get the first answer set for the current logic program file!
+-   `Compute Answer Sets (config.json)`: Compute answer sets using the clingo configuration from a config file
 
 ## Contributing
 
