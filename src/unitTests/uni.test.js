@@ -30,4 +30,45 @@ describe("runClingoWasmForFile", () => {
 
         expect(result.Models.Number).toEqual(8);
     });
+
+    it("should handle errors when reading the file", async () => {
+        const filePath = "src/testFiles/nonExistentFile.lp";
+
+        const result = await runClingoWasmForFileWithProgress(
+            { window: { showErrorMessage: jest.fn() } },
+            { report: jest.fn() },
+            filePath,
+            0
+        );
+
+        expect(result).toBe(null);
+    });
+
+    it("should handle errors when reading additional files", async () => {
+        const filePath = "src/testFiles/sudokuComplete.lp";
+        const additionalFilePath = "src/testFiles/nonExistentFile.lp";
+
+        const result = await runClingoWasmForFileWithProgress(
+            { window: { showErrorMessage: jest.fn() } },
+            { report: jest.fn() },
+            filePath,
+            0,
+            [additionalFilePath]
+        );
+
+        expect(result).toBe(null);
+    });
+
+    it("should handle errors when running Clingo WASM", async () => {
+        const filePath = "src/testFiles/sudokuComplete.lp";
+
+        const result = await runClingoWasmForFileWithProgress(
+            { window: { showErrorMessage: jest.fn() } },
+            { report: jest.fn() },
+            "src/testFiles/exSyntaxError.lp",
+            0
+        );
+
+        expect(result.Result).toEqual("ERROR");
+    });
 });

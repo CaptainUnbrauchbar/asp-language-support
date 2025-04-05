@@ -3,12 +3,9 @@ const which = require("which");
 const { dirname, join } = require("path");
 const fs = require("fs");
 const { readConfig } = require("./configReader.js");
-const clingo = require("clingo-wasm");
 const { spawn } = require("child_process");
 const { WebviewProvider } = require("./webviewProvider.js");
-const {
-    runClingoWasmForFileWithProgress,
-} = require("./runClingoWasmForFileWithProgress.js");
+const { runClingoWasmForFileWithProgress } = require("./runClingoWasmForFileWithProgress.js");
 
 //E_SAT       = 10, !< At least one model was found.
 //E_EXHAUST   = 20, !< Search-space was completely examined.
@@ -21,23 +18,13 @@ const CLINGO_SUCCESS_CODES = [10, 20, 30];
 function activate(context) {
     const provider = new WebviewProvider(context.extensionUri);
 
-    async function runClingoWasmForFile(
-        filePath,
-        models = undefined,
-        options = undefined
-    ) {
+    async function runClingoWasmForFile(filePath, models = undefined, options = undefined) {
         return await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Window,
                 title: "Clingo is running",
             },
-            async (progress) =>
-                runClingoWasmForFileWithProgress(
-                    progress,
-                    filePath,
-                    models,
-                    options
-                )
+            async (progress) => await runClingoWasmForFileWithProgress(vscode, progress, filePath, models, options)
         );
     }
 
@@ -51,9 +38,7 @@ function activate(context) {
                 solve: result.Time.Solve,
                 model: result.Time.Model,
             },
-            answers: result.Call.flatMap((call) =>
-                call.Witnesses.map((witness) => witness.Value.join(", "))
-            ),
+            answers: result.Call.flatMap((call) => call.Witnesses.map((witness) => witness.Value.join(", "))),
             result: result.Result,
         };
     }
@@ -71,9 +56,7 @@ function activate(context) {
             path = which.sync("clingo");
             if (!turnMessagesOff) {
                 vscode.window.showInformationMessage(
-                    'Using your own version of Clingo: "' +
-                        path +
-                        '"    (this message can be turned off in options)'
+                    'Using your own version of Clingo: "' + path + '"    (this message can be turned off in options)'
                 );
             }
         } catch {
@@ -83,25 +66,13 @@ function activate(context) {
         }
     }
 
-    var newTerminal = vscode.workspace
-        .getConfiguration("aspLanguage")
-        .get("terminalMode");
-    var turnMessagesOff = vscode.workspace
-        .getConfiguration("aspLanguage")
-        .get("turnMessagesOff");
-    var usePathClingo = vscode.workspace
-        .getConfiguration("aspLanguage")
-        .get("usePathClingo");
-    var additionalArgs = vscode.workspace
-        .getConfiguration("aspLanguage")
-        .get("additionalArgs");
-    var setConfig = vscode.workspace
-        .getConfiguration("aspLanguage")
-        .get("setConfig");
+    var newTerminal = vscode.workspace.getConfiguration("aspLanguage").get("terminalMode");
+    var turnMessagesOff = vscode.workspace.getConfiguration("aspLanguage").get("turnMessagesOff");
+    var usePathClingo = vscode.workspace.getConfiguration("aspLanguage").get("usePathClingo");
+    var additionalArgs = vscode.workspace.getConfiguration("aspLanguage").get("additionalArgs");
+    var setConfig = vscode.workspace.getConfiguration("aspLanguage").get("setConfig");
     var path;
-    var terminalType = vscode.workspace
-        .getConfiguration("terminal")
-        .get("integrated.defaultProfile.windows");
+    var terminalType = vscode.workspace.getConfiguration("terminal").get("integrated.defaultProfile.windows");
 
     //double if to prevent unnecessary info messages
     if (usePathClingo) {
@@ -130,10 +101,7 @@ function activate(context) {
                     });
 
                     const command = getPath();
-                    const args = [
-                        `"${vscode.window.activeTextEditor.document.fileName}"`,
-                        `${models}`,
-                    ];
+                    const args = [`"${vscode.window.activeTextEditor.document.fileName}"`, `${models}`];
                     const process = spawn(command, args, { shell: true });
 
                     let output = "";
@@ -163,14 +131,8 @@ function activate(context) {
                                     if (choice === "Yes") {
                                         process.kill(); // Terminate the process
                                         processTerminated = true;
-                                        vscode.window.showInformationMessage(
-                                            "Clingo process terminated."
-                                        );
-                                        reject(
-                                            new Error(
-                                                "Clingo process was terminated by the user."
-                                            )
-                                        );
+                                        vscode.window.showInformationMessage("Clingo process terminated.");
+                                        reject(new Error("Clingo process was terminated by the user."));
                                     }
                                 });
                         }
@@ -194,14 +156,8 @@ function activate(context) {
                             });
                             resolve();
                         } else {
-                            vscode.window.showErrorMessage(
-                                `Clingo process exited with code ${code}: ${errorOutput}`
-                            );
-                            reject(
-                                new Error(
-                                    `Clingo process exited with code ${code}`
-                                )
-                            );
+                            vscode.window.showErrorMessage(`Clingo process exited with code ${code}: ${errorOutput}`);
+                            reject(new Error(`Clingo process exited with code ${code}`));
                         }
                     });
                 });
@@ -210,10 +166,7 @@ function activate(context) {
     }
 
     async function runBundledClingo(models) {
-        const clingoResult = await runClingoWasmForFile(
-            vscode.window.activeTextEditor.document.fileName,
-            models
-        );
+        const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, models);
         const answers = formatWasmResult(clingoResult);
         provider._view?.webview.postMessage({
             type: "updateOutput",
@@ -223,9 +176,7 @@ function activate(context) {
 
     async function runClingoCommand(models) {
         if (!vscode.window.activeTextEditor) {
-            vscode.window.showErrorMessage(
-                "No active text editor found. Please open a file to run Clingo on."
-            );
+            vscode.window.showErrorMessage("No active text editor found. Please open a file to run Clingo on.");
             return;
         }
 
@@ -250,29 +201,17 @@ function activate(context) {
         "answer-set-programming-language-support.runinterminalconfig",
         async function () {
             if (!vscode.window.activeTextEditor) {
-                vscode.window.showErrorMessage(
-                    "No active text editor found. Please open a file to run Clingo on."
-                );
+                vscode.window.showErrorMessage("No active text editor found. Please open a file to run Clingo on.");
                 return;
             }
 
-            const configPath = join(
-                dirname(vscode.window.activeTextEditor.document.fileName),
-                setConfig
-            );
+            const configPath = join(dirname(vscode.window.activeTextEditor.document.fileName), setConfig);
             if (fs.existsSync(configPath)) {
                 if (usePathClingo) {
-                    additionalArgs = readConfig(
-                        setConfig,
-                        turnMessagesOff,
-                        context.asAbsolutePath("")
-                    );
+                    additionalArgs = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
 
                     const command = getPath();
-                    const args = [
-                        `"${vscode.window.activeTextEditor.document.fileName}"`,
-                        ...additionalArgs,
-                    ];
+                    const args = [`"${vscode.window.activeTextEditor.document.fileName}"`, ...additionalArgs];
                     const process = spawn(command, args, { shell: true });
 
                     let output = "";
@@ -293,23 +232,13 @@ function activate(context) {
                                 answers: output,
                             });
                         } else {
-                            vscode.window.showErrorMessage(
-                                `Clingo process exited with code ${code}: ${errorOutput}`
-                            );
+                            vscode.window.showErrorMessage(`Clingo process exited with code ${code}: ${errorOutput}`);
                         }
                     });
                 } else {
-                    const cfgFile = readConfig(
-                        setConfig,
-                        turnMessagesOff,
-                        context.asAbsolutePath("")
-                    );
-                    const models = cfgFile
-                        .find((arg) => arg.startsWith("--models"))
-                        .split(" ")[1];
-                    additionalArgs = cfgFile.filter(
-                        (arg) => !arg.startsWith("--models")
-                    );
+                    const cfgFile = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
+                    const models = cfgFile.find((arg) => arg.startsWith("--models")).split(" ")[1];
+                    additionalArgs = cfgFile.filter((arg) => !arg.startsWith("--models"));
 
                     const clingoResult = await runClingoWasmForFile(
                         vscode.window.activeTextEditor.document.fileName,
@@ -333,12 +262,8 @@ function activate(context) {
                 );
                 chosenOption.then(function (value) {
                     if (value === "Yes") {
-                        vscode.commands.executeCommand(
-                            "answer-set-programming-language-support.initClingoConfig"
-                        );
-                        vscode.window.showInformationMessage(
-                            `Config config.json created in working directory!`
-                        );
+                        vscode.commands.executeCommand("answer-set-programming-language-support.initClingoConfig");
+                        vscode.window.showInformationMessage(`Config config.json created in working directory!`);
                     }
                 });
             }
@@ -348,26 +273,17 @@ function activate(context) {
     const initClingoConfig = vscode.commands.registerCommand(
         "answer-set-programming-language-support.initClingoConfig",
         function () {
-            const sampleConfig = fs.readFileSync(
-                join(context.asAbsolutePath(""), `sampleConfig.json`)
-            );
+            const sampleConfig = fs.readFileSync(join(context.asAbsolutePath(""), `sampleConfig.json`));
             fs.writeFileSync(
-                join(
-                    dirname(vscode.window.activeTextEditor.document.fileName),
-                    `config.json`
-                ),
+                join(dirname(vscode.window.activeTextEditor.document.fileName), `config.json`),
                 sampleConfig
             );
 
-            vscode.workspace
-                .getConfiguration("aspLanguage")
-                .update("setConfig", "config.json");
+            vscode.workspace.getConfiguration("aspLanguage").update("setConfig", "config.json");
         }
     );
 
-    context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider(provider.viewType, provider)
-    );
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider(provider.viewType, provider));
     context.subscriptions.push(computeAllSetsCommand);
     context.subscriptions.push(computeSingleSetCommand);
     context.subscriptions.push(computeConfigCommand);
@@ -375,46 +291,28 @@ function activate(context) {
 
     //Listeners for Configuration Options
     vscode.workspace.onDidChangeConfiguration((event) => {
-        const confTurnMessagesOff = event.affectsConfiguration(
-            "aspLanguage.turnMessagesOff"
-        );
-        const confUsePathClingo = event.affectsConfiguration(
-            "aspLanguage.usePathClingo"
-        );
-        const confSetConfig = event.affectsConfiguration(
-            "aspLanguage.setConfig"
-        );
-        const confTerminalProfile = event.affectsConfiguration(
-            "terminal.integrated.defaultProfile.windows"
-        );
+        const confTurnMessagesOff = event.affectsConfiguration("aspLanguage.turnMessagesOff");
+        const confUsePathClingo = event.affectsConfiguration("aspLanguage.usePathClingo");
+        const confSetConfig = event.affectsConfiguration("aspLanguage.setConfig");
+        const confTerminalProfile = event.affectsConfiguration("terminal.integrated.defaultProfile.windows");
 
         if (confTurnMessagesOff) {
-            turnMessagesOff = vscode.workspace
-                .getConfiguration("aspLanguage")
-                .get("turnMessagesOff");
+            turnMessagesOff = vscode.workspace.getConfiguration("aspLanguage").get("turnMessagesOff");
         }
         if (confUsePathClingo) {
-            usePathClingo = vscode.workspace
-                .getConfiguration("aspLanguage")
-                .get("usePathClingo");
+            usePathClingo = vscode.workspace.getConfiguration("aspLanguage").get("usePathClingo");
             usePath();
 
             // Refresh the webview HTML
             if (provider._view) {
-                provider._view.webview.html = provider._getHtmlForWebview(
-                    provider._view.webview
-                );
+                provider._view.webview.html = provider._getHtmlForWebview(provider._view.webview);
             }
         }
         if (confSetConfig) {
-            setConfig = vscode.workspace
-                .getConfiguration("aspLanguage")
-                .get("setConfig");
+            setConfig = vscode.workspace.getConfiguration("aspLanguage").get("setConfig");
         }
         if (confTerminalProfile) {
-            terminalType = vscode.workspace
-                .getConfiguration("terminal")
-                .get("integrated.defaultProfile.windows");
+            terminalType = vscode.workspace.getConfiguration("terminal").get("integrated.defaultProfile.windows");
         }
     });
 }

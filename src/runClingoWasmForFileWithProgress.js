@@ -1,19 +1,20 @@
 const fs = require("fs");
 const clingo = require("clingo-wasm");
 
-async function runClingoWasmForFileWithProgress(
-    vscode,
-    progress,
-    filePath,
-    models = undefined,
-    options = undefined
-) {
+async function runClingoWasmForFileWithProgress(vscode, progress, filePath, models = undefined, options = undefined) {
     progress.report({
         increment: 0,
         message: "Starting Clingo...",
     });
 
     let fileContent;
+
+    // Check if the file exists
+    if (!fs.existsSync(filePath)) {
+        vscode.window.showErrorMessage(`File not found: ${filePath}`);
+        return null;
+    }
+
     fileContent = await fs.promises.readFile(filePath, "utf8");
 
     const additionalFiles = options
@@ -22,17 +23,13 @@ async function runClingoWasmForFileWithProgress(
 
     if (additionalFiles?.length) {
         for (const additionalFilePath of additionalFiles) {
-            await fs.promises.access(additionalFilePath);
-            const additionalContent = await fs.promises.readFile(
-                additionalFilePath,
-                "utf8"
-            );
+            if (!fs.existsSync(additionalFilePath)) {
+                vscode.window.showErrorMessage(`File not found: ${filePath}`);
+                return null;
+            }
+            const additionalContent = await fs.promises.readFile(additionalFilePath, "utf8");
             if (additionalContent.trim()) {
                 fileContent += `\n${additionalContent}`;
-            } else {
-                vscode.window.showWarningMessage(
-                    `Additional file is empty: ${additionalFilePath}`
-                );
             }
         }
     }
@@ -55,12 +52,11 @@ async function runClingoWasmForFileWithProgress(
         increment: 100,
         message: "Clingo finished successfully!",
     });
+
     // Validate the result
-    if (wasmResult.Result === "ERROR") {
-        vscode.window.showErrorMessage(
-            `Clingo WASM Error: ${wasmResult.Error}`
-        );
-        return null;
+    if (["ERROR", "UNSATISFIABLE", "UNKNOWN"].includes(wasmResult.Result)) {
+        vscode.window.showErrorMessage(`Clingo WASM Error: ${wasmResult.Error}`);
+        return wasmResult;
     } else {
         return wasmResult;
     }
