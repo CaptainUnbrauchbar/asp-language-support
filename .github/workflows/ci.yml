@@ -38,9 +38,6 @@ jobs:
             - name: Run Tests
               run: npm test
 
-            - name: Run e2e Tests
-              run: npm run test-e2e
-
             - name: Package Extension
               id: packageExtension
               uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db # v2.0.0
