@@ -3,9 +3,7 @@
     "version": "0.1.0",
     "description": "Documentation: https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf",
     "author": "John Doe",
-    "additionalFiles": [
-        "filename.lp"
-    ],
+    "additionalFiles": ["filename.lp"],
     "args": {
         "verboseMode": 1,
         "parallelMode": {
@@ -18,7 +16,7 @@
             "conflicts": 0,
             "restarts": 0
         },
-        "preProcessor": false, 
+        "preProcessor": false,
         "models": 0,
         "customArgs": ""
     }
