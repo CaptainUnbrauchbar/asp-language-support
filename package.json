@@ -169,7 +169,8 @@
         ]
     },
     "scripts": {
-        "test": "vscode-test"
+        "test": "jest",
+        "test-e2e": "vscode-test"
     },
     "extensionDependencies": [
         "abelcour.asp-syntax-highlight"
