@@ -5,16 +5,14 @@ const Ajv = require("ajv").default;
 var jsonConfig;
 
 /**
- * @param {string} setConfig
- * @param {boolean} turnMessagesOff
- * @param {string} contextAbsolutePath
+ * Reads the configuration file and returns the arguments for Clingo.
+ * @param {String} setConfig The configuration file name.
+ * @param {Boolean} turnMessagesOff Reference whether to show messages or not.
+ * @param {String} contextAbsolutePath The absolute path to the context.
  */
 function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
     let args = [];
-    const pathToConfig = join(
-        dirname(vscode.window.activeTextEditor.document.fileName),
-        setConfig.replace(/^(..(\/|\|$))+/, "")
-    );
+    const pathToConfig = join(dirname(vscode.window.activeTextEditor.document.fileName), setConfig.replace(/^(..(\/|\|$))+/, ""));
     if (setConfig.match(/json$/i)) {
         jsonConfig = JSON.parse(fs.readFileSync(pathToConfig).toString());
 
@@ -53,18 +51,13 @@ function validateConfigSchema(contextAbsolutePath, pathToConfig) {
     const schema = require(join(contextAbsolutePath, `schema.json`));
     const validate = ajv.compile(schema);
     const valid = validate(jsonConfig);
-    if (!valid)
-        vscode.window.showInformationMessage(`Config file ${pathToConfig} is not as expected: ${validate.errors}`);
+    if (!valid) vscode.window.showInformationMessage(`Config file ${pathToConfig} is not as expected: ${validate.errors}`);
 }
 
 function readFiles() {
     if (jsonConfig.additionalFiles != undefined) {
         const fileList = jsonConfig.additionalFiles.map(
-            (file) =>
-                `"${join(
-                    dirname(vscode.window.activeTextEditor.document.fileName),
-                    file.replace(/^(..(\/|\|$))+/, "")
-                )}"`
+            (file) => `"${join(dirname(vscode.window.activeTextEditor.document.fileName), file.replace(/^(..(\/|\|$))+/, ""))}"`
         );
         return fileList;
     } else {
