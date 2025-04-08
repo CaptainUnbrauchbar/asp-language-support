@@ -1,6 +1,14 @@
 const fs = require("fs");
 const clingo = require("clingo-wasm");
 
+/**
+ * @param {*} vscode Reference to vscode module import (workaround so we can test it)
+ * @param {*} progress Reference to the progress object from vscode
+ * @param {String} filePath Path to the ASP file to be read
+ * @param {Number} models Number of models
+ * @param {String[]} options Array of options to be passed to Clingo
+ * @returns {Promise<clingo.ClingoResult | clingo.ClingoError | null>} Clingo result or null if file not found
+ */
 async function runClingoWasmForFileWithProgress(vscode, progress, filePath, models = undefined, options = undefined) {
     progress.report({
         increment: 0,
@@ -17,9 +25,7 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
 
     fileContent = await fs.promises.readFile(filePath, "utf8");
 
-    const additionalFiles = options
-        ?.filter((arg) => arg && !arg.startsWith("--"))
-        .map((filePath) => filePath.replace(/"/g, ""));
+    const additionalFiles = options?.filter((arg) => arg && !arg.startsWith("--")).map((filePath) => filePath.replace(/"/g, ""));
 
     if (additionalFiles?.length) {
         for (const additionalFilePath of additionalFiles) {
@@ -55,8 +61,12 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
 
     // Validate the result
     if (["ERROR", "UNSATISFIABLE", "UNKNOWN"].includes(wasmResult.Result)) {
-        vscode.window.showErrorMessage(`Clingo WASM Error: ${wasmResult.Error}`);
-        return wasmResult;
+        if ("Error" in wasmResult) {
+            vscode.window.showErrorMessage(`Clingo WASM Error: ${wasmResult.Error}`);
+        } else {
+            vscode.window.showErrorMessage(`Clingo WASM Error: Unknown error`);
+        }
+        return null;
     } else {
         return wasmResult;
     }
