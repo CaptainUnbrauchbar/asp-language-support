@@ -1,3 +1,5 @@
+// Script file to be included in the webview
+
 // This script will be run within the webview itself
 // It cannot access the main VS Code APIs directly.
 (function () {
@@ -56,9 +58,7 @@ Result: ${result.result}
 
                 const labelBox = document.createElement("button");
                 labelBox.className = "answer-label-box";
-                labelBox.textContent = `Answer ${index + 1}/${
-                    result.answers.length
-                }`;
+                labelBox.textContent = `Answer ${index + 1}/${result.answers.length}`;
                 labelBox.addEventListener("click", () => {
                     buttonCopyToClickboard(index + 1, answer);
                 });
