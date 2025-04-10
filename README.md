@@ -2,7 +2,6 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10389/badge)](https://www.bestpractices.dev/projects/10389)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](/LICENSE.md)
 [![GitHub CI Status](https://github.com/CaptainUnbrauchbar/asp-language-support/actions/workflows/ci.yml/badge.svg)](https://github.com/CaptainUnbrauchbar/asp-language-support/actions/workflows/ci.yml)
-[![GitHub STA Status](https://github.com/CaptainUnbrauchbar/asp-language-support/actions/workflows/semgrep.yml/badge.svg)](https://github.com/CaptainUnbrauchbar/asp-language-support/actions/workflows/semgrep.yml)
 
 # Answer Set Programming Language Support (for Clingo)
 [![Version on Marketplace](https://vsmarketplacebadges.dev/version-short/ffrankreiter.answer-set-programming-language-support.svg)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
