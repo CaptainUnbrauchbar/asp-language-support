@@ -1,7 +1,8 @@
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CaptainUnbrauchbar/asp-language-support/badge)](https://scorecard.dev/viewer/?uri=github.com/CaptainUnbrauchbar/asp-language-support)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CaptainUnbrauchbar/asp-language-support/badge.svg)](https://scorecard.dev/viewer/?uri=github.com/CaptainUnbrauchbar/asp-language-support)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10389/badge)](https://www.bestpractices.dev/projects/10389)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](/LICENSE.md)
-[![GitHub branch status](https://img.shields.io/github/checks-status/CaptainUnbrauchbar/asp-language-support/informaticup)](https://github.com/CaptainUnbrauchbar/asp-language-support/actions)
+[![GitHub CI Status](https://github.com/CaptainUnbrauchbar/asp-language-support/actions/workflows/ci.yml/badge.svg)](https://github.com/CaptainUnbrauchbar/asp-language-support/actions/workflows/ci.yml)
+[![GitHub STA Status](https://github.com/CaptainUnbrauchbar/asp-language-support/actions/workflows/semgrep.yml/badge.svg)](https://github.com/CaptainUnbrauchbar/asp-language-support/actions/workflows/semgrep.yml)
 
 # Answer Set Programming Language Support (for Clingo)
 [![Version on Marketplace](https://vsmarketplacebadges.dev/version-short/ffrankreiter.answer-set-programming-language-support.svg)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
