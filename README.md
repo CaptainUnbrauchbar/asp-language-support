@@ -1,12 +1,12 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CaptainUnbrauchbar/asp-language-support/badge)](https://scorecard.dev/viewer/?uri=github.com/CaptainUnbrauchbar/asp-language-support)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10389/badge)](https://www.bestpractices.dev/projects/10389)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](/LICENSE.md)
-[![GitHub branch status](https://img.shields.io/github/checks-status/CaptainUnbrauchbar/asp-language-support/informaticup)](https://github.com/CaptainUnbrauchbar/asp-language-support/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.png)](/LICENSE.md)
 
 # Answer Set Programming Language Support (for Clingo)
-[![Version on Marketplace](https://vsmarketplacebadges.dev/version-short/ffrankreiter.answer-set-programming-language-support.svg)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
-[![Downloads](https://vsmarketplacebadges.dev/downloads-short/ffrankreiter.answer-set-programming-language-support.svg)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
-[![Rating](https://vsmarketplacebadges.dev/rating-short/ffrankreiter.answer-set-programming-language-support.svg)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
+
+[![Version on Marketplace](https://vsmarketplacebadges.dev/version-short/ffrankreiter.answer-set-programming-language-support.png)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
+[![Downloads](https://vsmarketplacebadges.dev/downloads-short/ffrankreiter.answer-set-programming-language-support.png)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
+[![Rating](https://vsmarketplacebadges.dev/rating-short/ffrankreiter.answer-set-programming-language-support.png)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
 
 | [Potassco](https://potassco.org/) | [Potassco on Github](https://github.com/potassco) | [Clingo](https://potassco.org/clingo/) |
 
