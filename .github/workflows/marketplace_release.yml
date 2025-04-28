@@ -15,8 +15,6 @@ jobs:
             actions: read
             id-token: write
             contents: write
-            attestations: write
-            packages: write
         outputs:
             vsixPath: ${{ steps.packageExtension.outputs.vsixPath }}
         steps:
