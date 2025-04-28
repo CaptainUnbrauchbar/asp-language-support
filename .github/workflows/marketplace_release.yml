@@ -11,6 +11,12 @@ permissions:
 jobs:
     release:
         runs-on: ubuntu-latest
+        permissions:
+            actions: read
+            id-token: write
+            contents: write
+            attestations: write
+            packages: write
         outputs:
             vsixPath: ${{ steps.packageExtension.outputs.vsixPath }}
         steps:
