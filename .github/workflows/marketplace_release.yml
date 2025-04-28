@@ -41,7 +41,7 @@ jobs:
               with:
                   pat: ${{ secrets.AZURE_RELEASE_TOKEN }}
                   registryUrl: https://marketplace.visualstudio.com/
-                  preRelease: true
+                  preRelease: false
 
             - name: Create Release
               uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
