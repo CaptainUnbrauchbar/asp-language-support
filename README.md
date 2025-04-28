@@ -15,7 +15,7 @@ We added multi-file support with v0.4.0!
 
 ## Usage
 
-<img src="media/usage-demo.gif" align="left"/>
+![](https://github.com/CaptainUnbrauchbar/asp-language-support/blob/release/media/usage-demo.gif)
 
 Just right click anywhere on a logic program (.lp) file and select `Compute all Answer Sets`, `Compute the first Answer Set` or `Compute Answer Sets (config.json)`.
 This will display Clingo's results in a seperate ASP tab located in the panel. You can also use the buttons in the top right of this tab to run bundled or PATH clingo depending on your `ASPLanguage: Use PATH Clingo` setting.
