@@ -168,6 +168,7 @@ function activate(context) {
     /**
      * Function to run Clingo with the given models. It checks if the user has selected a valid file and runs Clingo with the given models.
      * @param {Number} models The number of models to run.
+     * @param {Boolean} useConfig If true, it uses the config file to run Clingo.
      * @returns
      */
     async function runClingoCommand(models, useConfig = false) {
@@ -187,15 +188,22 @@ function activate(context) {
     ////////////////////////////////////////////////////////////////////////////////
 
     // Register computeAllSetsCommand command for the extension
-    const computeAllSetsCommand = vscode.commands.registerCommand(
-        "answer-set-programming-language-support.runinterminalall",
-        async () => await runClingoCommand(0, false)
-    );
+    const computeAllSetsCommand = vscode.commands.registerCommand("answer-set-programming-language-support.runinterminalall", async () => {
+        // Focus ASP Tab for easier access to output
+        vscode.commands.executeCommand("workbench.view.extension.aspContainer");
+        // Run WASM Clingo
+        await runClingoCommand(0, false);
+    });
 
     // Register computeSingleSetCommand command for the extension
     const computeSingleSetCommand = vscode.commands.registerCommand(
         "answer-set-programming-language-support.runinterminalsingle",
-        async () => await runClingoCommand(1, false)
+        async () => {
+            // Focus ASP Tab for easier access to output
+            vscode.commands.executeCommand("workbench.view.extension.aspContainer");
+            // Run WASM Clingo
+            await runClingoCommand(1, false);
+        }
     );
 
     // Register computeConfigCommand command for the extension
@@ -207,11 +215,15 @@ function activate(context) {
                 return;
             }
 
+            // Focus ASP Tab for easier access to output
+            vscode.commands.executeCommand("workbench.view.extension.aspContainer");
+
             // Create configPath and sanitize it
             const configPath = join(dirname(vscode.window.activeTextEditor.document.fileName), setConfig.replace(/^(..(\/|\|$))+/, ""));
 
             // Check if config exists, otherwise ask user if they wants to create a new one
             if (fs.existsSync(configPath)) {
+                // Run WASM Clingo with config file (bool operator)
                 runClingoCommand(0, true);
             } else {
                 const chosenOption = Promise.resolve(
