@@ -51,7 +51,7 @@ body {
 }
 
 .answer-label-box {
-    width: 30em;
+    width: 100%;
     background-color: var(--vscode-input-border);
     color: var(--vscode-input-foreground);
     padding: 0.1em 0.1em;

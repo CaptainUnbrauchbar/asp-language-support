@@ -121,9 +121,10 @@ function activate(context) {
      */
     async function runBundledClingo(models, useConfig = false) {
         let additionalArgs = [];
+        let cfgFile = [];
         // Process config information
         if (useConfig) {
-            const cfgFile = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
+            cfgFile = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
             models = cfgFile.find((arg) => arg.startsWith("--models")).split(" ")[1];
             additionalArgs = cfgFile.filter((arg) => !arg.startsWith("--models"));
         }
@@ -135,6 +136,8 @@ function activate(context) {
         provider._view?.webview.postMessage({
             type: "updateOutput",
             answers,
+            useConfig,
+            cfgFile,
         });
     }
 
