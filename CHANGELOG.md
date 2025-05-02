@@ -11,6 +11,7 @@ If you want to contribute to the repository you are welcome to look at these pla
 -   **Testing**: Add more Unit Tests
 -   **Testing**: Find a way to do proper Integration Testing that works with CI/CD (currently only local and limited functionality because of the webview UI)
 -   **Localization**: Look into localization need/techniques and translate text
+-   **Bug**: Verify/Fix that all parameters in the ASP config.json created by this extension actually work properly and/or are still supported by clingo
 
 ## 1.0.0: Big Feature, Security and QoL Patch :fireworks:
 
