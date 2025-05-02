@@ -66,7 +66,8 @@ This extension contributes the following features:
 
 If you have any suggestions for a new feature or anything else please open an issue on GitHub: [ASP-LANGUAGE-SUPPORT](https://github.com/CaptainUnbrauchbar/asp-language-support/issues)
 The repository is being actively maintained and pull requests are welcome anytime. If you don't receive feedback within 48h feel free to also email one of the codeowners!
-Check the **CHANGELOG** for planned features to work on!
+
+View the [CONTRIBUTING.md](https://github.com/CaptainUnbrauchbar/asp-language-support/blob/informaticup/CONTRIBUTING.md) for more info on **Pull Requests**.
 
 ## Acknowledgements
 

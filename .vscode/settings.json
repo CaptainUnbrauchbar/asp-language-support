@@ -1,5 +1,4 @@
 {
-    "cmake.configureOnOpen": false,
     "prettier.printWidth": 140,
     "prettier.tabWidth": 4,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
