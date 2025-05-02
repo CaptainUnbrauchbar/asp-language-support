@@ -15,7 +15,7 @@ We added multi-file support with v0.4.0!
 
 ## Usage
 
-<img src="https://github.com/CaptainUnbrauchbar/asp-language-support/blob/release/media/usage-demo.gif" height="500" alt="demo-gif"/>
+<img src="https://github.com/CaptainUnbrauchbar/asp-language-support/raw/informaticup/media/usage-demo.gif" height="500" alt="demo-gif"/>
 
 Just right click anywhere on a logic program (.lp) file and select `Compute all Answer Sets`, `Compute the first Answer Set` or `Compute Answer Sets (config.json)`.
 This will display Clingo's results in a seperate ASP tab located in the panel. You can also use the buttons in the top right of this tab to run bundled or PATH clingo depending on your `ASPLanguage: Use PATH Clingo` setting.
@@ -34,7 +34,7 @@ If you want to use your own Version of Clingo from PATH with this extension, ple
 
 ## Customization
 
-<img src="https://github.com/CaptainUnbrauchbar/asp-language-support/blob/release/media/customization-demo.gif" height="500" alt="customization-gif"/>
+<img src="https://github.com/CaptainUnbrauchbar/asp-language-support/raw/informaticup/media/customization-demo.gif" height="500" alt="customization-gif"/>
 
 When using the bundled WASM Clingo (Choose in configuration `ASPLanguage: Use PATH Clingo`), you can easily move the panel to the sidebars or change the panel position depending on your preferences.
 The layout will adjust accordingly!
@@ -66,6 +66,7 @@ This extension contributes the following features:
 
 If you have any suggestions for a new feature or anything else please open an issue on GitHub: [ASP-LANGUAGE-SUPPORT](https://github.com/CaptainUnbrauchbar/asp-language-support/issues)
 The repository is being actively maintained and pull requests are welcome anytime. If you don't receive feedback within 48h feel free to also email one of the codeowners!
+Check the **CHANGELOG** for planned features to work on!
 
 ## Acknowledgements
 
