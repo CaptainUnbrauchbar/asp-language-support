@@ -10,6 +10,7 @@ If you want to contribute to the repository you are welcome to look at these pla
 -   **QoL**: Adjust the webview UI colours so they work best with any selected colour theme
 -   **Testing**: Add more Unit Tests
 -   **Testing**: Find a way to do proper Integration Testing that works with CI/CD (currently only local and limited functionality because of the webview UI)
+-   **Localization**: Look into localization need/techniques and translate text
 
 ## 1.0.0: Big Feature, Security and QoL Patch :fireworks:
 
