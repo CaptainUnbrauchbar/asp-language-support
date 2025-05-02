@@ -15,6 +15,7 @@
 
             const result = message.answers;
             const cfgFile = message.cfgFile;
+            const useConfig = message.useConfig;
 
             // Create a container for metadata and config boxes
             const infoContainer = document.createElement("div");
@@ -36,7 +37,7 @@ Result: ${result.result}
             // Append the metadata box to the info container
             infoContainer.appendChild(metadataBox);
 
-            if (cfgFile) {
+            if (useConfig) {
                 // Create a config file output box
                 const configBox = document.createElement("textarea");
                 configBox.className = "info-box"; // Reuse the same styling
