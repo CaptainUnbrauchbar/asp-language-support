@@ -35,7 +35,12 @@ jobs:
             - name: Install Dependencies
               run: npm ci
 
-            - name: Package Extension
+            - name: Publish to Open VSX Registry
+              uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db
+              with:
+                  pat: ${{ secrets.OPEN_VSX_RELEASE_TOKEN }}
+
+            - name: Publish to Visual Studio Marketplace
               id: packageExtension
               uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db # v2.0.0
               with:
