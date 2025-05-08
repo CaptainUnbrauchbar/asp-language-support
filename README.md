@@ -9,7 +9,7 @@
 [![Downloads](https://vsmarketplacebadges.dev/downloads-short/ffrankreiter.answer-set-programming-language-support.png)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
 [![Rating](https://vsmarketplacebadges.dev/rating-short/ffrankreiter.answer-set-programming-language-support.png)](https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support)
 
-| [Potassco](https://potassco.org/) | [Potassco on Github](https://github.com/potassco) | [Clingo](https://potassco.org/clingo/) |
+| [Potassco](https://potassco.org/) | [Potassco on Github](https://github.com/potassco) | [Clingo](https://potassco.org/clingo/) | [Get it on Open VSX Registry](https://open-vsx.org/extension/ffrankreiter/answer-set-programming-language-support)
 
 This Extension uses Clingo Answer Set Solver (bundled), developed by Potassco (University of Potsdam).
 We added multi-file support with v0.4.0!
