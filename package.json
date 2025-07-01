@@ -1,8 +1,8 @@
 {
     "name": "answer-set-programming-language-support",
-    "displayName": "Answer Set Programming Language Support",
-    "version": "1.0.3",
-    "description": "Language Support for Clingo ASP (developed by University of Potsdam).",
+    "displayName": "Clingo for VSCode",
+    "version": "1.0.4",
+    "description": "Language Support for Clingo ASP (developed at University of Potsdam).",
     "publisher": "ffrankreiter",
     "jest": {
         "testPathIgnorePatterns": [
@@ -13,7 +13,18 @@
         "vscode": ">=1.63.0"
     },
     "categories": [
-        "Programming Languages"
+        "Programming Languages",
+        "Education",
+        "Others",
+        "Visualization"
+    ],
+    "tags": [
+        "ASP",
+        "Answer Set Programming",
+        "Clingo",
+        "Potassco",
+        "Potsdam",
+        "Computational Intelligence"
     ],
     "repository": {
         "type": "git",
