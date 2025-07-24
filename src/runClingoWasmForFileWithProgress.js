@@ -48,10 +48,6 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         message: "Running Clingo WASM...",
     });
 
-    setTimeout(() => {
-        clingo.terminate();
-    }, 2000);
-
     // Run Clingo WASM with timeout
     const wasmResult = await clingo.run(fileContent, models, clingoOptions);
 
