@@ -43,9 +43,6 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
     // Filter options for Clingo
     const clingoOptions = options?.filter((arg) => arg.startsWith("--"));
 
-    // Remove all sections starting with % and ending with \r\n
-    fileContent = fileContent.replace(/%.*?\r\n/g, "");
-
     progress.report({
         increment: 50,
         message: "Running Clingo WASM...",
