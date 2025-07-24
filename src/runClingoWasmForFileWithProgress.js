@@ -1,6 +1,5 @@
 const fs = require("fs");
 const clingo = require("clingo-wasm");
-//import { run, terminate } from "clingo-wasm";
 
 /**
  * @param {*} vscode Reference to vscode module import (workaround so we can test it)
@@ -43,9 +42,6 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
 
     // Filter options for Clingo
     const clingoOptions = options?.filter((arg) => arg.startsWith("--"));
-
-    // Remove all sections starting with % and ending with \r\n
-    //fileContent = fileContent.replace(/%.*?\r\n/g, "");
 
     progress.report({
         increment: 50,
