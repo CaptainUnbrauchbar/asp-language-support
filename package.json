@@ -1,7 +1,7 @@
 {
     "name": "answer-set-programming-language-support",
     "displayName": "Clingo for VSCode",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "Language Support for Clingo ASP (developed at University of Potsdam).",
     "publisher": "ffrankreiter",
     "jest": {
