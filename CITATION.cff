@@ -2,24 +2,32 @@
 # Visit https://bit.ly/cffinit to generate yours today!
 
 cff-version: 1.2.0
-title: ASP Language Support - VS Code Extension
-message: >-
-  If you use this software, please cite it using the
-  metadata from this file.
+title: >-
+  Clingo for VSCode - Answer Set Programming Language
+  Support
+message: Please cite this software using these metadata.
 type: software
 authors:
   - given-names: Florian
     family-names: Frankreiter
     email: frankreiter@uni-potsdam.de
     affiliation: University of Potsdam
+    orcid: 'https://orcid.org/0009-0003-5675-8515'
   - given-names: Richard
     family-names: Hegewald
     email: richard.hegewald@uni-potsdam.de
     affiliation: University of Potsdam
-    orcid: https://orcid.org/0009-0006-3953-6445
+    orcid: 'https://orcid.org/0009-0006-3953-6445'
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.16755874
+    description: Zenodo
 repository-code: 'https://github.com/CaptainUnbrauchbar/asp-language-support'
 url: >-
   https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support
+repository: >-
+  https://open-vsx.org/extension/ffrankreiter/answer-set-programming-language-support
+repository-artifact: 'https://zenodo.org/records/16755874'
 abstract: >-
   This extension provides built-in support for ASP script
   execution in VS Code.
@@ -29,3 +37,15 @@ keywords:
   - Answer Set Programming
   - Declarative Programming
 license: MIT
+references:
+  - authors:
+      - family-names: Gebser
+        given-names: Martin
+      - family-names: Kaminski
+        given-names: Roland
+      - family-names: Kaufmann
+        given-names: Benjamin
+      - family-names: Schaub
+        given-names: Torsten
+    title: "Multi-shot ASP solving with clingo"
+    type: article
