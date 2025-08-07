@@ -2,6 +2,7 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10389/badge)](https://www.bestpractices.dev/projects/10389)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.png)](/LICENSE.md)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16755874.png)](https://doi.org/10.5281/zenodo.16755874)
 
 # Answer Set Programming Language Support (for Clingo)
 
