@@ -50,5 +50,6 @@ references:
     journal: Theory and Practice of Logic Programming
     volume: 19
     issue: 1
-    pages: "27-82"
+    start: 27
+    end: 82
     year: 2018
