@@ -7,6 +7,7 @@ title: >-
   Support
 message: Please cite this software using these metadata.
 type: software
+doi: 10.5281/zenodo.16755874
 authors:
   - given-names: Florian
     family-names: Frankreiter
@@ -18,10 +19,6 @@ authors:
     email: richard.hegewald@uni-potsdam.de
     affiliation: University of Potsdam
     orcid: 'https://orcid.org/0009-0006-3953-6445'
-identifiers:
-  - type: doi
-    value: 10.5281/zenodo.16755874
-    description: Zenodo
 repository-code: 'https://github.com/CaptainUnbrauchbar/asp-language-support'
 url: >-
   https://marketplace.visualstudio.com/items?itemName=ffrankreiter.answer-set-programming-language-support
@@ -49,3 +46,9 @@ references:
         given-names: Torsten
     title: "Multi-shot ASP solving with clingo"
     type: article
+    doi: 10.1017/S1471068418000054
+    journal: Theory and Practice of Logic Programming
+    volume: 19
+    issue: 1
+    pages: "27-82"
+    year: 2018
