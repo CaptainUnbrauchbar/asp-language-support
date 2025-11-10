@@ -57,7 +57,7 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
     });
 
     // Validate the result
-    if (["ERROR", "UNSATISFIABLE", "UNKNOWN"].includes(wasmResult.Result)) {
+    if (["ERROR", "UNKNOWN"].includes(wasmResult.Result)) {
         if ("Error" in wasmResult) {
             vscode.window.showErrorMessage(`Clingo WASM Error: ${wasmResult.Error}`);
         } else {
