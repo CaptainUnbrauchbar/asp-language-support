@@ -84,7 +84,7 @@ function activate(context) {
                 solve: result?.Time.Solve,
                 model: result?.Time.Model,
             },
-            answers: result?.Call.flatMap((call) => call.Witnesses.map((witness) => witness.Value.join(", "))),
+            answers: result?.Call.flatMap((call) => call.Witnesses?.map((witness) => witness.Value.join(", "))),
             result: result?.Result,
         };
     }
