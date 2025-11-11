@@ -144,6 +144,11 @@ function readCustomArgs() {
         for (let i = 0; i < tokens.length; i++) {
             let token = tokens[i];
             if (token.startsWith("-") && i + 1 < tokens.length) {
+                if (tokens[i + 1].startsWith("-")) {
+                    // next token is another flag, so current token is standalone
+                    result.push(token);
+                    continue;
+                }
                 let next = tokens[i + 1];
                 result.push(`${token} ${next}`);
                 i++;
