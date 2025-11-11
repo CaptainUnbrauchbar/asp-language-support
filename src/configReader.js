@@ -27,6 +27,7 @@ function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
         args.push(...readModels());
         args.push(...readCustomArgs());
         args.push(...readFiles());
+        args.push(...readConstants());
 
         if (!turnMessagesOff) {
             vscode.window.showInformationMessage(
@@ -40,6 +41,14 @@ function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
     }
 
     return args;
+}
+
+function readConstants() {
+    if (jsonConfig.args.constants != undefined) {
+        return jsonConfig.args.constants.map((constant) => `--const ${constant}`);
+    } else {
+        return [];
+    }
 }
 
 /**
@@ -127,8 +136,30 @@ function readModels() {
 
 function readCustomArgs() {
     if (jsonConfig.args.customArgs != undefined) {
-        return jsonConfig.args.customArgs.split(" ");
+        const str = jsonConfig.args.customArgs;
+        // split custom args into seperate tokens
+        const tokens = str.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+        const result = [];
+        // process tokens as possible pairs
+        for (let i = 0; i < tokens.length; i++) {
+            let token = tokens[i];
+            if (token.startsWith("-") && i + 1 < tokens.length) {
+                if (tokens[i + 1].startsWith("-")) {
+                    // next token is another flag, so current token is standalone
+                    result.push(token);
+                    continue;
+                }
+                let next = tokens[i + 1];
+                result.push(`${token} ${next}`);
+                i++;
+            } else {
+                // no possible pair remaining
+                result.push(token);
+            }
+        }
+        return result;
     } else {
+        // no custom args
         return [];
     }
 }
