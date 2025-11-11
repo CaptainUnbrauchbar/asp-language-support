@@ -18,6 +18,7 @@
         },
         "preProcessor": false,
         "models": 0,
+        "constants": ["const1=value1", "const2=value2"],
         "customArgs": ""
     }
 }

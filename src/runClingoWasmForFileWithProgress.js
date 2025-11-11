@@ -25,12 +25,12 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
 
     fileContent = await fs.promises.readFile(filePath, "utf8");
 
-    const additionalFiles = options?.filter((arg) => arg && !arg.startsWith("--")).map((filePath) => filePath.replace(/"/g, ""));
+    const additionalFiles = options?.filter((arg) => arg && !arg.startsWith("-")).map((filePath) => filePath.replace(/"/g, ""));
 
     if (additionalFiles?.length) {
         for (const additionalFilePath of additionalFiles) {
             if (!fs.existsSync(additionalFilePath)) {
-                vscode.window.showErrorMessage(`File not found: ${filePath}`);
+                vscode.window.showErrorMessage(`File not found: ${additionalFilePath}`);
                 return null;
             }
             const additionalContent = await fs.promises.readFile(additionalFilePath, "utf8");
@@ -41,7 +41,7 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
     }
 
     // Filter options for Clingo
-    const clingoOptions = options?.filter((arg) => arg.startsWith("--"));
+    const clingoOptions = options?.filter((arg) => arg.startsWith("-"));
 
     progress.report({
         increment: 50,

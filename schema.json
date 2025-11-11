@@ -6,7 +6,7 @@
         "name": { "type": "string" },
         "author": { "type": "string" },
         "version": { "type": "string" },
-        "additionalFile": { "type": "array" },
+        "additionalFiles": { "type": "array" },
         "args": {
             "type": "object",
             "properties": {
@@ -26,6 +26,7 @@
                 "timeLimit": { "type": "integer" },
                 "preProcessor": { "type": "boolean" },
                 "models": { "type": "integer" },
+                "constants": { "type": "array" },
                 "customArgs": { "type": "string" }
             }
         }
