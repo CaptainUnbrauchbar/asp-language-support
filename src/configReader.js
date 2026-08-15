@@ -134,9 +134,39 @@ function readModels() {
     }
 }
 
-function readCustomArgs() {
-    if (jsonConfig.args.customArgs != undefined) {
-        const str = jsonConfig.args.customArgs;
+/**
+ * Clingo options that customArgs must not set, because the extension already
+ * controls them and clingo rejects or breaks on a second occurrence:
+ *   outf   - the extension passes --outf=2 to get the JSON it parses
+ *   models - the extension passes the model count separately
+ *   text   - overrides the JSON output the same way --outf does
+ *   version/help - make clingo print and exit without ever solving
+ * Listed by option name, so both "--outf=2" and "--outf 2" are caught.
+ */
+const RESERVED_ARGS = new Set(["outf", "models", "n", "text", "version", "help", "h"]);
+
+/**
+ * Extracts the option name from a token such as "--outf=2", "--outf 2" or "-n 3".
+ * Returns undefined for anything that is not an option.
+ * @param {String} token
+ * @returns {String | undefined}
+ */
+function optionName(token) {
+    const match = token.match(/^--?([A-Za-z][\w-]*)/);
+    return match?.[1];
+}
+
+/**
+ * Splits the free-text customArgs string into single clingo arguments, dropping
+ * any that would collide with the options the extension sets itself. Without
+ * this, a stray "--outf=n" makes clingo fail with an opaque "multiple
+ * occurrences" error that gives the user no hint that their config caused it.
+ * @param {String} [customArgs] The raw string, defaulting to the one in the loaded config
+ * @returns {String[]}
+ */
+function readCustomArgs(customArgs = jsonConfig?.args?.customArgs) {
+    if (customArgs != undefined) {
+        const str = customArgs;
         // split custom args into seperate tokens
         const tokens = str.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
         const result = [];
@@ -157,7 +187,14 @@ function readCustomArgs() {
                 result.push(token);
             }
         }
-        return result;
+
+        const reserved = result.filter((arg) => RESERVED_ARGS.has(optionName(arg)));
+        if (reserved.length) {
+            vscode.window.showWarningMessage(
+                `Ignoring ${reserved.length} custom argument(s) reserved by this extension: ${reserved.join(", ")}`
+            );
+        }
+        return result.filter((arg) => !RESERVED_ARGS.has(optionName(arg)));
     } else {
         // no custom args
         return [];
@@ -166,5 +203,8 @@ function readCustomArgs() {
 
 module.exports = {
     readConfig,
+    readCustomArgs,
+    optionName,
+    RESERVED_ARGS,
     jsonConfig,
 };

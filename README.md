@@ -63,6 +63,7 @@ This extension contributes the following features:
 -   `Compute all Answer Sets`: Get all answer sets for the current logic program file!
 -   `Compute the first Answer Set`: Get the first answer set for the current logic program file!
 -   `Compute Answer Sets (config.json)`: Compute answer sets using the clingo configuration from a config file
+-   `Stop the running Clingo solver`: Stop a run that is taking too long, either with the **Cancel** button on the progress notification, the stop button in the ASP panel or `Ctrl+Shift+S` / `Cmd+Shift+S`
 
 ## Contributing
 

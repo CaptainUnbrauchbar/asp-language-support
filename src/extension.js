@@ -3,11 +3,10 @@ const which = require("which");
 const { dirname, join } = require("path");
 const fs = require("fs");
 const { readConfig } = require("./configReader.js");
-const { spawn } = require("child_process");
 const { WebviewProvider } = require("./webviewProvider.js");
 const { runClingoWasmForFileWithProgress } = require("./runClingoWasmForFileWithProgress.js");
 const { runClingoPathForFileWithProgress } = require("./runClingoPathForFileWithProgress.js");
-const clingo = require("clingo-wasm");
+const { abortClingo } = require("./clingoWasm.js");
 
 //E_SAT       = 10, !< At least one model was found.
 //E_EXHAUST   = 20, !< Search-space was completely examined.
@@ -27,6 +26,7 @@ function activate(context) {
     var usePathClingo = vscode.workspace.getConfiguration("aspLanguage").get("usePathClingo");
     var setConfig = vscode.workspace.getConfiguration("aspLanguage").get("setConfig");
     var path;
+    var clingoRunning = false;
 
     const provider = new WebviewProvider(context.extensionUri);
     if (usePathClingo) {
@@ -34,20 +34,32 @@ function activate(context) {
     }
 
     /**
+     * Tracks whether a solve is in flight, both to reject overlapping runs and to
+     * drive the "aspLanguage.clingoRunning" context key that shows the stop button.
+     * @param {Boolean} running
+     */
+    function setClingoRunning(running) {
+        clingoRunning = running;
+        vscode.commands.executeCommand("setContext", "aspLanguage.clingoRunning", running);
+    }
+
+    /**
      * Function to run Clingo with WASM for a given file path and options. Acts as wrapper for runClingoWasmForFileWithProgress located in runClingoWasmForFileWithProgress.js
      * This is needed so runClingoWasmForFileWithProgress can be tested with Jest.
+     * The progress notification is cancellable: cancelling terminates the solver worker.
      * @param {String} filePath
      * @param {Number} models
      * @param {String[]} options
-     * @returns {Promise<clingo.ClingoResult | clingo.ClingoError>} The result of the Clingo run.
+     * @returns {Promise<import("clingo-wasm").ClingoResult | null>} The result of the Clingo run, or null if it failed or was cancelled.
      */
     async function runClingoWasmForFile(filePath, models = undefined, options = undefined) {
         return await vscode.window.withProgress(
             {
-                location: vscode.ProgressLocation.Window,
+                location: vscode.ProgressLocation.Notification,
                 title: "WASM Clingo is running",
+                cancellable: true,
             },
-            async (progress) => await runClingoWasmForFileWithProgress(vscode, progress, filePath, models, options)
+            async (progress, token) => await runClingoWasmForFileWithProgress(vscode, progress, filePath, models, options, token)
         );
     }
 
@@ -125,11 +137,18 @@ function activate(context) {
         // Process config information
         if (useConfig) {
             cfgFile = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
-            models = cfgFile.find((arg) => arg.startsWith("--models")).split(" ")[1];
+            // "models" is optional in the config schema, so keep the caller's value when it is absent
+            models = cfgFile.find((arg) => arg.startsWith("--models"))?.split(" ")[1] ?? models;
             additionalArgs = cfgFile.filter((arg) => !arg.startsWith("--models"));
         }
 
         const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, models, additionalArgs);
+
+        // Cancelled or failed runs have already been reported to the user, and
+        // carry no answers for the webview to render
+        if (!clingoResult) {
+            return;
+        }
 
         const answers = formatWasmResult(clingoResult);
 
@@ -152,7 +171,8 @@ function activate(context) {
         // Process config information
         if (useConfig) {
             const cfgFile = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
-            models = cfgFile.find((arg) => arg.startsWith("--models")).split(" ")[1];
+            // "models" is optional in the config schema, so keep the caller's value when it is absent
+            models = cfgFile.find((arg) => arg.startsWith("--models"))?.split(" ")[1] ?? models;
             additionalArgs = cfgFile.filter((arg) => !arg.startsWith("--models"));
         }
 
@@ -175,14 +195,24 @@ function activate(context) {
      * @returns
      */
     async function runClingoCommand(models, useConfig = false) {
-        if (vscode.window.activeTextEditor.document.languageId !== "asp") {
+        if (vscode.window.activeTextEditor?.document.languageId !== "asp") {
             vscode.window.showErrorMessage("No active text editor found. Please open a file to run Clingo on.");
             return;
         }
-        if (usePathClingo) {
-            await runPathClingo(models, useConfig);
-        } else {
-            await runBundledClingo(models, useConfig);
+        if (clingoRunning) {
+            vscode.window.showWarningMessage("Clingo is already running. Stop the current run before starting a new one.");
+            return;
+        }
+
+        setClingoRunning(true);
+        try {
+            if (usePathClingo) {
+                await runPathClingo(models, useConfig);
+            } else {
+                await runBundledClingo(models, useConfig);
+            }
+        } finally {
+            setClingoRunning(false);
         }
     }
 
@@ -246,6 +276,20 @@ function activate(context) {
         }
     );
 
+    // Register stopClingo command, which aborts a solve that is stuck or taking too long.
+    // Before clingo-wasm 0.6.0 this was impossible and an endless loop meant restarting VSCode.
+    const stopClingoCommand = vscode.commands.registerCommand("answer-set-programming-language-support.stopclingo", async () => {
+        if (!clingoRunning) {
+            vscode.window.showInformationMessage("Clingo is not running.");
+            return;
+        }
+        if (usePathClingo) {
+            vscode.window.showInformationMessage("Use the prompt shown by the running process to stop your own version of Clingo.");
+            return;
+        }
+        await abortClingo();
+    });
+
     // Register initClingoConfig command for the extension to create a new config file for the user
     const initClingoConfig = vscode.commands.registerCommand("answer-set-programming-language-support.initClingoConfig", function () {
         const sampleConfig = fs.readFileSync(join(context.asAbsolutePath(""), `sampleConfig.json`));
@@ -258,6 +302,7 @@ function activate(context) {
     context.subscriptions.push(computeAllSetsCommand);
     context.subscriptions.push(computeSingleSetCommand);
     context.subscriptions.push(computeConfigCommand);
+    context.subscriptions.push(stopClingoCommand);
     context.subscriptions.push(initClingoConfig);
 
     //Listeners for Configuration Options, updates the variables if the user changes them in the settings
@@ -285,7 +330,10 @@ function activate(context) {
 }
 
 // this method is called when your extension is deactivated
-function deactivate() {}
+async function deactivate() {
+    // Tear down the solver worker so an in-flight run cannot outlive the extension
+    await abortClingo();
+}
 
 module.exports = {
     activate,

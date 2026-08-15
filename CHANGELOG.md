@@ -6,12 +6,24 @@ All notable changes to the "answer-set-programming-language-support" extension w
 
 If you want to contribute to the repository you are welcome to look at these planned features on your own fork :)
 
--   **Feature**: Find a way to manage the WASM Clingo Process Workers so you can terminate or restart them at any point without having to restart VSCode
 -   **QoL**: Adjust the webview UI colours so they work best with any selected colour theme
 -   **Testing**: Add more Unit Tests
 -   **Testing**: Find a way to do proper Integration Testing that works with CI/CD (currently only local and limited functionality because of the webview UI)
 -   **Localization**: Look into localization need/techniques and translate text
 -   **Bug**: Verify/Fix that all parameters in the ASP config.json created by this extension actually work properly and/or are still supported by clingo
+
+## 1.1.0: Stoppable Solving :octagonal_sign:
+
+-   Updated [**WASM Clingo**](https://github.com/domoritz/clingo-wasm) from 0.3.2 to 0.6.0
+-   **A running solve can now be stopped.** Clingo runs in a worker that can be terminated, so an endless loop no longer means restarting VSCode:
+    -   the progress notification shown while solving has a **Cancel** button
+    -   a new **Stop the running Clingo solver** command is available in the ASP panel toolbar and on `Ctrl+Shift+S` / `Cmd+Shift+S`
+-   The progress notification now reports **how many models have been found so far** instead of an empty spinner
+-   Starting a second run while one is still going is refused instead of silently queueing behind it
+-   Cancelled runs are reported as cancelled rather than as a solver error
+-   Fixed a crash when a config file did not set `models`
+-   Fixed a crash in the output panel when a run produced no answers
+-   **Requires VSCode 1.94 or newer** (was 1.63): clingo-wasm is now an ESM-only package and needs a newer NodeJS than older VSCode versions ship
 
 ## 1.0.0: Big Feature, Security and QoL Patch :fireworks:
 
