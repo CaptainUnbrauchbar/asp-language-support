@@ -28,6 +28,16 @@ If you want to contribute to the repository you are welcome to look at these pla
     -   Copying now goes through VSCode instead of the webview clipboard, which could fail silently
     -   Clingo warnings and info messages are now shown instead of being discarded
     -   Results are kept when the panel is hidden, instead of being lost when switching to the terminal
+    -   Results, including the active filter, also survive **moving the panel** to another position, which rebuilds the view from scratch and previously emptied it for good
+    -   Redesigned the header: it is now **sticky**, so the filter, the actions and the statistics stay reachable however far you scroll
+    -   The run statistics moved into a single line in that header, replacing the large metadata box and freeing most of the panel for answers
+    -   Actions now use VSCode's own icons and gained an **overflow menu** for further tools (copy filtered answer sets, clear output)
+    -   The config options used for a run collapse into an expandable section instead of taking a permanent box
+    -   The run result is now a **coloured badge** (green when satisfiable, red when not) and the other statistics gained icons, with the numbers emphasised over their units
+    -   Answers size themselves to their content instead of always being eight lines tall, so far more fits on screen
+    -   While filtering, the **matching part of each atom is highlighted**
+    -   Copy buttons confirm with a checkmark in place, not only through a notification
+    -   Clingo messages and empty results are shown as proper callouts with an icon and a coloured edge
 -   **Added a status bar item** showing which solver is in use and its clingo version, with a spinner while solving. Click it to compute all answer sets, or to stop a running solve. It replaces the notifications that announced the solver on every activation
 -   **Config file problems are now readable**: instead of `[object Object]`, each problem names the field and what is wrong with it (e.g. `args.models: must be integer`), all problems are reported at once rather than one per run, and the message offers to open the config file
 -   Clarified the `Set Config` setting: the config file is looked up next to the .lp file you run, not in the workspace root

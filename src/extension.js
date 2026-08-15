@@ -157,7 +157,7 @@ function activate(context) {
         // complete list here for copying
         provider.setAnswers(extractAnswers(clingoResult));
 
-        provider._view?.webview.postMessage({
+        provider.post({
             type: "updateOutput",
             answers,
             useConfig,
@@ -187,7 +187,7 @@ function activate(context) {
             // The binary prints its version on the first line of its output
             statusBar.setVersion(parseClingoVersion(clingoResult.output));
 
-            provider._view?.webview.postMessage({
+            provider.post({
                 type: "updateOutputString",
                 answers: clingoResult.output,
             });

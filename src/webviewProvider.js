@@ -9,10 +9,26 @@ class WebviewProvider {
         this._extensionUri = _extensionUri;
         /** Every answer set of the last run, including those the webview did not receive. @type {String[][]} */
         this._answers = [];
+        /** The last payload sent to the webview, replayed whenever a new webview appears. */
+        this._lastMessage = undefined;
     }
 
     get viewType() {
         return "ASP.aspView";
+    }
+
+    /**
+     * Sends a payload to the webview and remembers it.
+     *
+     * Dragging the panel to another position does not merely hide the view, it
+     * disposes the webview and builds a fresh one, so retainContextWhenHidden
+     * cannot help there. Keeping the last payload here lets the new webview ask
+     * for it as soon as its script is running, instead of coming up empty.
+     * @param {Object} message
+     */
+    post(message) {
+        this._lastMessage = message;
+        this._view?.webview.postMessage(message);
     }
 
     /**
@@ -42,9 +58,20 @@ class WebviewProvider {
             enableScripts: true,
             localResourceRoots: [this._extensionUri],
         };
-        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        // Registered before the HTML is set, so the webview's "ready" message
+        // cannot arrive before anything is listening for it
         webviewView.webview.onDidReceiveMessage(async (data) => {
             switch (data.type) {
+                case "ready": {
+                    // A freshly built webview starts on the welcome screen, so give
+                    // it back whatever was on display before it was recreated. When
+                    // it restored itself from its own state there is nothing to do,
+                    // and resending would only discard the filter it just restored.
+                    if (!data.hasState && this._lastMessage) {
+                        webviewView.webview.postMessage(this._lastMessage);
+                    }
+                    break;
+                }
                 case "colorSelected": {
                     vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));
                     break;
@@ -65,8 +92,35 @@ class WebviewProvider {
                     }
                     break;
                 }
+                case "copyFiltered": {
+                    const selected = (data.indices ?? []).map((index) => this._answers[index]).filter(Boolean);
+                    if (selected.length) {
+                        await this._copy(
+                            selected.map((atoms) => atoms.join(", ")).join("\n"),
+                            `${selected.length} filtered answer set(s)`
+                        );
+                    }
+                    break;
+                }
+                case "clearOutput": {
+                    this.setAnswers([]);
+                    // Also forget the payload, so a cleared panel does not come
+                    // back to life when the view is moved
+                    this._lastMessage = undefined;
+                    break;
+                }
             }
         });
+
+        // Moving the panel disposes this view. Without dropping the reference the
+        // extension keeps posting results into a webview nobody can see any more.
+        webviewView.onDidDispose?.(() => {
+            if (this._view === webviewView) {
+                this._view = undefined;
+            }
+        });
+
+        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
     }
 
     /**
@@ -80,6 +134,11 @@ class WebviewProvider {
         // Do the same for the stylesheet.
         const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "vscode.css"));
         const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "main.css"));
+        // Codicons are already a dependency of this extension and give the panel
+        // the same icons VSCode uses everywhere else
+        const codiconUri = webview.asWebviewUri(
+            vscode.Uri.joinPath(this._extensionUri, "node_modules", "@vscode", "codicons", "dist", "codicon.css")
+        );
         const clingoSolver = vscode.workspace.getConfiguration("aspLanguage").get("usePathClingo")
             ? "your own version of Clingo from PATH"
             : "the bundled WASM Clingo Solver";
@@ -95,30 +154,41 @@ class WebviewProvider {
 					and only allow scripts that have a specific nonce.
 					(See the 'webview-sample' extension sample for img-src content security policy examples)
 				-->
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
 
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				
+
+				<link href="${codiconUri}" rel="stylesheet">
 				<link href="${styleVSCodeUri}" rel="stylesheet">
 				<link href="${styleMainUri}" rel="stylesheet">
 
 				<title>ASP Output</title>
 			</head>
 			<body>
-            <div class="toolbar" hidden>
-                <input class="filter-box" type="search" placeholder="Filter atoms, e.g. sudoku(1," aria-label="Filter atoms">
-                <button class="copy-all" title="Copy every answer set">Copy all</button>
-                <span class="summary" role="status" aria-live="polite"></span>
-            </div>
+            <header class="panel-header" hidden>
+                <span class="stat-strip" role="status" aria-live="polite"></span>
+                <div class="filter-field">
+                    <i class="codicon codicon-search" aria-hidden="true"></i>
+                    <input class="filter-box" type="search" placeholder="Filter atoms" aria-label="Filter atoms">
+                </div>
+                <button class="icon-button copy-all" title="Copy all answer sets" aria-label="Copy all answer sets">
+                    <i class="codicon codicon-copy" aria-hidden="true"></i>
+                </button>
+                <div class="menu-anchor">
+                    <button class="icon-button more-button" title="More actions" aria-label="More actions" aria-haspopup="true" aria-expanded="false">
+                        <i class="codicon codicon-ellipsis" aria-hidden="true"></i>
+                    </button>
+                    <ul class="menu" role="menu" hidden></ul>
+                </div>
+            </header>
             <div class="output-container">
-                <textarea class="output-box" readonly>
+                <textarea class="output-box welcome-box" rows="10" readonly>
 Welcome to Clingo!
 Using ${clingoSolver}.
 
 > Use the buttons in the top right to compute all sets, a single set or a config file.
-> Click the button above each answer to copy its content to the clipboard.
-> Once you have results, use the filter box to narrow them down.
-                </textarea>
+> Click the copy icon next to an answer to copy it to the clipboard.
+> Once you have results, use the filter box to narrow them down.</textarea>
             </div>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>

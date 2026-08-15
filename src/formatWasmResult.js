@@ -32,6 +32,10 @@ function formatWasmResult(result) {
     return {
         solver: result?.Solver,
         models: `${result?.Models.Number} (${result?.Models.More})`,
+        // Kept apart as well so the compact stat strip can render them itself.
+        // "More" is "yes" when clingo stopped before enumerating everything.
+        modelsNumber: result?.Models?.Number,
+        modelsMore: result?.Models?.More === "yes",
         calls: result?.Calls,
         time: {
             total: result?.Time.Total,
