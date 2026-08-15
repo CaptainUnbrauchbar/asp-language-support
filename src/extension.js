@@ -7,6 +7,7 @@ const { WebviewProvider } = require("./webviewProvider.js");
 const { runClingoWasmForFileWithProgress } = require("./runClingoWasmForFileWithProgress.js");
 const { runClingoPathForFileWithProgress } = require("./runClingoPathForFileWithProgress.js");
 const { abortClingo } = require("./clingoWasm.js");
+const { formatWasmResult, extractAnswers } = require("./formatWasmResult.js");
 
 //E_SAT       = 10, !< At least one model was found.
 //E_EXHAUST   = 20, !< Search-space was completely examined.
@@ -82,26 +83,6 @@ function activate(context) {
     }
 
     /**
-     * Function to format the result of Clingo WASM. It formats the result into a more readable format.
-     * @param {any} result
-     * @returns {Object} The formatted result readable by the output interface.
-     */
-    function formatWasmResult(result) {
-        return {
-            solver: result?.Solver,
-            models: `${result?.Models.Number} (${result?.Models.More})`,
-            calls: result?.Calls,
-            time: {
-                total: result?.Time.Total,
-                solve: result?.Time.Solve,
-                model: result?.Time.Model,
-            },
-            answers: result?.Call.flatMap((call) => call.Witnesses?.map((witness) => witness.Value.join(", "))),
-            result: result?.Result,
-        };
-    }
-
-    /**
      * Function to check if the path to Clingo is set in the configuration. If not, it uses the bundled version of Clingo.
      * Also checks if clingo exists on path.
      * Sets the variable "path" to the path of the clingo executable if usePathClingo is set to true.
@@ -151,6 +132,10 @@ function activate(context) {
         }
 
         const answers = formatWasmResult(clingoResult);
+
+        // The webview only receives the first MAX_RENDERED_ANSWERS, so keep the
+        // complete list here for copying
+        provider.setAnswers(extractAnswers(clingoResult));
 
         provider._view?.webview.postMessage({
             type: "updateOutput",
@@ -298,7 +283,13 @@ function activate(context) {
         vscode.workspace.getConfiguration("aspLanguage").update("setConfig", "config.json");
     });
 
-    context.subscriptions.push(vscode.window.registerWebviewViewProvider(provider.viewType, provider));
+    // Keep the results when the panel is hidden, otherwise switching to the
+    // terminal and back throws them away and the program has to be solved again
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(provider.viewType, provider, {
+            webviewOptions: { retainContextWhenHidden: true },
+        })
+    );
     context.subscriptions.push(computeAllSetsCommand);
     context.subscriptions.push(computeSingleSetCommand);
     context.subscriptions.push(computeConfigCommand);

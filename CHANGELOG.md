@@ -21,8 +21,17 @@ If you want to contribute to the repository you are welcome to look at these pla
 -   The progress notification now reports **how many models have been found so far** instead of an empty spinner
 -   Starting a second run while one is still going is refused instead of silently queueing behind it
 -   Cancelled runs are reported as cancelled rather than as a solver error
+-   **Output panel improvements:**
+    -   Added a **filter box** that narrows results down to the atoms you are looking for
+    -   Very large results no longer freeze the panel: the first 500 answer sets are rendered and the true total is reported
+    -   Added a **Copy all** button, which copies every answer set even when only the first 500 are shown
+    -   Copying now goes through VSCode instead of the webview clipboard, which could fail silently
+    -   Clingo warnings and info messages are now shown instead of being discarded
+    -   Results are kept when the panel is hidden, instead of being lost when switching to the terminal
 -   Fixed a crash when a config file did not set `models`
 -   Fixed a crash in the output panel when a run produced no answers
+-   Fixed an unsatisfiable run showing a phantom empty "Answer 1/1"
+-   Fixed output from your own Clingo overwriting a single answer of a previous run instead of replacing the panel
 -   **Requires VSCode 1.94 or newer** (was 1.63): clingo-wasm is now an ESM-only package and needs a newer NodeJS than older VSCode versions ship
 
 ## 1.0.0: Big Feature, Security and QoL Patch :fireworks:

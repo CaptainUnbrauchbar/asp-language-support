@@ -7,10 +7,32 @@ const crypto = require("crypto");
 class WebviewProvider {
     constructor(_extensionUri) {
         this._extensionUri = _extensionUri;
+        /** Every answer set of the last run, including those the webview did not receive. @type {String[][]} */
+        this._answers = [];
     }
 
     get viewType() {
         return "ASP.aspView";
+    }
+
+    /**
+     * Stores the complete result of a run so that copying can offer every answer
+     * set, not just the ones small enough to render.
+     * @param {String[][]} answers
+     */
+    setAnswers(answers) {
+        this._answers = answers;
+    }
+
+    /**
+     * Copies text through the VSCode clipboard API. The webview's own
+     * navigator.clipboard is unreliable there and fails without telling anyone.
+     * @param {String} text
+     * @param {String} description What was copied, for the confirmation message
+     */
+    async _copy(text, description) {
+        await vscode.env.clipboard.writeText(text);
+        vscode.window.showInformationMessage(`Copied ${description} to the clipboard.`);
     }
 
     resolveWebviewView(webviewView, _context, _token) {
@@ -21,10 +43,26 @@ class WebviewProvider {
             localResourceRoots: [this._extensionUri],
         };
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-        webviewView.webview.onDidReceiveMessage((data) => {
+        webviewView.webview.onDidReceiveMessage(async (data) => {
             switch (data.type) {
                 case "colorSelected": {
                     vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));
+                    break;
+                }
+                case "copyAnswer": {
+                    const answer = this._answers[data.index];
+                    if (answer) {
+                        await this._copy(answer.join(", "), `answer ${data.index + 1}`);
+                    }
+                    break;
+                }
+                case "copyAll": {
+                    if (this._answers.length) {
+                        await this._copy(
+                            this._answers.map((atoms) => atoms.join(", ")).join("\n"),
+                            `all ${this._answers.length} answer sets`
+                        );
+                    }
                     break;
                 }
             }
@@ -67,6 +105,11 @@ class WebviewProvider {
 				<title>ASP Output</title>
 			</head>
 			<body>
+            <div class="toolbar" hidden>
+                <input class="filter-box" type="search" placeholder="Filter atoms, e.g. sudoku(1," aria-label="Filter atoms">
+                <button class="copy-all" title="Copy every answer set">Copy all</button>
+                <span class="summary" role="status" aria-live="polite"></span>
+            </div>
             <div class="output-container">
                 <textarea class="output-box" readonly>
 Welcome to Clingo!
@@ -74,6 +117,7 @@ Using ${clingoSolver}.
 
 > Use the buttons in the top right to compute all sets, a single set or a config file.
 > Click the button above each answer to copy its content to the clipboard.
+> Once you have results, use the filter box to narrow them down.
                 </textarea>
             </div>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
