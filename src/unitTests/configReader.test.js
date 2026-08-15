@@ -7,7 +7,18 @@ jest.mock(
 );
 
 const vscode = require("vscode");
-const { readCustomArgs, optionName } = require("../configReader.js");
+const Ajv = require("ajv").default;
+const { readCustomArgs, optionName, formatSchemaErrors } = require("../configReader.js");
+const schema = require("../../schema.json");
+
+/** Validates against the real schema, so the tests cannot drift from it. */
+function problemsFor(config) {
+    const validate = new Ajv({ allErrors: true }).compile(schema);
+    validate(config);
+    return formatSchemaErrors(validate.errors);
+}
+
+const validConfig = { name: "Test", version: "1.0.0", author: "Someone", args: {} };
 
 describe("optionName", () => {
     it.each([
@@ -61,5 +72,49 @@ describe("readCustomArgs", () => {
         expect(readCustomArgs(undefined)).toEqual([]);
         expect(readCustomArgs("")).toEqual([]);
         expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
+    });
+});
+
+describe("formatSchemaErrors", () => {
+    it("names a missing top level property", () => {
+        const { author, ...withoutAuthor } = validConfig;
+
+        expect(problemsFor(withoutAuthor)).toEqual(["author: must have required property 'author'"]);
+    });
+
+    it("names the field by path when a value has the wrong type", () => {
+        expect(problemsFor({ ...validConfig, args: { models: "many" } })).toEqual(["args.models: must be integer"]);
+    });
+
+    it("lists the allowed values for an invalid choice", () => {
+        const problems = problemsFor({
+            ...validConfig,
+            args: { parallelMode: { useParallelMode: true, mode: "race", threads: 2 } },
+        });
+
+        expect(problems).toEqual([
+            "args.parallelMode.mode: must be equal to one of the allowed values (allowed: compete, split)",
+        ]);
+    });
+
+    it("reports every problem at once rather than stopping at the first", () => {
+        const problems = problemsFor({ name: "Test", args: { models: "many", timeLimit: true } });
+
+        // two missing properties plus two wrong types
+        expect(problems).toHaveLength(4);
+        expect(problems).toEqual(
+            expect.arrayContaining([
+                "version: must have required property 'version'",
+                "author: must have required property 'author'",
+                "args.models: must be integer",
+                "args.timeLimit: must be integer",
+            ])
+        );
+    });
+
+    it("produces nothing for a valid config and survives no errors", () => {
+        expect(problemsFor(validConfig)).toEqual([]);
+        expect(formatSchemaErrors(null)).toEqual([]);
+        expect(formatSchemaErrors(undefined)).toEqual([]);
     });
 });

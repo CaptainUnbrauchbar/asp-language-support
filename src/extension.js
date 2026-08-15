@@ -8,6 +8,7 @@ const { runClingoWasmForFileWithProgress } = require("./runClingoWasmForFileWith
 const { runClingoPathForFileWithProgress } = require("./runClingoPathForFileWithProgress.js");
 const { abortClingo } = require("./clingoWasm.js");
 const { formatWasmResult, extractAnswers } = require("./formatWasmResult.js");
+const { ClingoStatusBar, parseClingoVersion, shouldShowStatusBar } = require("./statusBar.js");
 
 //E_SAT       = 10, !< At least one model was found.
 //E_EXHAUST   = 20, !< Search-space was completely examined.
@@ -30,8 +31,22 @@ function activate(context) {
     var clingoRunning = false;
 
     const provider = new WebviewProvider(context.extensionUri);
-    if (usePathClingo) {
-        usePath();
+    const statusBar = new ClingoStatusBar(vscode);
+
+    // Register the listeners before the first check, so an editor that becomes
+    // active while activation is still running cannot slip past unnoticed
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(updateStatusBarVisibility));
+    context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(updateStatusBarVisibility));
+    context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(updateStatusBarVisibility));
+
+    usePath();
+    updateStatusBarVisibility();
+
+    /**
+     * The status bar item only makes sense while an ASP file is open.
+     */
+    function updateStatusBarVisibility() {
+        statusBar.setVisible(shouldShowStatusBar(vscode.window.activeTextEditor, vscode.workspace.textDocuments));
     }
 
     /**
@@ -41,6 +56,7 @@ function activate(context) {
      */
     function setClingoRunning(running) {
         clingoRunning = running;
+        statusBar.setRunning(running);
         vscode.commands.executeCommand("setContext", "aspLanguage.clingoRunning", running);
     }
 
@@ -86,20 +102,21 @@ function activate(context) {
      * Function to check if the path to Clingo is set in the configuration. If not, it uses the bundled version of Clingo.
      * Also checks if clingo exists on path.
      * Sets the variable "path" to the path of the clingo executable if usePathClingo is set to true.
+     * Which solver ends up being used is reported by the status bar item rather
+     * than by a notification on every activation.
      */
     function usePath() {
-        if (!usePathClingo && !turnMessagesOff) {
-            vscode.window.showInformationMessage("Using bundled version of Clingo! (this message can be turned off in options)");
+        if (!usePathClingo) {
+            path = undefined;
+            statusBar.setSolver("wasm");
             return;
         }
         try {
             path = which.sync("clingo");
-            if (!turnMessagesOff) {
-                vscode.window.showInformationMessage(
-                    'Using your own version of Clingo: "' + path + '" (this message can be turned off in options)'
-                );
-            }
+            statusBar.setSolver("path");
         } catch {
+            path = undefined;
+            statusBar.setSolver("missing");
             vscode.window.showErrorMessage(
                 "Clingo was not found on your PATH. Disable the 'usePathClingo' option to use the bundled version of Clingo"
             );
@@ -133,6 +150,9 @@ function activate(context) {
 
         const answers = formatWasmResult(clingoResult);
 
+        // Clingo only reports its version as part of a result
+        statusBar.setVersion(parseClingoVersion(clingoResult.Solver));
+
         // The webview only receives the first MAX_RENDERED_ANSWERS, so keep the
         // complete list here for copying
         provider.setAnswers(extractAnswers(clingoResult));
@@ -164,6 +184,9 @@ function activate(context) {
         const clingoResult = await runClingoPathForFile(vscode.window.activeTextEditor.document.fileName, models, additionalArgs);
 
         if (CLINGO_SUCCESS_CODES.includes(clingoResult.code)) {
+            // The binary prints its version on the first line of its output
+            statusBar.setVersion(parseClingoVersion(clingoResult.output));
+
             provider._view?.webview.postMessage({
                 type: "updateOutputString",
                 answers: clingoResult.output,
@@ -295,6 +318,7 @@ function activate(context) {
     context.subscriptions.push(computeConfigCommand);
     context.subscriptions.push(stopClingoCommand);
     context.subscriptions.push(initClingoConfig);
+    context.subscriptions.push(statusBar);
 
     //Listeners for Configuration Options, updates the variables if the user changes them in the settings
     vscode.workspace.onDidChangeConfiguration((event) => {

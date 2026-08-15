@@ -6,7 +6,8 @@
     "publisher": "ffrankreiter",
     "jest": {
         "testPathIgnorePatterns": [
-            "src/integrationTests"
+            "src/integrationTests",
+            "/.vscode-test/"
         ]
     },
     "engines": {
@@ -90,10 +91,10 @@
                     "aspLanguage.turnMessagesOff": {
                         "description": "Set this option if you want to turn off all Messages (bottom right)",
                         "type": "boolean",
-                        "default": false
+                        "default": true
                     },
                     "aspLanguage.setConfig": {
-                        "description": "Enter your config name:",
+                        "markdownDescription": "Name of the clingo config file to use, for example `config.json`. The file is looked up **next to the .lp file you run**, not in the workspace root. Leave empty to run without a config. Use the `ASPLanguage: Initialize clingo config file in current working directory` command to create one.",
                         "type": "string",
                         "default": ""
                     }

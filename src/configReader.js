@@ -1,4 +1,4 @@
-const { dirname, join } = require("path");
+const { basename, dirname, join } = require("path");
 const fs = require("fs");
 const vscode = require("vscode");
 const Ajv = require("ajv").default;
@@ -52,15 +52,53 @@ function readConstants() {
 }
 
 /**
+ * Turns Ajv's error objects into lines a human can act on.
+ *
+ * Ajv reports an object per problem, so interpolating the array straight into a
+ * message produced "[object Object]" and told the user nothing. Each error names
+ * the offending field by JSON path, so the line points at what to edit.
+ * @param {Array} errors Ajv error objects
+ * @returns {String[]} One readable line per problem
+ */
+function formatSchemaErrors(errors) {
+    return (errors ?? []).map((error) => {
+        // instancePath is "" for problems with the config object itself
+        const field = error.instancePath ? error.instancePath.replace(/^\//, "").replace(/\//g, ".") : "(root)";
+        // For a missing property Ajv names it in params rather than in the path
+        const missing = error.params?.missingProperty;
+        const where = missing ? (error.instancePath ? `${field}.${missing}` : missing) : field;
+        const allowed = error.params?.allowedValues ? ` (allowed: ${error.params.allowedValues.join(", ")})` : "";
+        return `${where}: ${error.message}${allowed}`;
+    });
+}
+
+/**
  * @param {string} contextAbsolutePath
  * @param {string} pathToConfig
  */
 function validateConfigSchema(contextAbsolutePath, pathToConfig) {
-    const ajv = new Ajv();
+    // allErrors reports every problem at once instead of stopping at the first,
+    // so a config with several mistakes does not need several runs to fix
+    const ajv = new Ajv({ allErrors: true });
     const schema = require(join(contextAbsolutePath, `schema.json`));
     const validate = ajv.compile(schema);
     const valid = validate(jsonConfig);
-    if (!valid) vscode.window.showInformationMessage(`Config file ${pathToConfig} is not as expected: ${validate.errors}`);
+    if (valid) {
+        return;
+    }
+
+    const problems = formatSchemaErrors(validate.errors);
+    const fileName = basename(pathToConfig);
+    vscode.window
+        .showWarningMessage(
+            `${fileName} has ${problems.length} problem(s): ${problems.join("; ")}`,
+            "Open Config"
+        )
+        .then((choice) => {
+            if (choice === "Open Config") {
+                vscode.window.showTextDocument(vscode.Uri.file(pathToConfig));
+            }
+        });
 }
 
 function readFiles() {
@@ -204,6 +242,7 @@ function readCustomArgs(customArgs = jsonConfig?.args?.customArgs) {
 module.exports = {
     readConfig,
     readCustomArgs,
+    formatSchemaErrors,
     optionName,
     RESERVED_ARGS,
     jsonConfig,

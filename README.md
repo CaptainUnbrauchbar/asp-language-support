@@ -54,7 +54,9 @@ This extension contributes the following settings:
 -   `ASPLanguage: Terminal Mode`: Select if you want a new Terminal after every execution! (default: False)
 -   `ASPLanguage: Use PATH Clingo`: Set this option if you would like to use the Clingo version from your PATH instead of the version included! (default: False)
 -   `ASPLanguage: Turn Messages Off`: Set this option if you want to turn off all Messages (bottom right)! (default: False)
--   `ASPLanguage: Set Config`: Set a .json file if you want to use a specific config file for clingo (default: empty)
+-   `ASPLanguage: Set Config`: Name of a clingo config file, looked up next to the .lp file you run (e.g. `config.json`, default: empty)
+
+Which solver is in use is shown in the status bar while an ASP file is open, together with the clingo version once you have run something. Click it to compute all answer sets, or to stop a run in progress.
 
 ## Extension Features
 
