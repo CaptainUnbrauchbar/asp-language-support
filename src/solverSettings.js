@@ -4,9 +4,9 @@ const { resolvePatterns } = require("./filePatterns.js");
  * The solver options the panel's settings pane edits.
  *
  * These do the same job as a config.json but are kept per workspace and edited
- * in the panel, so the common case needs no file at all. The JSON config is
- * still read by the dedicated "Compute Answer Sets (config.json)" command, so
- * projects that already have one keep working exactly as before.
+ * in the panel, so the common case needs no file at all. A project that already
+ * has a config.json is not stranded: "Import from config.json" reads it through
+ * configToSettings below, which is the only thing that reads one now.
  */
 
 /** Everything off or unlimited, which is what plain clingo does. */
@@ -224,8 +224,8 @@ function describeFields(backend, threads) {
 }
 
 /**
- * Turns the settings into clingo arguments, in the same shape readConfig
- * produces: options start with a dash, file paths are quoted.
+ * Turns the settings into clingo arguments: options start with a dash, file
+ * paths are quoted. The runner tells the two apart by that leading dash.
  *
  * Options the chosen solver cannot honour are left out entirely rather than
  * passed on to be ignored, so what the panel shows is what clingo was asked for.
@@ -306,7 +306,6 @@ function configToSettings(config) {
 }
 
 module.exports = {
-    ALL_BACKENDS,
     DEFAULT_SETTINGS,
     SETTING_FIELDS,
     NO_THREADS_NOTE,
@@ -314,6 +313,4 @@ module.exports = {
     normalizeSettings,
     settingsToArgs,
     configToSettings,
-    splitList,
-    supportsField,
 };

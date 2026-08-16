@@ -236,7 +236,8 @@ class WebviewProvider {
 Welcome to Clingo!
 Using ${clingoSolver}.
 
-> Use the buttons in the top right to compute all sets, a single set or a config file.
+> Use the buttons in the top right to compute all answer sets or just the first one.
+> The gear next to them holds the solver settings: limits, constants, extra files and more.
 > Click the copy icon next to an answer to copy it to the clipboard.
 > Once you have results, use the filter box to narrow them down.</textarea>
             </div>

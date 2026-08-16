@@ -64,6 +64,7 @@ describe("settingsToArgs", () => {
         expect(optionsFor({ timeLimit: 30 })).toEqual(["--time-limit=30"]);
         expect(optionsFor({ solveLimitConflicts: 100 })).toEqual(["--solve-limit=100,umax"]);
         expect(optionsFor({ solveLimitRestarts: 5 })).toEqual(["--solve-limit=umax,5"]);
+        expect(optionsFor({ solveLimitConflicts: 10, solveLimitRestarts: 2 })).toEqual(["--solve-limit=10,2"]);
     });
 
     it("never emits the zero clingo reads as 'stop immediately'", () => {

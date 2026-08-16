@@ -89,7 +89,7 @@
                         "default": false
                     },
                     "aspLanguage.setConfig": {
-                        "markdownDescription": "Name of the clingo config file to use, for example `config.json`. It is looked up next to the .lp file you run and then in **every folder above it**, so one config can serve a whole project. Leave empty to run without a config.\n\nThe config is only needed for solver options: to solve several files together, write `#include \"other.lp\".` in your program instead.",
+                        "markdownDescription": "Name of the clingo config file that **Import from config.json** reads, for example `config.json`. It is looked up next to the .lp file you run and then in **every folder above it**, so one config can serve a whole project.\n\nSolver options live in the panel's own settings, opened with the gear in its toolbar; this setting only says where to import an existing config from. To solve several files together, write `#include \"other.lp\".` in your program instead.",
                         "type": "string",
                         "default": ""
                     }

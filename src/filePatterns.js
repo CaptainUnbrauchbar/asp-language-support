@@ -105,4 +105,6 @@ function resolvePatterns(baseDirectory, entries) {
     return { files, unmatched };
 }
 
-module.exports = { globToRegExp, listFilesBelow, resolvePatterns, GLOB_CHARACTERS };
+// globToRegExp, listFilesBelow and GLOB_CHARACTERS are how resolvePatterns works
+// rather than what it offers, so they stay inside this module
+module.exports = { resolvePatterns };

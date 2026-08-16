@@ -7,7 +7,6 @@ All notable changes to the "answer-set-programming-language-support" extension w
 If you want to contribute to the repository you are welcome to look at these planned features on your own fork :)
 
 -   **QoL**: Adjust the webview UI colours so they work best with any selected colour theme
--   **Testing**: Add more Unit Tests
 -   **Testing**: Find a way to do proper Integration Testing that works with CI/CD (currently only local and limited functionality because of the webview UI)
 -   **Localization**: Look into localization need/techniques and translate text
 
@@ -21,7 +20,7 @@ If you want to contribute to the repository you are welcome to look at these pla
 -   Starting a second run while one is still going is refused instead of silently queueing behind it
 -   Cancelled runs are reported as cancelled rather than as a solver error
 -   **Output panel improvements:**
-    -   Added a **filter box** that narrows results down to the atoms you are looking for
+    -   Added a **filter box** that narrows results down to the answers you are looking for
     -   Very large results no longer freeze the panel: the first 500 answer sets are rendered and the true total is reported
     -   Added a **Copy all** button, which copies every answer set even when only the first 500 are shown
     -   Copying now goes through VSCode instead of the webview clipboard, which could fail silently
@@ -30,8 +29,7 @@ If you want to contribute to the repository you are welcome to look at these pla
     -   Results, including the active filter, also survive **moving the panel** to another position, which rebuilds the view from scratch and previously emptied it for good
     -   Redesigned the header: it is now **sticky**, so the filter, the actions and the statistics stay reachable however far you scroll
     -   The run statistics moved into a single line in that header, replacing the large metadata box and freeing most of the panel for answers
-    -   Actions now use VSCode's own icons and gained an **overflow menu** for further tools (copy filtered answer sets, clear output)
-    -   The config options used for a run collapse into an expandable section instead of taking a permanent box
+    -   Actions now use VSCode's own icons and gained an **overflow menu** for further tools (copy matching answer sets, clear output)
     -   The run result is now a **coloured badge** (green when satisfiable, red when not) and the other statistics gained icons, with the numbers emphasised over their units
     -   Answers size themselves to their content instead of always being eight lines tall, so far more fits on screen
     -   While filtering, the **matching part of each atom is highlighted**
@@ -39,20 +37,20 @@ If you want to contribute to the repository you are welcome to look at these pla
     -   Clingo messages and empty results are shown as proper callouts with an icon and a coloured edge
     -   Added a **Compare answer sets** toggle that dims the atoms every answer agrees on and highlights what tells them apart, marking atoms that occur in only a single answer
 -   **Added a status bar item** showing which solver is in use and its clingo version, with a spinner while solving. Click it to compute all answer sets, or to stop a running solve. It replaces the notifications that announced the solver on every activation
--   **Config file problems are now readable**: instead of `[object Object]`, each problem names the field and what is wrong with it (e.g. `args.models: must be integer`), all problems are reported at once rather than one per run, and the message offers to open the config file
+-   **Config file problems are now readable**: instead of `[object Object]`, each problem names the field and what is wrong with it (e.g. `args.models: must be integer`), and all problems are reported at once rather than one at a time
 -   Clarified the `Set Config` setting: the config file is looked up next to the .lp file you run, not in the workspace root
 -   **Removed the `Compute Answer Sets (config.json)` command**, its toolbar button, context menu entry and `Ctrl+Shift+C` shortcut. The settings pane covers what it did, and an existing config file is still welcome: **Import from config.json** brings it into the pane, and `Initialize clingo config file` still writes one out
 -   **A run you stop yourself now shows the answers it had already found**, the same as one stopped by the time limit, instead of discarding them along with the solver
 -   **The filter box can highlight instead of filter.** The toggle inside the box switches between hiding the answers with no matching atom and keeping every answer with the matches marked, which is what you want when you care where a match sits among the others. Either way a matching answer is shown **in full**, since an answer set means nothing atom by atom. Answers containing a match are marked in the margin while highlighting, and `Copy matching answer sets` means the matches in both modes
 -   `Clear output` now returns to the welcome screen instead of leaving the panel blank
 -   Matched text is easier to pick out: it now uses the stronger of the editor's two find colours, in bold and outlined, rather than the faint wash used for inactive matches
--   **Added a solver settings pane to the ASP panel**, opened with the gear in the panel toolbar next to the run buttons. Time limits, parallel solving, constants, extra files and custom arguments are edited there and kept per workspace, so the everyday case needs no config file. The JSON config keeps working unchanged: `Compute Answer Sets (config.json)` still reads it, the command that creates one is still there, and **Import from config.json** copies an existing one into the pane
+-   **Added a solver settings pane to the ASP panel**, opened with the gear in the panel toolbar next to the run buttons. The answer set limit, time limits, parallel solving, constants, extra files and custom arguments are edited there and kept per workspace, so the everyday case needs no config file at all
 -   **The time limit now works with the bundled solver.** Clingo's own `--time-limit` relies on a timer that cannot fire during a WebAssembly solve, so it was accepted and then silently ignored. The extension enforces it itself, and a run it stops reports the answers found up to that point instead of nothing at all. This applies to the time limit in a config.json as well
 -   **Settings the bundled solver cannot honour are now marked as such** in the pane, greyed out with the reason and left out of the run, instead of being offered and quietly ignored. They become available again with `Use PATH Clingo`. `Verbosity` and `Preprocess only` are affected: the WASM build never carries the first, and the second emits a format the extension cannot read back
 -   **Parallel solving works with the bundled solver.** The extension used to ask clingo-wasm whether threads were available from the extension host, which answers for that process rather than for the worker clingo actually runs in, and reports no threads because VSCode gives the host no `navigator` global. The parallel options were being stripped from every run as a result. Whether they work is now settled by clingo itself: they are sent, and only if clingo refuses them are they dropped, with a warning saying so. The default thread count also went from 2 to 4, since two threads measured no faster than one, and `split` mode is now recommended for enumerating many answers
 -   **Solver statistics are now shown**, in a collapsible section under the toolbar, whenever the statistics level is above zero. They were being requested from clingo and thrown away. The figures are grouped under their section and flow into as many columns as the panel is wide, so each number stays beside its name
 -   Added `npm run probe:settings`, which runs every setting against the bundled solver and reports what it really does, so a clingo-wasm upgrade cannot quietly turn an option into a no-op. This settles the long standing "verify that all config.json parameters actually work" item: every one of them is now checked by that command
--   A config.json asking for `preProcessor` no longer fails the run with `Clingo WASM Error: [object Object]`; unsupported options are dropped with a warning that says why
+-   Asking for `preProcessor` no longer fails the run with `Clingo WASM Error: [object Object]`; options the bundled solver cannot honour are dropped with a warning that says why
 -   **Composing a program out of several files no longer needs a config**: `#include "other.lp".` now works with the bundled solver, resolved recursively and relative to the including file, and error positions point back at the file the line really came from
 -   Added an **Answer set limit** to the settings pane: how many answer sets to compute at most, `0` for all of them. It caps `Compute all Answer Sets`, the way the time and solve limits do, while `Compute the first Answer Set` still returns one
 -   The sample config now shows every option the panel imports, at its default value. Importing a config validates it against the schema and says what is wrong with it, taking whatever is valid rather than refusing the file

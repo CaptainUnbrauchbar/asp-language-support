@@ -37,7 +37,7 @@ function fakeView() {
     return view;
 }
 
-const RESULT_MESSAGE = { type: "updateOutput", answers: { totalAnswers: 2 }, useConfig: false, cfgFile: [] };
+const RESULT_MESSAGE = { type: "updateOutput", answers: { totalAnswers: 2 } };
 
 describe("WebviewProvider", () => {
     let provider;

@@ -13,7 +13,7 @@
 | [Potassco](https://potassco.org/) | [Potassco on Github](https://github.com/potassco) | [Clingo](https://potassco.org/clingo/) | [Get it on Open VSX Registry](https://open-vsx.org/extension/ffrankreiter/answer-set-programming-language-support)
 
 This Extension uses Clingo Answer Set Solver (bundled), developed by Potassco (University of Potsdam).
-We added multi-file support with v0.4.0!
+With v1.1.0 a running solve can be stopped, the output panel was rebuilt, and solver options moved into the panel itself.
 
 ## Usage
 
@@ -60,8 +60,9 @@ Which solver is in use is shown in the status bar while an ASP file is open, tog
 
 This extension contributes the following features:
 
--   `Compute all Answer Sets`: Get all answer sets for the current logic program file!
--   `Compute the first Answer Set`: Get the first answer set for the current logic program file!
+-   `Compute all Answer Sets`: Get every answer set for the current logic program file, or as many as the answer set limit allows, with `Ctrl+Shift+A` / `Cmd+Shift+A`
+-   `Compute the first Answer Set`: Get the first answer set for the current logic program file, with `Ctrl+Shift+X` / `Cmd+Shift+X`
+-   `Solver settings`: Open the panel's solver settings with the gear in its toolbar
 -   `Stop the running Clingo solver`: Stop a run that is taking too long, either with the **Cancel** button on the progress notification, the stop button in the ASP panel or `Ctrl+Shift+S` / `Cmd+Shift+S`
 
 ### Solver settings
@@ -83,7 +84,7 @@ The panel header stays put while you scroll and holds everything you need for a 
 -   a **result badge** (green when satisfiable, red when not) next to the model count, solve time and clingo version
 -   **Compare answer sets** dims the atoms that every answer agrees on and highlights what actually tells them apart, marking atoms that occur in only a single answer
 -   a **filter box** that narrows results to the answers containing a matching atom, shown in full with the match highlighted. The toggle inside it switches to highlighting only, keeping every answer on screen so you can see where a match sits among the rest
--   **Copy** for a single answer or, from the `...` menu, for all or only the filtered ones
+-   **Copy** for a single answer or, from the `...` menu, for all of them or only the ones that matched the filter
 -   large results stay responsive: the first 500 answer sets are rendered while the true total is reported, and `Copy all` still gives you every one
 -   **solver statistics**, when the statistics level is set above zero, in a collapsible section under the toolbar
 

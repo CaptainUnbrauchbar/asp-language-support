@@ -8,7 +8,7 @@ jest.mock(
 
 const vscode = require("vscode");
 const Ajv = require("ajv").default;
-const { readCustomArgs, readSolveLimit, optionName, formatSchemaErrors, validateConfigObject } = require("../configReader.js");
+const { readCustomArgs, optionName, formatSchemaErrors, validateConfigObject } = require("../configReader.js");
 const schema = require("../../schema.json");
 
 /** Validates against the real schema, so the tests cannot drift from it. */
@@ -121,29 +121,6 @@ describe("formatSchemaErrors", () => {
         expect(problemsFor(validConfig)).toEqual([]);
         expect(formatSchemaErrors(null)).toEqual([]);
         expect(formatSchemaErrors(undefined)).toEqual([]);
-    });
-});
-
-describe("readSolveLimit", () => {
-    it.each([
-        [{ conflicts: 0, restarts: 0 }, []],
-        [{ conflicts: 100, restarts: 0 }, ["--solve-limit=100,umax"]],
-        [{ conflicts: 0, restarts: 5 }, ["--solve-limit=umax,5"]],
-        [{ conflicts: 10, restarts: 2 }, ["--solve-limit=10,2"]],
-    ])("turns %j into %j", (solveLimit, expected) => {
-        expect(readSolveLimit(solveLimit)).toEqual(expected);
-    });
-
-    it("passes nothing on when the config sets no solve limit", () => {
-        expect(readSolveLimit(undefined)).toEqual([]);
-    });
-
-    it("never emits the zero clingo reads as 'stop immediately'", () => {
-        // --solve-limit=0,0 halts before the first conflict and reports UNKNOWN,
-        // which is not what a config full of zeros is asking for
-        for (const limit of [{ conflicts: 0, restarts: 0 }, { conflicts: 0 }, { restarts: 0 }, {}]) {
-            expect(readSolveLimit(limit).join(" ")).not.toContain("0");
-        }
     });
 });
 

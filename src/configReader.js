@@ -1,9 +1,16 @@
-const { basename, dirname, join } = require("path");
+/**
+ * What is left of config.json handling.
+ *
+ * Running a config file directly was removed in 1.1.0: the settings pane holds
+ * the solver options now. A config file is still read in one place, "Import
+ * from config.json", which finds it, checks it against the schema and hands it
+ * to configToSettings. Everything here serves that, or the custom arguments the
+ * pane accepts.
+ */
+const { dirname, join } = require("path");
 const fs = require("fs");
 const vscode = require("vscode");
 const Ajv = require("ajv").default;
-const { resolvePatterns } = require("./filePatterns.js");
-var jsonConfig;
 
 /**
  * Looks for the config file next to the given file and then in each directory
@@ -37,55 +44,6 @@ function findConfig(startDirectory, configName) {
 }
 
 /**
- * Reads the configuration file and returns the arguments for Clingo.
- * @param {String} setConfig The configuration file name.
- * @param {String} contextAbsolutePath The absolute path to the context.
- */
-function readConfig(setConfig, contextAbsolutePath) {
-    let args = [];
-    if (!setConfig.match(/json$/i)) {
-        vscode.window.showErrorMessage(`"${setConfig}" is not a JSON config file.`);
-        return args;
-    }
-
-    const pathToConfig = findConfig(dirname(vscode.window.activeTextEditor.document.fileName), setConfig);
-    if (!pathToConfig) {
-        vscode.window.showErrorMessage(`Could not find ${setConfig} next to the file or in any folder above it.`);
-        return args;
-    }
-
-    try {
-        jsonConfig = JSON.parse(fs.readFileSync(pathToConfig).toString());
-    } catch (error) {
-        vscode.window.showErrorMessage(`${basename(pathToConfig)} is not valid JSON: ${error.message}`);
-        return args;
-    }
-
-    validateConfigSchema(contextAbsolutePath, pathToConfig);
-
-    args.push(...readParallelMode());
-    args.push(...readVerboseMode());
-    args.push(...readTimeLimit());
-    args.push(...readSolveLimit());
-    args.push(...readStats());
-    args.push(...readPreProcessor());
-    args.push(...readModels());
-    args.push(...readCustomArgs());
-    args.push(...readFiles(dirname(pathToConfig)));
-    args.push(...readConstants());
-
-    return args;
-}
-
-function readConstants() {
-    if (jsonConfig.args.constants != undefined) {
-        return jsonConfig.args.constants.map((constant) => `--const ${constant}`);
-    } else {
-        return [];
-    }
-}
-
-/**
  * Turns Ajv's error objects into lines a human can act on.
  *
  * Ajv reports an object per problem, so interpolating the array straight into a
@@ -108,11 +66,6 @@ function formatSchemaErrors(errors) {
 
 /**
  * Checks a parsed config against the schema.
- *
- * Kept separate from the reporting below so importing a config into the
- * settings pane can use the same rules, which is the only way a config file is
- * read now.
- *
  * @param {Object} config The parsed config
  * @param {String} contextAbsolutePath Where schema.json lives
  * @returns {String[]} One readable problem per mistake, empty when it is fine
@@ -124,130 +77,6 @@ function validateConfigObject(config, contextAbsolutePath) {
     const schema = require(join(contextAbsolutePath, `schema.json`));
     const validate = ajv.compile(schema);
     return validate(config) ? [] : formatSchemaErrors(validate.errors);
-}
-
-/**
- * @param {string} contextAbsolutePath
- * @param {string} pathToConfig
- */
-function validateConfigSchema(contextAbsolutePath, pathToConfig) {
-    const problems = validateConfigObject(jsonConfig, contextAbsolutePath);
-    if (!problems.length) {
-        return;
-    }
-
-    const fileName = basename(pathToConfig);
-    vscode.window
-        .showWarningMessage(
-            `${fileName} has ${problems.length} problem(s): ${problems.join("; ")}`,
-            "Open Config"
-        )
-        .then((choice) => {
-            if (choice === "Open Config") {
-                vscode.window.showTextDocument(vscode.Uri.file(pathToConfig));
-            }
-        });
-}
-
-/**
- * Resolves the additionalFiles entries against the folder holding the config.
- *
- * Anchoring on the config rather than on the file being solved means the same
- * config keeps working from anywhere in the project, and entries may be globs so
- * a directory of instances does not have to be listed by hand.
- * @param {String} configDirectory
- * @returns {String[]} Quoted absolute paths
- */
-function readFiles(configDirectory) {
-    if (jsonConfig.additionalFiles == undefined) {
-        return [];
-    }
-    const { files, unmatched } = resolvePatterns(configDirectory, jsonConfig.additionalFiles);
-    for (const pattern of unmatched) {
-        vscode.window.showWarningMessage(`No file matches "${pattern}" next to ${basename(configDirectory)}.`);
-    }
-    return files.map((path) => `"${path}"`);
-}
-
-function readParallelMode() {
-    if (jsonConfig.args.parallelMode && jsonConfig.args.parallelMode.useParallelMode) {
-        const mode = jsonConfig.args.parallelMode.mode === undefined ? "compete" : jsonConfig.args.parallelMode.mode;
-        return [`--parallel-mode ${jsonConfig.args.parallelMode.threads},${mode}`];
-    } else {
-        return [];
-    }
-}
-
-function readVerboseMode() {
-    if (jsonConfig.args.verboseMode != undefined) {
-        return [`--verbose=${jsonConfig.args.verboseMode}`];
-    } else {
-        return [];
-    }
-}
-
-function readTimeLimit() {
-    if (jsonConfig.args.timeLimit != undefined) {
-        const timeLimit = jsonConfig.args.timeLimit;
-        return [`--time-limit=${timeLimit}`];
-    } else {
-        return [];
-    }
-}
-
-/**
- * Clingo spells "no limit" as umax, and reads 0 as "stop before the first
- * conflict", which halts the search immediately and reports UNKNOWN. Every
- * config generated from the sample carries zeros meaning "unlimited", the way
- * timeLimit already treats 0, so they are translated rather than taken at face
- * value.
- * @param {Number | undefined} value
- */
-function solveLimitValue(value) {
-    return value == undefined || value === 0 ? "umax" : value;
-}
-
-/**
- * @param {{conflicts?: Number, restarts?: Number}} [solveLimit] Defaults to the loaded config
- * @returns {String[]}
- */
-function readSolveLimit(solveLimit = jsonConfig?.args?.solveLimit) {
-    // The sample config, and therefore every config generated from it, writes
-    // "solveLimit"; this used to read "solveLimits" and silently ignored it
-    if (solveLimit == undefined) {
-        return [];
-    }
-    const conflicts = solveLimitValue(solveLimit.conflicts);
-    const restarts = solveLimitValue(solveLimit.restarts);
-    // Nothing to limit, so do not pass the option at all
-    if (conflicts === "umax" && restarts === "umax") {
-        return [];
-    }
-    return [`--solve-limit=${conflicts},${restarts}`];
-}
-
-function readStats() {
-    if (jsonConfig.args.stats != undefined) {
-        return [`--stats=${jsonConfig.args.stats}`];
-    } else {
-        return [];
-    }
-}
-
-function readPreProcessor() {
-    if (jsonConfig.args.preProcessor) {
-        return [`--pre`];
-    } else {
-        return [];
-    }
-}
-
-function readModels() {
-    if (jsonConfig.args.models != undefined) {
-        return [`--models ${jsonConfig.args.models}`];
-    } else {
-        return [];
-    }
 }
 
 /**
@@ -276,55 +105,52 @@ function optionName(token) {
  * Splits the free-text customArgs string into single clingo arguments, dropping
  * any that would collide with the options the extension sets itself. Without
  * this, a stray "--outf=n" makes clingo fail with an opaque "multiple
- * occurrences" error that gives the user no hint that their config caused it.
- * @param {String} [customArgs] The raw string, defaulting to the one in the loaded config
+ * occurrences" error that gives the user no hint that their setting caused it.
+ * @param {String} [customArgs] The raw string
  * @returns {String[]}
  */
-function readCustomArgs(customArgs = jsonConfig?.args?.customArgs) {
-    if (customArgs != undefined) {
-        const str = customArgs;
-        // split custom args into seperate tokens
-        const tokens = str.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-        const result = [];
-        // process tokens as possible pairs
-        for (let i = 0; i < tokens.length; i++) {
-            let token = tokens[i];
-            if (token.startsWith("-") && i + 1 < tokens.length) {
-                if (tokens[i + 1].startsWith("-")) {
-                    // next token is another flag, so current token is standalone
-                    result.push(token);
-                    continue;
-                }
-                let next = tokens[i + 1];
-                result.push(`${token} ${next}`);
-                i++;
-            } else {
-                // no possible pair remaining
-                result.push(token);
-            }
-        }
-
-        const reserved = result.filter((arg) => RESERVED_ARGS.has(optionName(arg)));
-        if (reserved.length) {
-            vscode.window.showWarningMessage(
-                `Ignoring ${reserved.length} custom argument(s) reserved by this extension: ${reserved.join(", ")}`
-            );
-        }
-        return result.filter((arg) => !RESERVED_ARGS.has(optionName(arg)));
-    } else {
+function readCustomArgs(customArgs) {
+    if (customArgs == undefined) {
         // no custom args
         return [];
     }
+
+    // split custom args into seperate tokens
+    const tokens = customArgs.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+    const result = [];
+    // process tokens as possible pairs
+    for (let i = 0; i < tokens.length; i++) {
+        let token = tokens[i];
+        if (token.startsWith("-") && i + 1 < tokens.length) {
+            if (tokens[i + 1].startsWith("-")) {
+                // next token is another flag, so current token is standalone
+                result.push(token);
+                continue;
+            }
+            let next = tokens[i + 1];
+            result.push(`${token} ${next}`);
+            i++;
+        } else {
+            // no possible pair remaining
+            result.push(token);
+        }
+    }
+
+    const reserved = result.filter((arg) => RESERVED_ARGS.has(optionName(arg)));
+    if (reserved.length) {
+        vscode.window.showWarningMessage(
+            `Ignoring ${reserved.length} custom argument(s) reserved by this extension: ${reserved.join(", ")}`
+        );
+    }
+    return result.filter((arg) => !RESERVED_ARGS.has(optionName(arg)));
 }
 
+// optionName and formatSchemaErrors are exported for their own tests: both hold
+// enough logic to be worth checking directly rather than through a caller
 module.exports = {
-    readConfig,
     readCustomArgs,
-    readSolveLimit,
     formatSchemaErrors,
     validateConfigObject,
     findConfig,
     optionName,
-    RESERVED_ARGS,
-    jsonConfig,
 };

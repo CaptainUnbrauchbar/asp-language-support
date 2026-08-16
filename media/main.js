@@ -909,8 +909,9 @@
     }
 
     /**
-     * Briefly turns a copy button into a checkmark, because the confirmation
-     * notification is easy to miss and is silenced by turnMessagesOff.
+     * Briefly turns a copy button into a checkmark. Copying used to confirm
+     * with a notification, which is easy to miss and interrupts what you were
+     * doing; saying so on the button itself is where you are already looking.
      * @param {*} icon The codicon element inside the button
      */
     function flashCopied(icon) {
