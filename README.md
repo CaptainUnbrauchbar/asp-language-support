@@ -17,14 +17,14 @@ With v1.1.0 a running solve can be stopped, the output panel was rebuilt, and so
 
 ## Usage
 
-<img src="https://github.com/CaptainUnbrauchbar/asp-language-support/raw/informaticup/media/usage-demo-v1_1_0.gif" height="500" alt="demo-gif"/>
+<img src="https://github.com/CaptainUnbrauchbar/asp-language-support/raw/master/media/usage-demo-v1_1_0.gif" height="500" alt="demo-gif"/>
 
 Just right click anywhere on a logic program (.lp) file and select `Compute all Answer Sets` or `Compute the first Answer Set`.
 This will display Clingo's results in a seperate ASP tab located in the panel. You can also use the buttons in the top right of this tab to run bundled or PATH clingo depending on your `ASPLanguage: Use PATH Clingo` setting.
 
 If you want to add **additional startup arguments**, open the **solver settings** with the gear in the panel toolbar. The answer set limit, time limits, parallel solving, constants, extra files and any custom clingo arguments are set there, and apply to `Compute all Answer Sets` and `Compute the first Answer Set`.
 
-<img src="https://github.com/CaptainUnbrauchbar/asp-language-support/raw/informaticup/media/config-demo-v1_1_0.gif" height="500" alt="demo-gif"/>
+<img src="https://github.com/CaptainUnbrauchbar/asp-language-support/raw/master/media/config-demo-v1_1_0.gif" height="500" alt="demo-gif"/>
 
 If you need to work with **multiple files**, write `#include "other.lp".` in your program. This is ordinary clingo syntax, is resolved relative to the file it appears in, and needs no configuration.
 
@@ -35,7 +35,7 @@ If you want to use your own Version of Clingo from PATH with this extension, ple
 
 ## Customization
 
-<img src="https://github.com/CaptainUnbrauchbar/asp-language-support/raw/informaticup/media/customization-demo-v1_1_0.gif" height="500" alt="customization-gif"/>
+<img src="https://github.com/CaptainUnbrauchbar/asp-language-support/raw/master/media/customization-demo-v1_1_0.gif" height="500" alt="customization-gif"/>
 
 When using the bundled WASM Clingo (Choose in configuration `ASPLanguage: Use PATH Clingo`), you can easily move the panel to the sidebars or change the panel position depending on your preferences.
 The layout will adjust accordingly!
