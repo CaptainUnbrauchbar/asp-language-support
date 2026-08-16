@@ -8,7 +8,7 @@ jest.mock(
 
 const vscode = require("vscode");
 const Ajv = require("ajv").default;
-const { readCustomArgs, optionName, formatSchemaErrors } = require("../configReader.js");
+const { readCustomArgs, readSolveLimit, optionName, formatSchemaErrors } = require("../configReader.js");
 const schema = require("../../schema.json");
 
 /** Validates against the real schema, so the tests cannot drift from it. */
@@ -76,10 +76,17 @@ describe("readCustomArgs", () => {
 });
 
 describe("formatSchemaErrors", () => {
-    it("names a missing top level property", () => {
-        const { author, ...withoutAuthor } = validConfig;
+    it("treats the metadata fields as optional", () => {
+        // name/author/version describe the config, they do not configure anything,
+        // so listing two files should not require inventing a version number
+        expect(problemsFor({ additionalFiles: ["lib.lp"], args: {} })).toEqual([]);
+    });
 
-        expect(problemsFor(withoutAuthor)).toEqual(["author: must have required property 'author'"]);
+    it("catches a misspelled key instead of ignoring it", () => {
+        // "solveLimits" silently did nothing for as long as it was accepted
+        const problems = problemsFor({ ...validConfig, args: { solveLimits: { conflicts: 0 } } });
+
+        expect(problems).toEqual(["args: must NOT have additional properties"]);
     });
 
     it("names the field by path when a value has the wrong type", () => {
@@ -98,16 +105,14 @@ describe("formatSchemaErrors", () => {
     });
 
     it("reports every problem at once rather than stopping at the first", () => {
-        const problems = problemsFor({ name: "Test", args: { models: "many", timeLimit: true } });
+        const problems = problemsFor({ name: "Test", args: { models: "many", timeLimit: true, stats: "lots" } });
 
-        // two missing properties plus two wrong types
-        expect(problems).toHaveLength(4);
+        expect(problems).toHaveLength(3);
         expect(problems).toEqual(
             expect.arrayContaining([
-                "version: must have required property 'version'",
-                "author: must have required property 'author'",
                 "args.models: must be integer",
                 "args.timeLimit: must be integer",
+                "args.stats: must be integer",
             ])
         );
     });
@@ -116,5 +121,28 @@ describe("formatSchemaErrors", () => {
         expect(problemsFor(validConfig)).toEqual([]);
         expect(formatSchemaErrors(null)).toEqual([]);
         expect(formatSchemaErrors(undefined)).toEqual([]);
+    });
+});
+
+describe("readSolveLimit", () => {
+    it.each([
+        [{ conflicts: 0, restarts: 0 }, []],
+        [{ conflicts: 100, restarts: 0 }, ["--solve-limit=100,umax"]],
+        [{ conflicts: 0, restarts: 5 }, ["--solve-limit=umax,5"]],
+        [{ conflicts: 10, restarts: 2 }, ["--solve-limit=10,2"]],
+    ])("turns %j into %j", (solveLimit, expected) => {
+        expect(readSolveLimit(solveLimit)).toEqual(expected);
+    });
+
+    it("passes nothing on when the config sets no solve limit", () => {
+        expect(readSolveLimit(undefined)).toEqual([]);
+    });
+
+    it("never emits the zero clingo reads as 'stop immediately'", () => {
+        // --solve-limit=0,0 halts before the first conflict and reports UNKNOWN,
+        // which is not what a config full of zeros is asking for
+        for (const limit of [{ conflicts: 0, restarts: 0 }, { conflicts: 0 }, { restarts: 0 }, {}]) {
+            expect(readSolveLimit(limit).join(" ")).not.toContain("0");
+        }
     });
 });

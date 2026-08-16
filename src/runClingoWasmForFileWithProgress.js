@@ -1,5 +1,6 @@
 const fs = require("fs");
 const { loadClingo, abortClingo, isAbortResult } = require("./clingoWasm.js");
+const { resolveIncludes, mapMessagePositions } = require("./resolveIncludes.js");
 
 /** How often at most to push a model count into the progress UI, in ms. */
 const PROGRESS_THROTTLE_MS = 100;
@@ -21,15 +22,22 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         message: "Starting Clingo...",
     });
 
-    let fileContent;
-
     // Check if the file exists
     if (!fs.existsSync(filePath)) {
         vscode.window.showErrorMessage(`File not found: ${filePath}`);
         return null;
     }
 
-    fileContent = await fs.promises.readFile(filePath, "utf8");
+    // Everything the program is made of: the file itself with its #include
+    // directives inlined, followed by any files the config adds
+    const resolved = resolveIncludes(filePath, (path) => fs.readFileSync(path, "utf8"));
+    if (resolved.errors.length) {
+        vscode.window.showErrorMessage(`Included file not found: ${resolved.errors.join(", ")}`);
+        return null;
+    }
+
+    let fileContent = resolved.program;
+    let lineMap = resolved.lineMap;
 
     const additionalFiles = options?.filter((arg) => arg && !arg.startsWith("-")).map((filePath) => filePath.replace(/"/g, ""));
 
@@ -39,9 +47,15 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
                 vscode.window.showErrorMessage(`File not found: ${additionalFilePath}`);
                 return null;
             }
-            const additionalContent = await fs.promises.readFile(additionalFilePath, "utf8");
-            if (additionalContent.trim()) {
-                fileContent += `\n${additionalContent}`;
+            // Additional files can pull in their own includes as well
+            const extra = resolveIncludes(additionalFilePath, (path) => fs.readFileSync(path, "utf8"));
+            if (extra.errors.length) {
+                vscode.window.showErrorMessage(`Included file not found: ${extra.errors.join(", ")}`);
+                return null;
+            }
+            if (extra.program.trim()) {
+                fileContent += `\n${extra.program}`;
+                lineMap = [...lineMap, { file: additionalFilePath, line: 0 }, ...extra.lineMap];
             }
         }
     }
@@ -108,9 +122,9 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         cancelListener?.dispose();
     }
 
-    // A cancelled run is the user's decision, not a failure to report as one
+    // A cancelled run is the user's decision. The status bar going back to idle
+    // says so, and a notification would only be in the way.
     if (cancelled || isAbortResult(wasmResult)) {
-        vscode.window.showInformationMessage("Clingo run cancelled.");
         return null;
     }
 
@@ -118,17 +132,21 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         message: "Clingo finished successfully!",
     });
 
-    // Validate the result
-    if (["ERROR", "UNKNOWN"].includes(wasmResult.Result)) {
-        if ("Error" in wasmResult) {
-            vscode.window.showErrorMessage(`Clingo WASM Error: ${wasmResult.Error}`);
-        } else {
-            vscode.window.showErrorMessage(`Clingo WASM Error: Unknown error`);
-        }
+    // Only ERROR means the run failed. UNKNOWN is a normal outcome: the search
+    // was cut short, by a solve or time limit for instance, so whatever models
+    // were found are still worth showing and the panel says the run is partial.
+    if (wasmResult.Result === "ERROR") {
+        // Clingo counts lines in the single program it was handed, so point
+        // the position back at the file the line really came from
+        const detail = "Error" in wasmResult ? mapMessagePositions(wasmResult.Error, lineMap) : "the solver reported no details";
+        vscode.window.showErrorMessage(`Clingo WASM Error: ${detail}`);
         return null;
-    } else {
-        return wasmResult;
     }
+
+    if (wasmResult.Warnings?.length) {
+        wasmResult.Warnings = wasmResult.Warnings.map((warning) => mapMessagePositions(warning, lineMap));
+    }
+    return wasmResult;
 }
 
 module.exports = { runClingoWasmForFileWithProgress };

@@ -43,12 +43,11 @@ class WebviewProvider {
     /**
      * Copies text through the VSCode clipboard API. The webview's own
      * navigator.clipboard is unreliable there and fails without telling anyone.
+     * The copy buttons confirm with a checkmark of their own, so this stays quiet.
      * @param {String} text
-     * @param {String} description What was copied, for the confirmation message
      */
-    async _copy(text, description) {
+    async _copy(text) {
         await vscode.env.clipboard.writeText(text);
-        vscode.window.showInformationMessage(`Copied ${description} to the clipboard.`);
     }
 
     resolveWebviewView(webviewView, _context, _token) {
@@ -79,26 +78,20 @@ class WebviewProvider {
                 case "copyAnswer": {
                     const answer = this._answers[data.index];
                     if (answer) {
-                        await this._copy(answer.join(", "), `answer ${data.index + 1}`);
+                        await this._copy(answer.join(", "));
                     }
                     break;
                 }
                 case "copyAll": {
                     if (this._answers.length) {
-                        await this._copy(
-                            this._answers.map((atoms) => atoms.join(", ")).join("\n"),
-                            `all ${this._answers.length} answer sets`
-                        );
+                        await this._copy(this._answers.map((atoms) => atoms.join(", ")).join("\n"));
                     }
                     break;
                 }
                 case "copyFiltered": {
                     const selected = (data.indices ?? []).map((index) => this._answers[index]).filter(Boolean);
                     if (selected.length) {
-                        await this._copy(
-                            selected.map((atoms) => atoms.join(", ")).join("\n"),
-                            `${selected.length} filtered answer set(s)`
-                        );
+                        await this._copy(selected.map((atoms) => atoms.join(", ")).join("\n"));
                     }
                     break;
                 }

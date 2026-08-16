@@ -49,7 +49,6 @@ async function runClingoPathForFileWithProgress(vscode, progress, clingoPath, fi
                         if (choice === "Yes") {
                             process.kill(); // Terminate the process
                             processTerminated = true;
-                            vscode.window.showInformationMessage("Clingo process terminated.");
                             reject(new Error("Clingo process was terminated by the user."));
                         }
                     });

@@ -1,18 +1,26 @@
 {
     "title": "ASP Config Schema",
-    "description": "",
+    "description": "Clingo solver options for the Clingo for VSCode extension. Composing a program out of several files does not need this file: use #include \"other.lp\". in the program itself.",
     "type": "object",
+    "additionalProperties": false,
     "properties": {
-        "name": { "type": "string" },
-        "author": { "type": "string" },
-        "version": { "type": "string" },
-        "additionalFiles": { "type": "array" },
+        "name": { "type": "string", "description": "Optional label for this config" },
+        "author": { "type": "string", "description": "Optional" },
+        "version": { "type": "string", "description": "Optional" },
+        "description": { "type": "string", "description": "Optional" },
+        "additionalFiles": {
+            "type": "array",
+            "description": "Extra files to solve together with the program, relative to this config. Entries may be globs such as instances/*.lp",
+            "items": { "type": "string" }
+        },
         "args": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "verboseMode": { "type": "integer" },
                 "parallelMode": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "useParallelMode": { "type": "boolean" },
                         "mode": {
@@ -24,12 +32,24 @@
                     "required": ["useParallelMode", "mode", "threads"]
                 },
                 "timeLimit": { "type": "integer" },
+                "solveLimit": {
+                    "type": "object",
+                    "description": "Stops the search after this many conflicts or restarts. 0 means no limit.",
+                    "additionalProperties": false,
+                    "properties": {
+                        "conflicts": { "type": "integer", "minimum": 0, "description": "0 means no limit" },
+                        "restarts": { "type": "integer", "minimum": 0, "description": "0 means no limit" }
+                    }
+                },
+                "stats": { "type": "integer" },
                 "preProcessor": { "type": "boolean" },
                 "models": { "type": "integer" },
-                "constants": { "type": "array" },
+                "constants": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
                 "customArgs": { "type": "string" }
             }
         }
-    },
-    "required": ["name", "version", "author"]
+    }
 }

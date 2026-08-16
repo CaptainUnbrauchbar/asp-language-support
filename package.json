@@ -88,13 +88,8 @@
                         "type": "boolean",
                         "default": false
                     },
-                    "aspLanguage.turnMessagesOff": {
-                        "description": "Set this option if you want to turn off all Messages (bottom right)",
-                        "type": "boolean",
-                        "default": true
-                    },
                     "aspLanguage.setConfig": {
-                        "markdownDescription": "Name of the clingo config file to use, for example `config.json`. The file is looked up **next to the .lp file you run**, not in the workspace root. Leave empty to run without a config. Use the `ASPLanguage: Initialize clingo config file in current working directory` command to create one.",
+                        "markdownDescription": "Name of the clingo config file to use, for example `config.json`. It is looked up next to the .lp file you run and then in **every folder above it**, so one config can serve a whole project. Leave empty to run without a config.\n\nThe config is only needed for solver options: to solve several files together, write `#include \"other.lp\".` in your program instead.",
                         "type": "string",
                         "default": ""
                     }

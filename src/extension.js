@@ -2,7 +2,7 @@ const vscode = require("vscode");
 const which = require("which");
 const { dirname, join } = require("path");
 const fs = require("fs");
-const { readConfig } = require("./configReader.js");
+const { readConfig, findConfig } = require("./configReader.js");
 const { WebviewProvider } = require("./webviewProvider.js");
 const { runClingoWasmForFileWithProgress } = require("./runClingoWasmForFileWithProgress.js");
 const { runClingoPathForFileWithProgress } = require("./runClingoPathForFileWithProgress.js");
@@ -24,7 +24,6 @@ function activate(context) {
     /// Code to run when extension activates ///
     ////////////////////////////////////////////
 
-    var turnMessagesOff = vscode.workspace.getConfiguration("aspLanguage").get("turnMessagesOff");
     var usePathClingo = vscode.workspace.getConfiguration("aspLanguage").get("usePathClingo");
     var setConfig = vscode.workspace.getConfiguration("aspLanguage").get("setConfig");
     var path;
@@ -134,7 +133,7 @@ function activate(context) {
         let cfgFile = [];
         // Process config information
         if (useConfig) {
-            cfgFile = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
+            cfgFile = readConfig(setConfig, context.asAbsolutePath(""));
             // "models" is optional in the config schema, so keep the caller's value when it is absent
             models = cfgFile.find((arg) => arg.startsWith("--models"))?.split(" ")[1] ?? models;
             additionalArgs = cfgFile.filter((arg) => !arg.startsWith("--models"));
@@ -175,7 +174,7 @@ function activate(context) {
         let additionalArgs = [];
         // Process config information
         if (useConfig) {
-            const cfgFile = readConfig(setConfig, turnMessagesOff, context.asAbsolutePath(""));
+            const cfgFile = readConfig(setConfig, context.asAbsolutePath(""));
             // "models" is optional in the config schema, so keep the caller's value when it is absent
             models = cfgFile.find((arg) => arg.startsWith("--models"))?.split(" ")[1] ?? models;
             additionalArgs = cfgFile.filter((arg) => !arg.startsWith("--models"));
@@ -288,11 +287,11 @@ function activate(context) {
     // Before clingo-wasm 0.6.0 this was impossible and an endless loop meant restarting VSCode.
     const stopClingoCommand = vscode.commands.registerCommand("answer-set-programming-language-support.stopclingo", async () => {
         if (!clingoRunning) {
-            vscode.window.showInformationMessage("Clingo is not running.");
+            // The status bar already shows that nothing is running
             return;
         }
         if (usePathClingo) {
-            vscode.window.showInformationMessage("Use the prompt shown by the running process to stop your own version of Clingo.");
+            vscode.window.showWarningMessage("Use the prompt shown by the running process to stop your own version of Clingo.");
             return;
         }
         await abortClingo();
@@ -322,13 +321,9 @@ function activate(context) {
 
     //Listeners for Configuration Options, updates the variables if the user changes them in the settings
     vscode.workspace.onDidChangeConfiguration((event) => {
-        const confTurnMessagesOff = event.affectsConfiguration("aspLanguage.turnMessagesOff");
         const confUsePathClingo = event.affectsConfiguration("aspLanguage.usePathClingo");
         const confSetConfig = event.affectsConfiguration("aspLanguage.setConfig");
 
-        if (confTurnMessagesOff) {
-            turnMessagesOff = vscode.workspace.getConfiguration("aspLanguage").get("turnMessagesOff");
-        }
         if (confUsePathClingo) {
             usePathClingo = vscode.workspace.getConfiguration("aspLanguage").get("usePathClingo");
             usePath();

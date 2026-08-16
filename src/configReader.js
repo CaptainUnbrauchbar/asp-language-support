@@ -5,40 +5,73 @@ const Ajv = require("ajv").default;
 var jsonConfig;
 
 /**
+ * Looks for the config file next to the given file and then in each directory
+ * above it, so one config can serve a whole project instead of having to sit in
+ * every folder that happens to hold a logic program.
+ * @param {String} startDirectory Where to start looking
+ * @param {String} configName The file name from the setting
+ * @returns {String | undefined} The path of the first config found
+ */
+function findConfig(startDirectory, configName) {
+    // A name with a separator is a path the user chose deliberately, so it is
+    // taken as given rather than searched for
+    const name = configName.replace(/^(\.\.(\/|\\|$))+/, "");
+    if (name.includes("/") || name.includes("\\")) {
+        const direct = join(startDirectory, name);
+        return fs.existsSync(direct) ? direct : undefined;
+    }
+
+    let directory = startDirectory;
+    for (;;) {
+        const candidate = join(directory, name);
+        if (fs.existsSync(candidate)) {
+            return candidate;
+        }
+        const parent = dirname(directory);
+        if (parent === directory) {
+            return undefined;
+        }
+        directory = parent;
+    }
+}
+
+/**
  * Reads the configuration file and returns the arguments for Clingo.
  * @param {String} setConfig The configuration file name.
- * @param {Boolean} turnMessagesOff Reference whether to show messages or not.
  * @param {String} contextAbsolutePath The absolute path to the context.
  */
-function readConfig(setConfig, turnMessagesOff, contextAbsolutePath) {
+function readConfig(setConfig, contextAbsolutePath) {
     let args = [];
-    const pathToConfig = join(dirname(vscode.window.activeTextEditor.document.fileName), setConfig.replace(/^(..(\/|\|$))+/, ""));
-    if (setConfig.match(/json$/i)) {
-        jsonConfig = JSON.parse(fs.readFileSync(pathToConfig).toString());
-
-        validateConfigSchema(contextAbsolutePath, pathToConfig);
-
-        args.push(...readParallelMode());
-        args.push(...readVerboseMode());
-        args.push(...readTimeLimit());
-        args.push(...readSolveLimit());
-        args.push(...readStats());
-        args.push(...readPreProcessor());
-        args.push(...readModels());
-        args.push(...readCustomArgs());
-        args.push(...readFiles());
-        args.push(...readConstants());
-
-        if (!turnMessagesOff) {
-            vscode.window.showInformationMessage(
-                `Running with ${jsonConfig.name} ${jsonConfig.version} by ${jsonConfig.author}:\n ${args.join(
-                    " "
-                )}    (this message can be turned off in options)`
-            );
-        }
-    } else {
-        vscode.window.showInformationMessage(`Invalid config file ${pathToConfig}`);
+    if (!setConfig.match(/json$/i)) {
+        vscode.window.showErrorMessage(`"${setConfig}" is not a JSON config file.`);
+        return args;
     }
+
+    const pathToConfig = findConfig(dirname(vscode.window.activeTextEditor.document.fileName), setConfig);
+    if (!pathToConfig) {
+        vscode.window.showErrorMessage(`Could not find ${setConfig} next to the file or in any folder above it.`);
+        return args;
+    }
+
+    try {
+        jsonConfig = JSON.parse(fs.readFileSync(pathToConfig).toString());
+    } catch (error) {
+        vscode.window.showErrorMessage(`${basename(pathToConfig)} is not valid JSON: ${error.message}`);
+        return args;
+    }
+
+    validateConfigSchema(contextAbsolutePath, pathToConfig);
+
+    args.push(...readParallelMode());
+    args.push(...readVerboseMode());
+    args.push(...readTimeLimit());
+    args.push(...readSolveLimit());
+    args.push(...readStats());
+    args.push(...readPreProcessor());
+    args.push(...readModels());
+    args.push(...readCustomArgs());
+    args.push(...readFiles(dirname(pathToConfig)));
+    args.push(...readConstants());
 
     return args;
 }
@@ -101,15 +134,102 @@ function validateConfigSchema(contextAbsolutePath, pathToConfig) {
         });
 }
 
-function readFiles() {
-    if (jsonConfig.additionalFiles != undefined) {
-        const fileList = jsonConfig.additionalFiles.map(
-            (file) => `"${join(dirname(vscode.window.activeTextEditor.document.fileName), file.replace(/^(..(\/|\|$))+/, ""))}"`
-        );
-        return fileList;
-    } else {
+/** Characters that turn an entry of additionalFiles into a pattern. */
+const GLOB_CHARACTERS = /[*?]/;
+
+/**
+ * Translates a glob into a regular expression matching a path relative to the
+ * base directory. Supports "**" for any depth, "*" within one segment and "?".
+ * @param {String} pattern Always written with forward slashes
+ */
+function globToRegExp(pattern) {
+    let source = "";
+    for (let index = 0; index < pattern.length; index++) {
+        const char = pattern[index];
+        if (char === "*") {
+            if (pattern[index + 1] === "*") {
+                // "**/" spans any number of directories, including none
+                index++;
+                if (pattern[index + 1] === "/") {
+                    index++;
+                }
+                source += "(?:.*/)?";
+            } else {
+                source += "[^/]*";
+            }
+        } else if (char === "?") {
+            source += "[^/]";
+        } else {
+            source += char.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+        }
+    }
+    return new RegExp(`^${source}$`, process.platform === "win32" ? "i" : "");
+}
+
+/**
+ * Every file under `directory`, as paths relative to it and using forward
+ * slashes so one pattern behaves the same on every platform.
+ * @param {String} directory
+ * @param {String} prefix
+ * @returns {String[]}
+ */
+function listFilesBelow(directory, prefix = "") {
+    /** @type {String[]} */
+    const found = [];
+    let entries;
+    try {
+        entries = fs.readdirSync(directory, { withFileTypes: true });
+    } catch {
+        return found;
+    }
+    for (const entry of entries) {
+        // Nothing worth including ever lives in these, and walking them is slow
+        if (entry.isDirectory()) {
+            if (entry.name === "node_modules" || entry.name.startsWith(".")) {
+                continue;
+            }
+            found.push(...listFilesBelow(join(directory, entry.name), `${prefix}${entry.name}/`));
+        } else {
+            found.push(`${prefix}${entry.name}`);
+        }
+    }
+    return found;
+}
+
+/**
+ * Resolves the additionalFiles entries against the folder holding the config.
+ *
+ * Anchoring on the config rather than on the file being solved means the same
+ * config keeps working from anywhere in the project, and entries may be globs so
+ * a directory of instances does not have to be listed by hand.
+ * @param {String} configDirectory
+ * @returns {String[]} Quoted absolute paths
+ */
+function readFiles(configDirectory) {
+    if (jsonConfig.additionalFiles == undefined) {
         return [];
     }
+
+    const resolved = [];
+    for (const entry of jsonConfig.additionalFiles) {
+        const cleaned = entry.replace(/\\/g, "/");
+        if (!GLOB_CHARACTERS.test(cleaned)) {
+            resolved.push(join(configDirectory, cleaned));
+            continue;
+        }
+
+        const matcher = globToRegExp(cleaned);
+        const matches = listFilesBelow(configDirectory)
+            .filter((relativePath) => matcher.test(relativePath))
+            .sort()
+            .map((relativePath) => join(configDirectory, relativePath));
+
+        if (!matches.length) {
+            vscode.window.showWarningMessage(`No file matches "${entry}" in ${basename(configDirectory)}.`);
+        }
+        resolved.push(...matches);
+    }
+    return resolved.map((path) => `"${path}"`);
 }
 
 function readParallelMode() {
@@ -138,14 +258,35 @@ function readTimeLimit() {
     }
 }
 
-function readSolveLimit() {
-    if (jsonConfig.args.solveLimits != undefined) {
-        const conflicts = jsonConfig.args.solveLimits.conflicts;
-        const restarts = jsonConfig.args.solveLimits.restarts;
-        return [`--solve-limit=${conflicts},${restarts}`];
-    } else {
+/**
+ * Clingo spells "no limit" as umax, and reads 0 as "stop before the first
+ * conflict", which halts the search immediately and reports UNKNOWN. Every
+ * config generated from the sample carries zeros meaning "unlimited", the way
+ * timeLimit already treats 0, so they are translated rather than taken at face
+ * value.
+ * @param {Number | undefined} value
+ */
+function solveLimitValue(value) {
+    return value == undefined || value === 0 ? "umax" : value;
+}
+
+/**
+ * @param {{conflicts?: Number, restarts?: Number}} [solveLimit] Defaults to the loaded config
+ * @returns {String[]}
+ */
+function readSolveLimit(solveLimit = jsonConfig?.args?.solveLimit) {
+    // The sample config, and therefore every config generated from it, writes
+    // "solveLimit"; this used to read "solveLimits" and silently ignored it
+    if (solveLimit == undefined) {
         return [];
     }
+    const conflicts = solveLimitValue(solveLimit.conflicts);
+    const restarts = solveLimitValue(solveLimit.restarts);
+    // Nothing to limit, so do not pass the option at all
+    if (conflicts === "umax" && restarts === "umax") {
+        return [];
+    }
+    return [`--solve-limit=${conflicts},${restarts}`];
 }
 
 function readStats() {
@@ -242,7 +383,10 @@ function readCustomArgs(customArgs = jsonConfig?.args?.customArgs) {
 module.exports = {
     readConfig,
     readCustomArgs,
+    readSolveLimit,
     formatSchemaErrors,
+    findConfig,
+    globToRegExp,
     optionName,
     RESERVED_ARGS,
     jsonConfig,

@@ -515,6 +515,19 @@
             outputContainer.appendChild(makeCallout("warning", "warning", "Clingo messages", lastResult.warnings.join("\n")));
         }
 
+        // A cut short search is worth saying out loud: the answers below, if any,
+        // are only the ones found before the limit stopped the solver
+        if (lastResult.result === "UNKNOWN") {
+            outputContainer.appendChild(
+                makeCallout(
+                    "warning",
+                    "warning",
+                    "Search stopped early",
+                    "Clingo did not finish, so these answers may be incomplete. A time limit or solve limit in your config is the usual cause."
+                )
+            );
+        }
+
         if (lastResult.totalAnswers === 0) {
             outputContainer.appendChild(
                 lastResult.result === "UNSATISFIABLE"

@@ -93,9 +93,10 @@ describe("runClingoWasmForFile", () => {
         const result = await pending;
 
         expect(result).toBe(null);
-        // Cancelling is the user's choice, so it must not be reported as an error
-        expect(vscode.window.showInformationMessage).toHaveBeenCalledWith("Clingo run cancelled.");
+        // Cancelling is the user's choice: the status bar going idle says so, and
+        // it must not be reported as an error or announced with a notification
         expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+        expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
     }, 30000);
 
     it("should still solve after a run was cancelled", async () => {
@@ -112,6 +113,21 @@ describe("runClingoWasmForFile", () => {
 
         expect(result.Models.Number).toEqual(8);
     }, 30000);
+
+    it("should return a cut short search instead of calling it an error", async () => {
+        const vscode = { window: { showErrorMessage: jest.fn(), showInformationMessage: jest.fn(), showWarningMessage: jest.fn() } };
+
+        // A solve limit of zero conflicts stops clingo before it finds anything,
+        // which is reported as UNKNOWN with no Error field. That used to surface
+        // as "Clingo WASM Error: Unknown error" and threw the result away.
+        const result = await runClingoWasmForFileWithProgress(vscode, { report: jest.fn() }, "src/testFiles/sudokuComplete.lp", 0, [
+            "--solve-limit=0,0",
+        ]);
+
+        expect(result).not.toBe(null);
+        expect(result.Result).toEqual("UNKNOWN");
+        expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+    });
 
     it("should solve even when the config asks for parallel solving", async () => {
         const vscode = { window: { showErrorMessage: jest.fn(), showInformationMessage: jest.fn(), showWarningMessage: jest.fn() } };

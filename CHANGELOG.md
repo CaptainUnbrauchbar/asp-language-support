@@ -42,6 +42,11 @@ If you want to contribute to the repository you are welcome to look at these pla
 -   **Added a status bar item** showing which solver is in use and its clingo version, with a spinner while solving. Click it to compute all answer sets, or to stop a running solve. It replaces the notifications that announced the solver on every activation
 -   **Config file problems are now readable**: instead of `[object Object]`, each problem names the field and what is wrong with it (e.g. `args.models: must be integer`), all problems are reported at once rather than one per run, and the message offers to open the config file
 -   Clarified the `Set Config` setting: the config file is looked up next to the .lp file you run, not in the workspace root
+-   **Composing a program out of several files no longer needs a config**: `#include "other.lp".` now works with the bundled solver, resolved recursively and relative to the including file, and error positions point back at the file the line really came from
+-   **Config simplified**: `name`, `version` and `author` are no longer required, the config is found in any folder above the file as well, `additionalFiles` is resolved relative to the config and accepts globs like `instances/*.lp`, and unknown keys are now reported instead of silently ignored
+-   Removed the `Turn Messages Off` setting: the extension is quiet by default and only speaks up for errors and problems that are not already visible in the status bar
+-   Fixed `solveLimit` being ignored entirely, and `0` in it now means "no limit" as the sample config intends, rather than "stop before the first conflict"
+-   A search cut short by a limit is reported as an incomplete result with whatever was found, instead of `Clingo WASM Error: Unknown error`
 -   Fixed a crash when a config file did not set `models`
 -   Fixed a crash in the output panel when a run produced no answers
 -   Fixed an unsatisfiable run showing a phantom empty "Answer 1/1"
