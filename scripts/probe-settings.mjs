@@ -29,6 +29,9 @@ const HARD = `p(1..11). h(1..10).
 :- in(P1,H), in(P2,H), P1 < P2.`;
 const CHOICE = "{ x(1..4) }.";
 
+/** Whether this NodeJS can load the multithreaded build, as clingo-wasm decides it. */
+const THREADS = typeof SharedArrayBuffer !== "undefined" && typeof navigator !== "undefined" && !!navigator.hardwareConcurrency;
+
 /**
  * What we currently believe about each option:
  *   honoured    - clingo does what the option asks
@@ -64,8 +67,13 @@ const CASES = [
         label: "Parallel solving",
         program: CHOICE,
         options: ["--parallel-mode 2,compete"],
-        expect: "unsupported",
-        note: "only the multithreaded build has it, which needs navigator.hardwareConcurrency",
+        // Which build loads depends on the host, not on clingo: the threaded
+        // one needs navigator.hardwareConcurrency. A plain NodeJS 21 or newer
+        // has it, but VSCode's extension host does not expose it at any version
+        // measured so far, so this expectation has to follow the environment.
+        // Passing here therefore says nothing about the extension itself.
+        expect: THREADS ? "honoured" : "unsupported",
+        note: THREADS ? "the multithreaded build is in use here" : "no navigator.hardwareConcurrency, so the single threaded build loaded",
         observe: (run) => (String(run.Error ?? "").includes("unknown option") ? "unsupported" : "honoured"),
     },
     {
@@ -159,7 +167,11 @@ if (process.argv[2] === "--case") {
 /// Parent: drive and report     ///
 ////////////////////////////////////
 
-console.log("Probing the bundled clingo, one process per case. The unrestricted run takes a while.\n");
+console.log("Probing the bundled clingo, one process per case. The unrestricted run takes a while.");
+console.log(
+    `${process.version}, multithreaded build ${THREADS ? "available here" : "unavailable here (no navigator.hardwareConcurrency)"}.`
+);
+console.log("VSCode's extension host does not expose that global, so it uses the single threaded build whatever this says.\n");
 
 const context = {
     baseline: runCase({ program: HARD }),

@@ -6,8 +6,15 @@
     const vscode = acquireVsCodeApi();
 
     const outputContainer = document.querySelector(".output-container");
+    /**
+     * The welcome screen the panel is built with. Held on to rather than
+     * rebuilt, since only the extension knows which solver it names, so
+     * clearing the output can put the panel back exactly as it started.
+     */
+    const welcomeBox = outputContainer.children[0];
     const header = document.querySelector(".panel-header");
     const filterBox = document.querySelector(".filter-box");
+    const filterModeButton = document.querySelector(".filter-mode");
     const copyAllButton = document.querySelector(".copy-all");
     const compareButton = document.querySelector(".compare-button");
     const settingsPane = document.querySelector(".settings-pane");
@@ -25,8 +32,15 @@
 
     /** The last result received, kept so filtering can re-render without solving again. */
     let lastResult = null;
-    /** Indices of the answers currently on screen, for the filtered copy action. */
-    let visibleIndices = [];
+    /** Indices of the answers containing a match, for copying and for marking. */
+    let matchIndices = [];
+    /**
+     * Whether a filter removes what does not match, or only marks what does.
+     * Narrowing the list is the better default for finding something, but it
+     * hides where a match sits among the other answers, which is what you want
+     * when comparing them.
+     */
+    let hideUnmatched = true;
     /** Whether answers are being compared against each other. */
     let compareMode = false;
     let filterTimer;
@@ -37,8 +51,6 @@
 
         if (message.type === "updateOutput") {
             lastResult = message.answers;
-            lastResult.useConfig = message.useConfig;
-            lastResult.cfgFile = message.cfgFile;
             filterBox.value = "";
             header.hidden = false;
             render();
@@ -55,7 +67,6 @@
         if (message.type === "updateSettings") {
             settingFields = message.fields ?? settingFields;
             settings = message.settings ?? {};
-            backend = message.backend ?? backend;
             settingsScope.textContent = message.scope ?? "";
             if (settingsOpen) {
                 renderSettings();
@@ -73,6 +84,25 @@
         render();
     });
 
+    filterModeButton.addEventListener("click", () => {
+        hideUnmatched = !hideUnmatched;
+        applyFilterMode();
+        render();
+    });
+
+    /** Keeps the toggle, its wording and the placeholder saying the same thing. */
+    function applyFilterMode() {
+        filterModeButton.setAttribute("aria-pressed", String(hideUnmatched));
+        filterModeButton.title = hideUnmatched
+            ? "Hiding answers without a matching atom. Click to keep them and only highlight."
+            : "Highlighting only. Click to hide answers without matching atoms.";
+        filterModeButton.setAttribute("aria-label", hideUnmatched ? "Hide answers without a match" : "Only highlight matches");
+        filterBox.placeholder = hideUnmatched ? "Filter atoms" : "Highlight atoms";
+    }
+
+    // Stated once here rather than trusted to match what the HTML happens to say
+    applyFilterMode();
+
     ///////////////////////////
     /// Solver settings     ///
     ///////////////////////////
@@ -81,8 +111,6 @@
     let settingFields = [];
     /** The current values. */
     let settings = {};
-    /** Which solver the settings apply to, so rows it cannot honour can say so. */
-    let backend = "wasm";
     let settingsOpen = false;
     let saveTimer;
 
@@ -104,10 +132,11 @@
             row.classList.add("setting-disabled");
         }
 
-        // Not every clingo option survives the trip through WebAssembly. One the
-        // solver accepts and then ignores is worse than one that is not offered,
-        // so say which solver it needs rather than letting it look functional.
-        const unsupported = Array.isArray(field.backends) && !field.backends.includes(backend);
+        // Not every clingo option survives the trip through WebAssembly, and the
+        // multithreaded solver needs a new enough VSCode. The extension works
+        // out what the current setup cannot honour and attaches the reason, so
+        // an option never has to look functional while doing nothing.
+        const unsupported = !!field.unavailable;
         if (unsupported) {
             row.classList.add("setting-unavailable");
         }
@@ -130,7 +159,7 @@
             noteIcon.setAttribute("aria-hidden", "true");
             note.appendChild(noteIcon);
             const noteText = document.createElement("span");
-            noteText.textContent = field.unsupportedNote ?? "Not available with the solver you are using.";
+            noteText.textContent = field.unavailable;
             note.appendChild(noteText);
             text.appendChild(note);
         }
@@ -247,10 +276,12 @@
             run: () => vscode.postMessage({ type: "copyAll" }),
         },
         {
-            label: "Copy filtered answer sets",
+            label: "Copy matching answer sets",
             icon: "filter",
-            enabled: () => !!filterBox.value.trim() && visibleIndices.length > 0,
-            run: () => vscode.postMessage({ type: "copyFiltered", indices: visibleIndices }),
+            enabled: () => !!filterBox.value.trim() && matchIndices.length > 0,
+            // The answers that matched, not the ones on screen: while only
+            // highlighting, everything is on screen and that would copy the lot
+            run: () => vscode.postMessage({ type: "copyFiltered", indices: matchIndices }),
         },
         {
             label: "Clear output",
@@ -258,8 +289,9 @@
             enabled: () => !!lastResult,
             run: () => {
                 lastResult = null;
-                visibleIndices = [];
-                outputContainer.innerHTML = "";
+                matchIndices = [];
+                filterBox.value = "";
+                showWelcome();
                 updateControls();
                 vscode.setState(undefined);
                 vscode.postMessage({ type: "clearOutput" });
@@ -334,12 +366,24 @@
         header.hidden = !hasResult;
         copyAllButton.disabled = !hasResult;
         filterBox.disabled = !hasResult;
+        filterModeButton.disabled = !hasResult;
         compareButton.disabled = !hasResult || !canCompare();
         if (!hasResult) {
             compareMode = false;
             compareButton.setAttribute("aria-pressed", "false");
             statStrip.innerHTML = "";
             statStrip.title = "";
+        }
+    }
+
+    /**
+     * Puts the panel back to the screen it started on. An empty panel says
+     * nothing about what to do next, which is the whole job of the welcome text.
+     */
+    function showWelcome() {
+        outputContainer.innerHTML = "";
+        if (welcomeBox) {
+            outputContainer.appendChild(welcomeBox);
         }
     }
 
@@ -379,7 +423,13 @@
      */
     function persist() {
         if (lastResult) {
-            vscode.setState({ kind: "result", result: lastResult, filter: filterBox.value, compare: compareMode });
+            vscode.setState({
+                kind: "result",
+                result: lastResult,
+                filter: filterBox.value,
+                compare: compareMode,
+                hideUnmatched,
+            });
         } else {
             vscode.setState(undefined);
         }
@@ -403,7 +453,7 @@
 
         const sentences = [
             `${shared} atom(s) shared by all ${tally.total} answers are dimmed.`,
-            `${unique} appear in only one answer.`,
+            `${unique} appear in only one answer (highlighted green).`,
         ];
         if (lastResult.truncated) {
             sentences.push(`Only the first ${lastResult.answers.length} of ${lastResult.totalAnswers} answers were compared.`);
@@ -411,20 +461,42 @@
         return makeCallout("info", "git-compare", "Comparing answers", sentences.join(" "));
     }
 
+    /** Every answer, untouched. */
+    function allEntries() {
+        return lastResult.answers.map((atoms, index) => ({ index, atoms }));
+    }
+
     /**
-     * Applies the current filter to the answer sets. An answer keeps only the
-     * atoms that match, and answers left with nothing are dropped, so the same
-     * box works for "which answers mention this" and "show me these atoms".
+     * Applies the current filter to the answer sets.
+     *
+     * Both modes show an answer in full: an answer set means nothing atom by
+     * atom, so hiding the atoms around a match would misrepresent it. The modes
+     * differ only in what happens to the answers with no match at all, which
+     * filtering drops and highlighting keeps.
+     * @param {string} query
+     * @param {Set<number>} matches Indices of the answers containing a match
+     */
+    function applyFilter(query, matches) {
+        if (!query || !hideUnmatched) {
+            return allEntries();
+        }
+        return allEntries().filter((entry) => matches.has(entry.index));
+    }
+
+    /**
+     * The answers containing a match, whichever mode is on. Copying and the
+     * counter both mean this, not whatever happens to be rendered.
      * @param {string} query
      */
-    function applyFilter(query) {
+    function findMatches(query) {
         if (!query) {
-            return lastResult.answers.map((atoms, index) => ({ index, atoms }));
+            return lastResult.answers.map((_, index) => index);
         }
         const needle = query.toLowerCase();
         return lastResult.answers
-            .map((atoms, index) => ({ index, atoms: atoms.filter((atom) => atom.toLowerCase().includes(needle)) }))
-            .filter((entry) => entry.atoms.length > 0);
+            .map((atoms, index) => ({ atoms, index }))
+            .filter(({ atoms }) => atoms.some((atom) => atom.toLowerCase().includes(needle)))
+            .map(({ index }) => index);
     }
 
     /**
@@ -485,7 +557,11 @@
         if (query) {
             const chip = document.createElement("span");
             chip.className = "shown-chip";
-            chip.textContent = `${shown} of ${lastResult.answers.length}`;
+            // While only highlighting, everything is on screen, so the useful
+            // number is how many answers matched rather than how many are shown
+            chip.textContent = hideUnmatched
+                ? `${shown} of ${lastResult.answers.length}`
+                : `${matchIndices.length} of ${lastResult.answers.length} match`;
             statStrip.appendChild(chip);
         } else if (lastResult.truncated) {
             const chip = document.createElement("span");
@@ -654,7 +730,44 @@
     }
 
     /**
-     * Flattens clingo's nested statistics into "Problem / LP / Atoms" rows.
+     * Whether a value is something to walk into rather than a figure to print.
+     * An array of plain numbers reads better on one line than split across
+     * rows, but an array of objects has to be walked or it prints as
+     * "[object Object]", which is what clingo's lemma types used to do.
+     * @param {*} value
+     */
+    function isStatsBranch(value) {
+        if (!value || typeof value !== "object") {
+            return false;
+        }
+        return !Array.isArray(value) || value.some((entry) => entry && typeof entry === "object");
+    }
+
+    /**
+     * The field an array entry names itself with, if it has one. Clingo labels
+     * these with what they describe, such as the "Short" and "Conflict" lemma
+     * types, which is worth far more than the position.
+     * @param {*} entry
+     */
+    function statsLabelKey(entry) {
+        if (!entry || typeof entry !== "object") {
+            return undefined;
+        }
+        return ["Type", "Name"].find((key) => entry[key] !== undefined && typeof entry[key] !== "object");
+    }
+
+    /**
+     * Names an array entry, which has no key of its own.
+     * @param {*} entry
+     * @param {number} index
+     */
+    function statsEntryLabel(entry, index) {
+        const key = statsLabelKey(entry);
+        return key ? String(entry[key]) : `#${index + 1}`;
+    }
+
+    /**
+     * Flattens clingo's nested statistics into "Rules / Choice / Final" rows.
      *
      * Which figures clingo reports depends on the statistics level and on what
      * it had to do, so nothing here assumes a fixed set: whatever arrives is
@@ -662,13 +775,21 @@
      * @param {Object} value
      * @param {string} prefix
      * @param {Array<[string, string]>} rows
+     * @param {string | undefined} skipKey A field already used as this object's name
      */
-    function flattenStats(value, prefix, rows) {
-        Object.keys(value).forEach((key) => {
-            const entry = value[key];
+    function flattenStats(value, prefix, rows, skipKey) {
+        const entries = Array.isArray(value)
+            ? value.map((entry, index) => [statsEntryLabel(entry, index), entry, statsLabelKey(entry)])
+            : Object.keys(value)
+                  .filter((key) => key !== skipKey)
+                  .map((key) => [key, value[key]]);
+
+        entries.forEach(([key, entry, named]) => {
             const path = prefix ? `${prefix} / ${key}` : key;
-            if (entry && typeof entry === "object" && !Array.isArray(entry)) {
-                flattenStats(entry, path, rows);
+            if (isStatsBranch(entry)) {
+                // Whatever named the entry is already in the path above it, so
+                // it does not need a row of its own saying "Type: Short"
+                flattenStats(entry, path, rows, named);
             } else {
                 rows.push([path, Array.isArray(entry) ? entry.join(", ") : String(entry)]);
             }
@@ -677,31 +798,78 @@
     }
 
     /**
+     * Splits the statistics into their top level sections, so a figure sits
+     * under a heading instead of repeating the section name on every line.
+     * @param {Object} stats
+     * @returns {Array<{name: string, rows: Array<[string, string]>}>}
+     */
+    function groupStats(stats) {
+        const groups = [];
+        const loose = [];
+        Object.keys(stats).forEach((key) => {
+            const entry = stats[key];
+            if (isStatsBranch(entry)) {
+                groups.push({ name: key, rows: flattenStats(entry, "", []) });
+            } else {
+                loose.push([key, Array.isArray(entry) ? entry.join(", ") : String(entry)]);
+            }
+        });
+        // Anything clingo reported at the top level has no section to sit under
+        if (loose.length) {
+            groups.unshift({ name: "", rows: loose });
+        }
+        return groups;
+    }
+
+    /**
      * The solver statistics, collapsed like the config options: they are only
      * interesting when you went looking for them.
      * @param {Object} stats
      */
     function makeStatsSection(stats) {
-        const rows = flattenStats(stats, "", []);
+        const groups = groupStats(stats);
+        const total = groups.reduce((count, group) => count + group.rows.length, 0);
+
         const details = document.createElement("details");
         details.className = "stats-details";
 
         const summaryLine = document.createElement("summary");
-        summaryLine.textContent = `Solver statistics (${rows.length})`;
+        summaryLine.textContent = `Solver statistics (${total})`;
         details.appendChild(summaryLine);
 
+        // Sections flow into as many columns as the panel is wide, so each
+        // figure stays next to its name instead of being flung to the far edge
+        // of a very wide panel
         const table = document.createElement("div");
         table.className = "stats-table";
-        rows.forEach(([path, value]) => {
-            const name = document.createElement("span");
-            name.className = "stats-key";
-            name.textContent = path;
-            table.appendChild(name);
+        groups.forEach((group) => {
+            const section = document.createElement("div");
+            section.className = "stats-group";
 
-            const number = document.createElement("span");
-            number.className = "stats-value";
-            number.textContent = value;
-            table.appendChild(number);
+            if (group.name) {
+                const heading = document.createElement("div");
+                heading.className = "stats-group-name";
+                heading.textContent = group.name;
+                section.appendChild(heading);
+            }
+
+            group.rows.forEach(([path, value]) => {
+                const row = document.createElement("div");
+                row.className = "stats-row";
+
+                const name = document.createElement("span");
+                name.className = "stats-key";
+                name.textContent = path;
+                row.appendChild(name);
+
+                const number = document.createElement("span");
+                number.className = "stats-value";
+                number.textContent = value;
+                row.appendChild(number);
+
+                section.appendChild(row);
+            });
+            table.appendChild(section);
         });
         details.appendChild(table);
         return details;
@@ -713,23 +881,30 @@
      */
     function makeStoppedCallout() {
         const stopped = lastResult.stoppedBy;
-        if (stopped?.reason === "time-limit") {
+        if (stopped?.reason === "time-limit" || stopped?.reason === "cancelled") {
             const kept =
                 lastResult.totalAnswers < lastResult.modelsNumber
                     ? ` The first ${lastResult.totalAnswers} of the ${lastResult.modelsNumber} answers found are kept.`
                     : "";
-            return makeCallout(
-                "warning",
-                "watch",
-                `Stopped after ${stopped.seconds}s`,
-                `Your time limit ended the search, so these are the answers it had found by then.${kept}`
-            );
+            return stopped.reason === "cancelled"
+                ? makeCallout(
+                      "warning",
+                      "debug-stop",
+                      "Stopped",
+                      `Search was stopped manually, displaying partial result.${kept}`
+                  )
+                : makeCallout(
+                      "warning",
+                      "watch",
+                      `Stopped after ${stopped.seconds}s`,
+                      `Search was stopped by time limit, displaying partial result.${kept}`
+                  );
         }
         return makeCallout(
             "warning",
             "warning",
             "Search stopped early",
-            "Clingo did not finish, so these answers may be incomplete. A solve limit is the usual cause."
+            "Clingo did not finish, answers may be incomplete. Check any solve limits in settings."
         );
     }
 
@@ -750,8 +925,11 @@
             return;
         }
         const query = filterBox.value.trim();
-        const entries = applyFilter(query);
-        visibleIndices = entries.map((entry) => entry.index);
+        // Which answers matched decides both what is shown and what is marked,
+        // so it is settled before anything is built from it
+        matchIndices = findMatches(query);
+        const matches = new Set(matchIndices);
+        const entries = applyFilter(query, matches);
         updateControls();
 
         // Comparing a single answer against nothing would just dim everything
@@ -766,19 +944,6 @@
 
         outputContainer.innerHTML = ""; // Clear previous content
         renderStats(entries.length, query);
-
-        // The config the run used is only interesting on demand, so it collapses
-        if (lastResult.useConfig) {
-            const details = document.createElement("details");
-            details.className = "config-details";
-            const summaryLine = document.createElement("summary");
-            summaryLine.textContent = `Config options (${lastResult.cfgFile.length})`;
-            details.appendChild(summaryLine);
-            const pre = document.createElement("pre");
-            pre.textContent = lastResult.cfgFile.join("\n");
-            details.appendChild(pre);
-            outputContainer.appendChild(details);
-        }
 
         // Clingo's warnings and info messages point at real problems in the
         // program, so show them rather than dropping them on the floor
@@ -811,6 +976,14 @@
             return;
         }
 
+        // While only highlighting there is nothing to notice when nothing
+        // matched, since the answers look exactly as they did before
+        if (query && !hideUnmatched && matchIndices.length === 0) {
+            outputContainer.appendChild(
+                makeCallout("info", "search", "No matches", `No atom matches "${query}". Every answer is shown unchanged.`)
+            );
+        }
+
         if (classify) {
             outputContainer.appendChild(makeCompareHint(countOccurrences()));
         }
@@ -818,12 +991,13 @@
         // Loop through the answers and create output boxes
         entries.forEach((entry) => {
             const answerContainer = document.createElement("div");
-            answerContainer.className = "answer-container";
+            // Only worth marking where the answers that did not match are still
+            // on screen; while filtering, every answer shown is a match already
+            const marked = query && !hideUnmatched && matches.has(entry.index);
+            answerContainer.className = marked ? "answer-container has-match" : "answer-container";
 
-            const total = lastResult.answers[entry.index].length;
-            // While filtering, entry.atoms holds only the matches, so say so
-            // rather than making the answer look shorter than it is
-            const atomCount = entry.atoms.length === total ? `${total} atoms` : `${entry.atoms.length} of ${total} atoms`;
+            // Answers are always shown whole, so this is simply their size
+            const atomCount = `${entry.atoms.length} atoms`;
 
             const answerHeader = document.createElement("div");
             answerHeader.className = "answer-header";
@@ -862,6 +1036,8 @@
         lastResult = saved.result;
         filterBox.value = saved.filter ?? "";
         compareMode = !!saved.compare;
+        hideUnmatched = saved.hideUnmatched !== false;
+        applyFilterMode();
         header.hidden = false;
         render();
     } else if (saved?.kind === "raw") {

@@ -8,7 +8,7 @@ jest.mock(
 
 const vscode = require("vscode");
 const Ajv = require("ajv").default;
-const { readCustomArgs, readSolveLimit, optionName, formatSchemaErrors } = require("../configReader.js");
+const { readCustomArgs, readSolveLimit, optionName, formatSchemaErrors, validateConfigObject } = require("../configReader.js");
 const schema = require("../../schema.json");
 
 /** Validates against the real schema, so the tests cannot drift from it. */
@@ -144,5 +144,31 @@ describe("readSolveLimit", () => {
         for (const limit of [{ conflicts: 0, restarts: 0 }, { conflicts: 0 }, { restarts: 0 }, {}]) {
             expect(readSolveLimit(limit).join(" ")).not.toContain("0");
         }
+    });
+});
+
+describe("validateConfigObject", () => {
+    // The extension folder is the repository root when running from a checkout
+    const root = require("path").join(__dirname, "..", "..");
+
+    it("accepts the sample config the extension writes", () => {
+        expect(validateConfigObject(require("../../sampleConfig.json"), root)).toEqual([]);
+    });
+
+    it("accepts a config that sets almost nothing", () => {
+        expect(validateConfigObject({}, root)).toEqual([]);
+        expect(validateConfigObject({ args: { timeLimit: 30 } }, root)).toEqual([]);
+    });
+
+    it("names every problem rather than stopping at the first", () => {
+        const problems = validateConfigObject({ args: { timeLimit: "soon", stats: "lots" }, nonsense: true }, root);
+
+        expect(problems.length).toBeGreaterThanOrEqual(3);
+        expect(problems.join(" ")).toContain("args.timeLimit");
+        expect(problems.join(" ")).toContain("args.stats");
+    });
+
+    it("still accepts the models key older configs carry", () => {
+        expect(validateConfigObject({ args: { models: 0 } }, root)).toEqual([]);
     });
 });

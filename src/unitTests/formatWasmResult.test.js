@@ -86,7 +86,7 @@ describe("formatWasmResult", () => {
 
 describe("partialResultFromModels", () => {
     it("rebuilds a clingo shaped result from the models a stopped run had found", () => {
-        const partial = partialResultFromModels([["a"], ["a", "b"]], 7, 3.0004, 3);
+        const partial = partialResultFromModels([["a"], ["a", "b"]], 7, 3.0004, { reason: "time-limit", seconds: 3 });
 
         expect(partial.Result).toEqual("UNKNOWN");
         expect(extractAnswers(partial)).toEqual([["a"], ["a", "b"]]);
@@ -96,8 +96,15 @@ describe("partialResultFromModels", () => {
         expect(partial.StoppedBy).toEqual({ reason: "time-limit", seconds: 3, kept: 2 });
     });
 
+    it("says who stopped the run, since the panel words those differently", () => {
+        const byUser = partialResultFromModels([["a"]], 1, 2, { reason: "cancelled" });
+
+        expect(byUser.StoppedBy).toEqual({ reason: "cancelled", kept: 1 });
+        expect(byUser.StoppedBy.seconds).toBeUndefined();
+    });
+
     it("formats into a payload the panel can render", () => {
-        const formatted = formatWasmResult(partialResultFromModels([["a"]], 1, 1, 1));
+        const formatted = formatWasmResult(partialResultFromModels([["a"]], 1, 1, { reason: "time-limit", seconds: 1 }));
 
         expect(formatted.result).toEqual("UNKNOWN");
         expect(formatted.answers).toEqual([["a"]]);
@@ -108,7 +115,7 @@ describe("partialResultFromModels", () => {
     });
 
     it("survives a run that was stopped before it found anything", () => {
-        const formatted = formatWasmResult(partialResultFromModels([], 0, 5, 5));
+        const formatted = formatWasmResult(partialResultFromModels([], 0, 5, { reason: "cancelled" }));
 
         expect(formatted.totalAnswers).toEqual(0);
         expect(formatted.answers).toEqual([]);

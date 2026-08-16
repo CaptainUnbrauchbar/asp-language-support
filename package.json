@@ -108,11 +108,6 @@
                 "icon": "$(notebook-execute)"
             },
             {
-                "command": "answer-set-programming-language-support.runinterminalconfig",
-                "title": "Compute Answer Sets (config.json)",
-                "icon": "$(notebook-render-output)"
-            },
-            {
                 "command": "answer-set-programming-language-support.togglesettings",
                 "title": "Solver settings",
                 "icon": "$(settings-gear)"
@@ -138,11 +133,6 @@
                     "when": "resourceLangId == asp",
                     "command": "answer-set-programming-language-support.runinterminalsingle",
                     "group": "z_commands"
-                },
-                {
-                    "when": "resourceLangId == asp",
-                    "command": "answer-set-programming-language-support.runinterminalconfig",
-                    "group": "z_commands"
                 }
             ],
             "view/title": [
@@ -157,19 +147,14 @@
                     "group": "navigation@1"
                 },
                 {
-                    "command": "answer-set-programming-language-support.runinterminalconfig",
-                    "when": "view == ASP.aspView && resourceLangId == asp",
-                    "group": "navigation@3"
-                },
-                {
                     "command": "answer-set-programming-language-support.togglesettings",
                     "when": "view == ASP.aspView",
-                    "group": "navigation@4"
+                    "group": "navigation@3"
                 },
                 {
                     "command": "answer-set-programming-language-support.stopclingo",
                     "when": "view == ASP.aspView && aspLanguage.clingoRunning",
-                    "group": "navigation@5"
+                    "group": "navigation@4"
                 }
             ]
         },
@@ -184,12 +169,6 @@
                 "command": "answer-set-programming-language-support.runinterminalsingle",
                 "key": "ctrl+shift+x",
                 "mac": "cmd+shift+x",
-                "when": "editorTextFocus && editorLangId == 'asp'"
-            },
-            {
-                "command": "answer-set-programming-language-support.runinterminalconfig",
-                "key": "ctrl+shift+c",
-                "mac": "cmd+shift+c",
                 "when": "editorTextFocus && editorLangId == 'asp'"
             },
             {

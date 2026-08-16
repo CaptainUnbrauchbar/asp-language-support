@@ -205,6 +205,9 @@ class WebviewProvider {
                 <div class="filter-field">
                     <i class="codicon codicon-search" aria-hidden="true"></i>
                     <input class="filter-box" type="search" placeholder="Filter atoms" aria-label="Filter atoms">
+                    <button class="icon-button filter-mode" title="Hiding answers without a match. Click to keep them and only highlight." aria-label="Hide answers without a match" aria-pressed="true">
+                        <i class="codicon codicon-filter" aria-hidden="true"></i>
+                    </button>
                 </div>
                 <button class="icon-button copy-all" title="Copy all answer sets" aria-label="Copy all answer sets">
                     <i class="codicon codicon-copy" aria-hidden="true"></i>

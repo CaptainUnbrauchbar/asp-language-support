@@ -2,6 +2,7 @@
 const fs = require("fs");
 const { runClingoWasmForFileWithProgress } = require("../runClingoWasmForFileWithProgress.js");
 const { MAX_PARTIAL_MODELS } = require("../formatWasmResult.js");
+const { abortClingo } = require("../clingoWasm.js");
 
 /**
  * Minimal stand-in for a vscode CancellationToken that lets a test decide when
@@ -39,6 +40,18 @@ describe("runClingoWasmForFile", () => {
 
         expect(result.Models.Number).toEqual(8);
     });
+
+    it("should compute only as many answer sets as it was asked for", async () => {
+        const solve = (models) =>
+            runClingoWasmForFileWithProgress({ window: jest.fn() }, { report: jest.fn() }, "src/testFiles/sudokuComplete.lp", models);
+
+        // clingo takes the count as a positional argument, and 0 means all
+        expect((await solve(0)).Models).toEqual({ Number: 8, More: "no" });
+        expect((await solve(3)).Models).toEqual({ Number: 3, More: "yes" });
+        expect((await solve(1)).Models).toEqual({ Number: 1, More: "yes" });
+        // asking for more than exist is not an error, it just exhausts them
+        expect((await solve(99)).Models).toEqual({ Number: 8, More: "no" });
+    }, 30000);
 
     it("should handle errors when reading the file", async () => {
         const filePath = "src/testFiles/nonExistentFile.lp";
@@ -93,11 +106,47 @@ describe("runClingoWasmForFile", () => {
 
         const result = await pending;
 
-        expect(result).toBe(null);
+        // Stopping is an outcome, not a failure: the search did not finish, but
+        // whatever it had found is worth keeping rather than discarding
+        expect(result).not.toBe(null);
+        expect(result.Result).toEqual("UNKNOWN");
+        expect(result.StoppedBy).toMatchObject({ reason: "cancelled" });
         // Cancelling is the user's choice: the status bar going idle says so, and
         // it must not be reported as an error or announced with a notification
         expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
         expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
+    }, 30000);
+
+    it("should keep the answers when stopped with the stop command", async () => {
+        const vscode = { window: { showErrorMessage: jest.fn(), showInformationMessage: jest.fn() } };
+
+        // The stop button, its keybinding and the status bar all abort the
+        // solver directly instead of going through a cancellation token, and
+        // that path used to return nothing at all
+        const pending = runClingoWasmForFileWithProgress(vscode, { report: jest.fn() }, "src/testFiles/manyModels.lp", 0, []);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await abortClingo();
+        const result = await pending;
+
+        expect(result).not.toBe(null);
+        expect(result.Result).toEqual("UNKNOWN");
+        expect(result.StoppedBy).toMatchObject({ reason: "cancelled" });
+        expect(result.Models.Number).toBeGreaterThan(0);
+        expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+    }, 30000);
+
+    it("should keep the answers a run had found when it is stopped by hand", async () => {
+        const vscode = { window: { showErrorMessage: jest.fn(), showInformationMessage: jest.fn() } };
+        const token = fakeCancellationToken();
+
+        const pending = runClingoWasmForFileWithProgress(vscode, { report: jest.fn() }, "src/testFiles/manyModels.lp", 0, [], token);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        token.cancel();
+        const result = await pending;
+
+        expect(result.Models.Number).toBeGreaterThan(0);
+        expect(result.Call[0].Witnesses.length).toBeGreaterThan(0);
+        expect(result.Call[0].Witnesses.length).toBeLessThanOrEqual(MAX_PARTIAL_MODELS);
     }, 30000);
 
     it("should still solve after a run was cancelled", async () => {

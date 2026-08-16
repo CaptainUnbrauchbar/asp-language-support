@@ -1,9 +1,21 @@
 {
-    "name": "Sample Config",
-    "description": "Clingo solver options. To solve several files together you do not need this file: write #include \"other.lp\". in your program instead. additionalFiles is resolved relative to this config and accepts globs. Documentation: https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf",
+    "description": "Clingo solver options for the Clingo for VSCode extension. Bring them into the panel with 'Import from config.json' in the solver settings pane, which is what runs them. To solve several files together you do not need this file: write #include \"other.lp\". in your program instead. Clingo documentation: https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf",
     "additionalFiles": [],
     "args": {
         "models": 0,
+        "timeLimit": 0,
+        "solveLimit": {
+            "conflicts": 0,
+            "restarts": 0
+        },
+        "parallelMode": {
+            "useParallelMode": false,
+            "threads": 4,
+            "mode": "compete"
+        },
+        "stats": 0,
+        "verboseMode": 0,
+        "preProcessor": false,
         "constants": [],
         "customArgs": ""
     }

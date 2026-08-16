@@ -11,11 +11,15 @@ const { resolvePatterns } = require("./filePatterns.js");
 
 /** Everything off or unlimited, which is what plain clingo does. */
 const DEFAULT_SETTINGS = Object.freeze({
+    models: 0,
     timeLimit: 0,
     solveLimitConflicts: 0,
     solveLimitRestarts: 0,
     parallelEnabled: false,
-    parallelThreads: 2,
+    // Two threads measured within noise of one on a hard instance, while four
+    // cut the same search by roughly a third, so the default has to be worth
+    // switching on for
+    parallelThreads: 4,
     parallelMode: "compete",
     stats: 0,
     verbose: 0,
@@ -38,6 +42,15 @@ const ALL_BACKENDS = Object.freeze(["wasm", "path"]);
  * and says why, and settingsToArgs leaves them out of the run.
  */
 const SETTING_FIELDS = [
+    {
+        key: "models",
+        label: "Model limit",
+        description:
+            "How many answers to compute at most, clingo's model count. 0 means all of them. " +
+            '"Compute the first Answer Set" always returns one regardless of this setting.',
+        type: "number",
+        min: 0,
+    },
     {
         key: "timeLimit",
         label: "Time limit",
@@ -62,36 +75,39 @@ const SETTING_FIELDS = [
     {
         key: "parallelEnabled",
         label: "Parallel solving",
-        description: "Search with several threads. Needs a VSCode new enough to support them.",
+        description: "Search with several threads. Only pays off on programs that take seconds to solve, not milliseconds.",
         type: "boolean",
+        requiresThreads: true,
     },
     {
         key: "parallelThreads",
         label: "Threads",
-        description: "How many threads to search with.",
+        description: "How many threads to search with. Two rarely makes a visible difference; four or more does.",
         type: "number",
         min: 1,
         dependsOn: "parallelEnabled",
+        requiresThreads: true,
     },
     {
         key: "parallelMode",
         label: "Thread mode",
-        description: "compete: every thread races on the whole problem. split: they divide it up.",
+        description: "compete: every thread races to find one answer. split: they divide the search up, which suits enumerating many answers.",
         type: "select",
         options: ["compete", "split"],
         dependsOn: "parallelEnabled",
+        requiresThreads: true,
     },
     {
         key: "constants",
         label: "Constants",
-        description: "Values for #const, comma separated, e.g. n=3, k=2",
+        description: "Values for #const, comma separated, e.g. n=3, k=2. Can be used insteard of a #const directive in the program itself.",
         type: "text",
         placeholder: "n=3, k=2",
     },
     {
         key: "additionalFiles",
         label: "Additional files",
-        description: "Extra files to solve with, comma separated. Globs allowed. Prefer #include in the program itself.",
+        description: "Extra files to solve with, comma separated. Globs allowed. Prefer '#include \"{filename}\"' inside the program itself.",
         type: "text",
         placeholder: "lib.lp, instances/*.lp",
     },
@@ -174,6 +190,40 @@ function supportsField(key, backend) {
 }
 
 /**
+ * Said once a run has shown that the bundled solver was built without threads.
+ *
+ * This is never assumed from the VSCode version. Parallel solving does work
+ * with the bundled solver in VSCode, so the note only appears where clingo has
+ * actually refused the options.
+ */
+const NO_THREADS_NOTE =
+    "The bundled solver here was built without thread support and refused clingo's parallel options. " +
+    "Use your own clingo from PATH if you need parallel solving.";
+
+/**
+ * The fields with a reason attached to each one the current setup cannot
+ * honour, so the panel only has to render what it is given.
+ *
+ * Doing it here rather than in the panel keeps one description of what works
+ * where, and makes it testable without a webview.
+ *
+ * @param {String} backend "wasm" or "path"
+ * @param {Boolean} threads Whether the multithreaded solver is available
+ * @returns {Object[]}
+ */
+function describeFields(backend, threads) {
+    return SETTING_FIELDS.map((field) => {
+        let unavailable;
+        if (field.backends && !field.backends.includes(backend)) {
+            unavailable = field.unsupportedNote;
+        } else if (field.requiresThreads && backend === "wasm" && !threads) {
+            unavailable = NO_THREADS_NOTE;
+        }
+        return unavailable ? { ...field, unavailable } : field;
+    });
+}
+
+/**
  * Turns the settings into clingo arguments, in the same shape readConfig
  * produces: options start with a dash, file paths are quoted.
  *
@@ -191,6 +241,10 @@ function settingsToArgs(raw, baseDirectory, filterCustomArgs = () => [], backend
     const emit = (key) => supportsField(key, backend);
     /** @type {String[]} */
     const args = [];
+
+    // "models" is deliberately absent: clingo takes the model count as a bare
+    // positional argument, not as an option, and both solvers are handed it
+    // separately. Emitting --models here would give clingo two of them.
 
     // The bundled solver accepts --time-limit and then ignores it, so the run is
     // stopped from the extension instead. The option still travels with the run,
@@ -235,6 +289,7 @@ function settingsToArgs(raw, baseDirectory, filterCustomArgs = () => [], backend
 function configToSettings(config) {
     const args = config?.args ?? {};
     return normalizeSettings({
+        models: args.models,
         timeLimit: args.timeLimit,
         solveLimitConflicts: args.solveLimit?.conflicts,
         solveLimitRestarts: args.solveLimit?.restarts,
@@ -254,6 +309,8 @@ module.exports = {
     ALL_BACKENDS,
     DEFAULT_SETTINGS,
     SETTING_FIELDS,
+    NO_THREADS_NOTE,
+    describeFields,
     normalizeSettings,
     settingsToArgs,
     configToSettings,

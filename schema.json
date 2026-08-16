@@ -1,6 +1,6 @@
 {
     "title": "ASP Config Schema",
-    "description": "Clingo solver options for the Clingo for VSCode extension. Composing a program out of several files does not need this file: use #include \"other.lp\". in the program itself.",
+    "description": "Clingo solver options for the Clingo for VSCode extension. Read by 'Import from config.json' in the panel's solver settings, which is what carries the options into a run. Composing a program out of several files does not need this file: use #include \"other.lp\". in the program itself.",
     "type": "object",
     "additionalProperties": false,
     "properties": {
@@ -17,7 +17,10 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-                "verboseMode": { "type": "integer" },
+                "verboseMode": {
+                    "type": "integer",
+                    "description": "Only has an effect with your own clingo from PATH: the bundled solver never carries this output"
+                },
                 "parallelMode": {
                     "type": "object",
                     "additionalProperties": false,
@@ -41,9 +44,16 @@
                         "restarts": { "type": "integer", "minimum": 0, "description": "0 means no limit" }
                     }
                 },
-                "stats": { "type": "integer" },
-                "preProcessor": { "type": "boolean" },
-                "models": { "type": "integer" },
+                "stats": { "type": "integer", "description": "How much solver statistics clingo reports, 0 to 2. 0 is off" },
+                "preProcessor": {
+                    "type": "boolean",
+                    "description": "Only works with your own clingo from PATH: the preprocessor emits aspif text rather than the JSON the bundled solver returns"
+                },
+                "models": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "How many answer sets to compute at most. 0 means all of them. Caps \"Compute all Answer Sets\"; \"Compute the first Answer Set\" always returns one"
+                },
                 "constants": {
                     "type": "array",
                     "items": { "type": "string" }

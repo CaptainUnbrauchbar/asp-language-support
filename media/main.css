@@ -53,7 +53,8 @@ body {
  */
 .filter-field .filter-box {
     width: 100%;
-    padding: 0.3em 0.5em 0.3em 2em;
+    /* room on the right for the mode toggle that sits inside the field */
+    padding: 0.3em 2em 0.3em 2em;
     font-family: var(--vscode-font-family);
     font-size: var(--vscode-font-size);
     color: var(--vscode-input-foreground);
@@ -88,6 +89,22 @@ body {
 
 .filter-field:focus-within .codicon-search {
     color: var(--vscode-input-foreground);
+}
+
+/*
+ * The filter/highlight toggle lives inside the field it belongs to, the way
+ * VSCode puts its own search options there, so it reads as part of the box
+ * rather than as another toolbar button competing with copy and compare.
+ */
+.filter-field .filter-mode {
+    position: absolute;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+}
+
+.filter-field .filter-mode .codicon {
+    font-size: 13px;
 }
 
 .icon-button {
@@ -554,28 +571,8 @@ body {
     resize: none;
 }
 
-.config-details {
-    margin-bottom: 0.75em;
-    font-family: var(--vscode-font-family);
-    font-size: var(--vscode-font-size);
-    color: var(--vscode-descriptionForeground);
-}
-
-.config-details summary {
-    cursor: pointer;
-}
-
-.config-details pre {
-    margin: 0.3em 0 0 0;
-    padding: 0.4em;
-    font-family: var(--vscode-editor-font-family);
-    background-color: var(--vscode-textCodeBlock-background, var(--vscode-input-background));
-    border-radius: 2px;
-    white-space: pre-wrap;
-}
-
-/* Solver statistics collapse like the config options do: worth having, not
-   worth spending the top of the panel on */
+/* Solver statistics collapse behind a summary: worth having, not worth
+   spending the top of the panel on */
 .stats-details {
     margin-bottom: 0.75em;
     font-family: var(--vscode-font-family);
@@ -587,22 +584,62 @@ body {
     cursor: pointer;
 }
 
-/* Two columns so the figures line up under each other and can be read down the
-   page rather than hunted for on each line */
+/*
+ * Sections flow into as many newspaper columns as the panel is wide. A single
+ * full width table put every figure at the far right edge, a screen away from
+ * the name it belonged to; keeping each column narrow keeps the two together,
+ * and a wide panel now shows more at once instead of scrolling further.
+ */
 .stats-table {
-    display: grid;
-    grid-template-columns: auto max-content;
-    gap: 0.1em 1.5em;
     margin-top: 0.3em;
-    padding: 0.4em;
+    padding: 0.6em 0.8em;
     background-color: var(--vscode-textCodeBlock-background, var(--vscode-input-background));
     border-radius: 2px;
+    column-width: 24em;
+    column-gap: 2.5em;
+}
+
+/* A section must not be split down the middle by a column break */
+.stats-group {
+    break-inside: avoid;
+    margin-bottom: 0.9em;
+}
+
+.stats-group-name {
+    margin-bottom: 0.2em;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+}
+
+.stats-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+}
+
+/* The name and a dotted leader that runs out to meet its figure, so the eye
+   can follow one line across without losing it */
+.stats-key {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.stats-key::after {
+    content: "";
+    flex: 1 1 auto;
+    margin-bottom: 0.25em;
+    border-bottom: 1px dotted var(--vscode-panel-border, rgba(128, 128, 128, 0.4));
 }
 
 .stats-value {
+    flex: 0 0 auto;
     font-family: var(--vscode-editor-font-family);
     color: var(--vscode-foreground);
-    text-align: right;
+    white-space: nowrap;
 }
 
 /*
@@ -631,10 +668,29 @@ body {
     border-left-color: var(--vscode-focusBorder);
 }
 
+/*
+ * A match has to be findable at a glance in a wall of atoms. The translucent
+ * "other matches" colour that editors use for the matches you are not on is too
+ * faint for that here, so this takes the stronger current-match colour, weights
+ * the text, and keeps a border for themes whose colour is pale.
+ */
 .match {
     color: inherit;
-    background-color: var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.33));
+    background-color: var(--vscode-editor-findMatchBackground, var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.55)));
+    outline: 1px solid var(--vscode-editor-findMatchBorder, var(--vscode-focusBorder));
+    outline-offset: 0;
     border-radius: 2px;
+    padding: 0 2px;
+    font-weight: 600;
+}
+
+/*
+ * While only highlighting, the answers without a match stay on screen, so the
+ * ones that did match need to be findable without reading every line.
+ */
+.answer-container.has-match {
+    border-left: 2px solid var(--vscode-editor-findMatchBackground, var(--vscode-focusBorder));
+    padding-left: 0.4em;
 }
 
 /*

@@ -107,21 +107,35 @@ function formatSchemaErrors(errors) {
 }
 
 /**
+ * Checks a parsed config against the schema.
+ *
+ * Kept separate from the reporting below so importing a config into the
+ * settings pane can use the same rules, which is the only way a config file is
+ * read now.
+ *
+ * @param {Object} config The parsed config
+ * @param {String} contextAbsolutePath Where schema.json lives
+ * @returns {String[]} One readable problem per mistake, empty when it is fine
+ */
+function validateConfigObject(config, contextAbsolutePath) {
+    // allErrors reports every problem at once instead of stopping at the first,
+    // so a config with several mistakes does not need several attempts to fix
+    const ajv = new Ajv({ allErrors: true });
+    const schema = require(join(contextAbsolutePath, `schema.json`));
+    const validate = ajv.compile(schema);
+    return validate(config) ? [] : formatSchemaErrors(validate.errors);
+}
+
+/**
  * @param {string} contextAbsolutePath
  * @param {string} pathToConfig
  */
 function validateConfigSchema(contextAbsolutePath, pathToConfig) {
-    // allErrors reports every problem at once instead of stopping at the first,
-    // so a config with several mistakes does not need several runs to fix
-    const ajv = new Ajv({ allErrors: true });
-    const schema = require(join(contextAbsolutePath, `schema.json`));
-    const validate = ajv.compile(schema);
-    const valid = validate(jsonConfig);
-    if (valid) {
+    const problems = validateConfigObject(jsonConfig, contextAbsolutePath);
+    if (!problems.length) {
         return;
     }
 
-    const problems = formatSchemaErrors(validate.errors);
     const fileName = basename(pathToConfig);
     vscode.window
         .showWarningMessage(
@@ -308,6 +322,7 @@ module.exports = {
     readCustomArgs,
     readSolveLimit,
     formatSchemaErrors,
+    validateConfigObject,
     findConfig,
     optionName,
     RESERVED_ARGS,

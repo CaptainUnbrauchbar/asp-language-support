@@ -1,5 +1,5 @@
 const fs = require("fs");
-const { loadClingo, abortClingo, isAbortResult } = require("./clingoWasm.js");
+const { loadClingo, abortClingo, isAbortResult, noteThreadSupport, isThreadOptionRejected } = require("./clingoWasm.js");
 const { resolveIncludes, mapMessagePositions } = require("./resolveIncludes.js");
 const { partialResultFromModels, MAX_PARTIAL_MODELS } = require("./formatWasmResult.js");
 
@@ -89,19 +89,11 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
 
     const clingo = await loadClingo();
 
-    // clingo-wasm only loads the multi threaded build where the environment
-    // supports it. On the single threaded one the threading options do not
-    // merely have no effect, they abort the run with "unknown option", so drop
-    // them rather than let a config option break solving outright.
-    if (clingoOptions?.length && !clingo.supportsThreads()) {
-        const threadArgs = clingoOptions.filter((arg) => THREAD_ARGS.test(arg));
-        if (threadArgs.length) {
-            clingoOptions = clingoOptions.filter((arg) => !THREAD_ARGS.test(arg));
-            vscode.window.showWarningMessage(
-                `Parallel solving is not available in this VSCode version, ignoring: ${threadArgs.join(", ")}`
-            );
-        }
-    }
+    // Whether the multi threaded build loaded is only knowable inside the worker
+    // clingo runs in, so the options are sent and clingo is left to answer. It
+    // refuses them while parsing, before any solving, which is what the retry
+    // after the run below is for.
+    const threadArgs = clingoOptions?.filter((arg) => THREAD_ARGS.test(arg)) ?? [];
 
     if (clingoOptions?.length) {
         const rejected = UNSUPPORTED_ARGS.filter(({ pattern }) => clingoOptions.some((arg) => pattern.test(arg)));
@@ -182,26 +174,40 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
     let wasmResult;
     try {
         wasmResult = await clingo.run(fileContent, models, clingoOptions, onModel);
+
+        // A build without thread support rejects the parallel options outright,
+        // which would fail a run the user only asked to be faster. Ask again
+        // without them, and remember, so the settings pane stops offering them.
+        if (threadArgs.length && isThreadOptionRejected(wasmResult)) {
+            noteThreadSupport(false);
+            vscode.window.showWarningMessage(
+                `Parallel solving is not available with the bundled solver here, ignoring: ${threadArgs.join(", ")}. ` +
+                    "Enable the usePathClingo setting to solve in parallel with your own clingo."
+            );
+            clingoOptions = clingoOptions.filter((arg) => !THREAD_ARGS.test(arg));
+            modelsFound = 0;
+            streamedModels.length = 0;
+            wasmResult = await clingo.run(fileContent, models, clingoOptions, onModel);
+        } else if (threadArgs.length && wasmResult?.Result !== "ERROR") {
+            noteThreadSupport(true);
+        }
     } finally {
         cancelListener?.dispose();
         clearTimeout(timeLimitTimer);
     }
 
-    // A cancelled run is the user's decision. The status bar going back to idle
-    // says so, and a notification would only be in the way. Checked before the
-    // time limit so that stopping a run yourself is never reported as a timeout.
-    if (cancelled) {
-        return null;
-    }
-
-    // The run was stopped by the limit the user asked for, which is an outcome
-    // rather than a failure, so hand back what the search had already found
-    if (timedOut) {
-        return partialResultFromModels(streamedModels, modelsFound, (Date.now() - startedAt) / 1000, timeLimitSeconds);
-    }
-
-    if (isAbortResult(wasmResult)) {
-        return null;
+    // A run that was stopped, by the user or by their time limit, is an outcome
+    // rather than a failure: hand back whatever the search had already found so
+    // the answers are not thrown away along with the worker.
+    //
+    // The token only covers the Cancel button on the progress notification. The
+    // stop command, its keybinding and the status bar all terminate the worker
+    // directly, so the abort result is the only sign those leave behind and has
+    // to count as a stop just the same.
+    const stoppedByUser = cancelled || (!timedOut && isAbortResult(wasmResult));
+    if (stoppedByUser || timedOut) {
+        const stopped = stoppedByUser ? { reason: "cancelled" } : { reason: "time-limit", seconds: timeLimitSeconds };
+        return partialResultFromModels(streamedModels, modelsFound, (Date.now() - startedAt) / 1000, stopped);
     }
 
     progress.report({

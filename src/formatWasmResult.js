@@ -30,10 +30,10 @@ const MAX_PARTIAL_MODELS = 1000;
  * @param {String[][]} models The answer sets seen before the run was stopped
  * @param {Number} totalModels How many were found, which can exceed those kept
  * @param {Number} seconds How long the run lasted
- * @param {Number} timeLimit The limit that stopped it, in seconds
+ * @param {{reason: String, seconds?: Number}} stopped What stopped it
  * @returns {Object}
  */
-function partialResultFromModels(models, totalModels, seconds, timeLimit) {
+function partialResultFromModels(models, totalModels, seconds, stopped) {
     return {
         Result: "UNKNOWN",
         Call: [{ Witnesses: models.map((Value) => ({ Value })) }],
@@ -41,9 +41,9 @@ function partialResultFromModels(models, totalModels, seconds, timeLimit) {
         Calls: 1,
         Time: { Total: Number(seconds.toFixed(3)), Solve: Number(seconds.toFixed(3)), Model: 0 },
         Warnings: [],
-        // Lets the panel name the limit that stopped the search instead of
-        // listing the possibilities
-        StoppedBy: { reason: "time-limit", seconds: timeLimit, kept: models.length },
+        // Lets the panel say what stopped the search instead of listing the
+        // possibilities
+        StoppedBy: { ...stopped, kept: models.length },
     };
 }
 

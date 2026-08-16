@@ -1,5 +1,13 @@
 // @ts-nocheck
-const { DEFAULT_SETTINGS, SETTING_FIELDS, normalizeSettings, settingsToArgs, configToSettings } = require("../solverSettings.js");
+const {
+    DEFAULT_SETTINGS,
+    SETTING_FIELDS,
+    NO_THREADS_NOTE,
+    describeFields,
+    normalizeSettings,
+    settingsToArgs,
+    configToSettings,
+} = require("../solverSettings.js");
 
 /** Ignores the filesystem, so these tests only judge the argument building. */
 const noFiles = "/nowhere";
@@ -42,6 +50,14 @@ describe("normalizeSettings", () => {
 describe("settingsToArgs", () => {
     it("passes nothing on for the defaults", () => {
         expect(optionsFor(DEFAULT_SETTINGS)).toEqual([]);
+    });
+
+    it("never passes the answer set limit as an option", () => {
+        // clingo takes the model count as a bare positional argument, which the
+        // extension hands over separately. An option here would be a second one,
+        // which is why --models and -n are refused in custom arguments too.
+        expect(optionsFor({ models: 5 })).toEqual([]);
+        expect(settingsToArgs({ models: 5 }, noFiles, keepArgs).args.join(" ")).not.toContain("models");
     });
 
     it("only sets the limits that are actually limited", () => {
@@ -118,12 +134,48 @@ describe("settings the solver cannot honour", () => {
     });
 });
 
+describe("describeFields", () => {
+    const reasonFor = (fields, key) => fields.find((field) => field.key === key)?.unavailable;
+
+    it("attaches a reason to every option the setup cannot honour", () => {
+        const fields = describeFields("wasm", true);
+
+        expect(reasonFor(fields, "verbose")).toContain("your own clingo from PATH");
+        expect(reasonFor(fields, "preProcessor")).toContain("aspif");
+        // These work on the bundled solver, so they carry no reason at all
+        expect(reasonFor(fields, "timeLimit")).toBeUndefined();
+        expect(reasonFor(fields, "stats")).toBeUndefined();
+    });
+
+    it("marks parallel solving when this VSCode is too old for threads", () => {
+        const withThreads = describeFields("wasm", true);
+        const without = describeFields("wasm", false);
+
+        expect(reasonFor(withThreads, "parallelEnabled")).toBeUndefined();
+        ["parallelEnabled", "parallelThreads", "parallelMode"].forEach((key) => {
+            expect(reasonFor(without, key)).toEqual(NO_THREADS_NOTE);
+        });
+    });
+
+    it("leaves your own clingo free to use its own threads", () => {
+        // The thread check is about the WASM build, and says nothing about a
+        // clingo binary from PATH
+        expect(reasonFor(describeFields("path", false), "parallelEnabled")).toBeUndefined();
+        expect(reasonFor(describeFields("path", false), "verbose")).toBeUndefined();
+    });
+
+    it("does not disturb the fields it has nothing to say about", () => {
+        expect(describeFields("path", true)).toEqual(SETTING_FIELDS);
+    });
+});
+
 describe("configToSettings", () => {
     it("carries an existing config across", () => {
         const settings = configToSettings({
             name: "Old",
             additionalFiles: ["lib.lp", "instances/*.lp"],
             args: {
+                models: 3,
                 timeLimit: 60,
                 solveLimit: { conflicts: 10, restarts: 0 },
                 parallelMode: { useParallelMode: true, threads: 4, mode: "split" },
@@ -136,6 +188,7 @@ describe("configToSettings", () => {
         });
 
         expect(settings).toMatchObject({
+            models: 3,
             timeLimit: 60,
             solveLimitConflicts: 10,
             solveLimitRestarts: 0,

@@ -25,6 +25,48 @@ function loadClingo() {
 }
 
 /**
+ * Whether parallel solving works, as observed rather than predicted.
+ *
+ * clingo-wasm exports supportsThreads(), but it answers for whichever context
+ * calls it, and the extension host is not the context that matters. VSCode's
+ * host has no `navigator` global, while the worker thread clingo actually runs
+ * in does, so asking on the host reports false and would switch off a feature
+ * that works perfectly well. Rather than guess, the options are sent and
+ * clingo's own answer is remembered: where the threaded build did not load, it
+ * refuses them as unknown options while parsing, before any solving starts.
+ *
+ * Starts out assuming they work, which is the case in VSCode, so nothing is
+ * disabled until a run has actually shown otherwise.
+ */
+let threadsWork = true;
+
+/** @returns {Boolean} */
+function threadsAvailable() {
+    return threadsWork;
+}
+
+/**
+ * Records what a run carrying the parallel options actually did.
+ * @param {Boolean} available
+ */
+function noteThreadSupport(available) {
+    threadsWork = available;
+}
+
+/** How clingo refuses a threading option when built without thread support. */
+const UNKNOWN_THREAD_OPTION = /unknown option: '(t|parallel-mode)'/;
+
+/**
+ * Whether a result is clingo rejecting a threading option, as opposed to any
+ * other failure.
+ * @param {ClingoResult | ClingoError | null} result
+ * @returns {Boolean}
+ */
+function isThreadOptionRejected(result) {
+    return result?.Result === "ERROR" && UNKNOWN_THREAD_OPTION.test(String(result?.Error ?? ""));
+}
+
+/**
  * Aborts the solve that is currently running.
  *
  * clingo-wasm runs the solver in a worker, and `restart()` terminates that
@@ -57,4 +99,4 @@ function isAbortResult(result) {
     return result?.Result === "ERROR" && result?.Error === ABORT_ERROR;
 }
 
-module.exports = { loadClingo, abortClingo, isAbortResult };
+module.exports = { loadClingo, abortClingo, isAbortResult, threadsAvailable, noteThreadSupport, isThreadOptionRejected };
