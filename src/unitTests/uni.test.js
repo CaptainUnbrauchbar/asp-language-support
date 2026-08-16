@@ -1,6 +1,7 @@
 // @ts-nocheck
 const fs = require("fs");
 const { runClingoWasmForFileWithProgress } = require("../runClingoWasmForFileWithProgress.js");
+const { MAX_PARTIAL_MODELS } = require("../formatWasmResult.js");
 
 /**
  * Minimal stand-in for a vscode CancellationToken that lets a test decide when
@@ -143,6 +144,77 @@ describe("runClingoWasmForFile", () => {
         expect(result.Result).toEqual("SATISFIABLE");
         expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
     });
+
+    it("should solve even when a config asks for options wasm cannot honour", async () => {
+        const vscode = { window: { showErrorMessage: jest.fn(), showInformationMessage: jest.fn(), showWarningMessage: jest.fn() } };
+
+        // --pre makes clingo emit aspif text rather than JSON, which used to
+        // fail the whole run with "Clingo WASM Error: [object Object]"
+        const result = await runClingoWasmForFileWithProgress(vscode, { report: jest.fn() }, "src/testFiles/sudokuComplete.lp", 0, [
+            "--pre",
+            "--verbose=3",
+        ]);
+
+        expect(result).not.toBe(null);
+        expect(result.Result).toEqual("SATISFIABLE");
+        expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+        // Dropped silently would leave the user wondering why nothing changed
+        expect(vscode.window.showWarningMessage).toHaveBeenCalled();
+    });
+
+    it("should stop a run at the time limit that clingo itself ignores", async () => {
+        const vscode = { window: { showErrorMessage: jest.fn(), showInformationMessage: jest.fn(), showWarningMessage: jest.fn() } };
+
+        // The wasm build accepts --time-limit and then ignores it, because the
+        // timer it relies on can never fire during a synchronous solve. This
+        // file would otherwise run until it was cancelled by hand.
+        const started = Date.now();
+        const result = await runClingoWasmForFileWithProgress(vscode, { report: jest.fn() }, "src/testFiles/longRunning.lp", 0, [
+            "--time-limit=1",
+        ]);
+        const elapsed = (Date.now() - started) / 1000;
+
+        expect(result).not.toBe(null);
+        expect(result.Result).toEqual("UNKNOWN");
+        expect(result.StoppedBy).toMatchObject({ reason: "time-limit", seconds: 1 });
+        expect(elapsed).toBeLessThan(15);
+        // Stopping at the limit the user asked for is an outcome, not a failure
+        expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+    }, 30000);
+
+    it("should keep the answers a run had already found when the time limit stops it", async () => {
+        const vscode = { window: { showErrorMessage: jest.fn(), showInformationMessage: jest.fn(), showWarningMessage: jest.fn() } };
+
+        // Terminating the worker throws clingo's own reply away, so the models
+        // have to be collected as they stream in or the run reports nothing
+        const result = await runClingoWasmForFileWithProgress(vscode, { report: jest.fn() }, "src/testFiles/manyModels.lp", 0, [
+            "--time-limit=1",
+        ]);
+
+        const witnesses = result.Call[0].Witnesses;
+        expect(result.Models.Number).toBeGreaterThan(0);
+        expect(witnesses.length).toBeGreaterThan(0);
+        expect(witnesses[0].Value).toBeDefined();
+        // Kept models are capped so a fast program cannot fill memory while the
+        // limit counts down, but the count still reports everything found
+        expect(witnesses.length).toBeLessThanOrEqual(MAX_PARTIAL_MODELS);
+        expect(result.Models.Number).toBeGreaterThanOrEqual(witnesses.length);
+    }, 30000);
+
+    it("should leave a run that finishes inside its time limit alone", async () => {
+        const vscode = { window: { showErrorMessage: jest.fn(), showInformationMessage: jest.fn(), showWarningMessage: jest.fn() } };
+
+        const result = await runClingoWasmForFileWithProgress(vscode, { report: jest.fn() }, "src/testFiles/sudokuComplete.lp", 0, [
+            "--time-limit=30",
+        ]);
+
+        // Clingo's own answer, not a synthesised one: the option is removed
+        // before the run, so it can never be rejected as unknown either
+        expect(result.Result).toEqual("SATISFIABLE");
+        expect(result.Models.Number).toEqual(8);
+        expect(result.StoppedBy).toBeUndefined();
+        expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+    }, 30000);
 
     it("should report models to the progress reporter while solving", async () => {
         const progress = { report: jest.fn() };

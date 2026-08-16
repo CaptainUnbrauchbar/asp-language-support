@@ -1,6 +1,6 @@
 const vscode = require("vscode");
 const which = require("which");
-const { dirname, join } = require("path");
+const { basename, dirname, join } = require("path");
 const fs = require("fs");
 const { readConfig, findConfig } = require("./configReader.js");
 const { WebviewProvider } = require("./webviewProvider.js");
@@ -9,6 +9,11 @@ const { runClingoPathForFileWithProgress } = require("./runClingoPathForFileWith
 const { abortClingo } = require("./clingoWasm.js");
 const { formatWasmResult, extractAnswers } = require("./formatWasmResult.js");
 const { ClingoStatusBar, parseClingoVersion, shouldShowStatusBar } = require("./statusBar.js");
+const { readCustomArgs } = require("./configReader.js");
+const { DEFAULT_SETTINGS, SETTING_FIELDS, normalizeSettings, settingsToArgs, configToSettings } = require("./solverSettings.js");
+
+/** Where the panel's solver settings are kept, per workspace. */
+const SETTINGS_KEY = "aspLanguage.solverSettings";
 
 //E_SAT       = 10, !< At least one model was found.
 //E_EXHAUST   = 20, !< Search-space was completely examined.
@@ -29,7 +34,46 @@ function activate(context) {
     var path;
     var clingoRunning = false;
 
-    const provider = new WebviewProvider(context.extensionUri);
+    /**
+     * The solver settings edited in the panel. They live in workspace state
+     * rather than in a file, so the common case needs no config at all; a project
+     * that wants its options committed can still use config.json.
+     */
+    /** Which solver the settings apply to, since not every option works on both. */
+    const currentBackend = () => (usePathClingo ? "path" : "wasm");
+
+    const settingsStore = {
+        read: () => normalizeSettings(context.workspaceState.get(SETTINGS_KEY)),
+        save: async (settings) => await context.workspaceState.update(SETTINGS_KEY, normalizeSettings(settings)),
+        reset: async () => await context.workspaceState.update(SETTINGS_KEY, { ...DEFAULT_SETTINGS }),
+        describe: () => ({
+            fields: SETTING_FIELDS,
+            settings: settingsStore.read(),
+            backend: currentBackend(),
+            scope: 'Used by "Compute all/first Answer Sets" in this workspace. The config.json command keeps using the file.',
+        }),
+        /** Fills the pane from an existing config.json so nobody has to retype it. */
+        importFromConfig: async () => {
+            const editor = vscode.window.activeTextEditor;
+            const configPath = editor && setConfig ? findConfig(dirname(editor.document.fileName), setConfig) : undefined;
+            if (!configPath) {
+                vscode.window.showErrorMessage(
+                    setConfig
+                        ? `Could not find ${setConfig} next to the file or in any folder above it.`
+                        : "Set a config file name in the aspLanguage.setConfig setting first."
+                );
+                return;
+            }
+            try {
+                const parsed = JSON.parse(fs.readFileSync(configPath).toString());
+                await context.workspaceState.update(SETTINGS_KEY, configToSettings(parsed));
+            } catch (error) {
+                vscode.window.showErrorMessage(`Could not read ${basename(configPath)}: ${error.message}`);
+            }
+        },
+    };
+
+    const provider = new WebviewProvider(context.extensionUri, settingsStore);
     const statusBar = new ClingoStatusBar(vscode);
 
     // Register the listeners before the first check, so an editor that becomes
@@ -123,6 +167,28 @@ function activate(context) {
     }
 
     /**
+     * The clingo arguments the settings pane asks for.
+     *
+     * additionalFiles are resolved against the workspace folder when there is
+     * one, since the settings belong to the workspace rather than to whichever
+     * file happens to be open.
+     * @returns {String[]}
+     */
+    function solverArgsFromSettings() {
+        const editor = vscode.window.activeTextEditor;
+        const base =
+            vscode.workspace.getWorkspaceFolder?.(editor.document.uri)?.uri.fsPath ??
+            vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ??
+            dirname(editor.document.fileName);
+
+        const { args, unmatched } = settingsToArgs(settingsStore.read(), base, readCustomArgs, currentBackend());
+        for (const pattern of unmatched) {
+            vscode.window.showWarningMessage(`No file matches "${pattern}" in the workspace.`);
+        }
+        return args;
+    }
+
+    /**
      * Wrapper function for runClingoWasmForFile. It runs Clingo with the given file path and models and fetches config options first.
      * It formats the result and posts it to the active webview panel.
      * @param {Number} models The number of models to run.
@@ -137,6 +203,8 @@ function activate(context) {
             // "models" is optional in the config schema, so keep the caller's value when it is absent
             models = cfgFile.find((arg) => arg.startsWith("--models"))?.split(" ")[1] ?? models;
             additionalArgs = cfgFile.filter((arg) => !arg.startsWith("--models"));
+        } else {
+            additionalArgs = solverArgsFromSettings();
         }
 
         const clingoResult = await runClingoWasmForFile(vscode.window.activeTextEditor.document.fileName, models, additionalArgs);
@@ -178,6 +246,8 @@ function activate(context) {
             // "models" is optional in the config schema, so keep the caller's value when it is absent
             models = cfgFile.find((arg) => arg.startsWith("--models"))?.split(" ")[1] ?? models;
             additionalArgs = cfgFile.filter((arg) => !arg.startsWith("--models"));
+        } else {
+            additionalArgs = solverArgsFromSettings();
         }
 
         const clingoResult = await runClingoPathForFile(vscode.window.activeTextEditor.document.fileName, models, additionalArgs);
@@ -297,6 +367,17 @@ function activate(context) {
         await abortClingo();
     });
 
+    // Register togglesettings command, which opens the solver settings pane in
+    // the panel. The gear lives in the panel's own title bar next to the run
+    // buttons, so it is reachable without scrolling the results.
+    const toggleSettingsCommand = vscode.commands.registerCommand(
+        "answer-set-programming-language-support.togglesettings",
+        async () => {
+            await vscode.commands.executeCommand("workbench.view.extension.aspContainer");
+            provider.sendCommand({ type: "toggleSettings" });
+        }
+    );
+
     // Register initClingoConfig command for the extension to create a new config file for the user
     const initClingoConfig = vscode.commands.registerCommand("answer-set-programming-language-support.initClingoConfig", function () {
         const sampleConfig = fs.readFileSync(join(context.asAbsolutePath(""), `sampleConfig.json`));
@@ -316,6 +397,7 @@ function activate(context) {
     context.subscriptions.push(computeSingleSetCommand);
     context.subscriptions.push(computeConfigCommand);
     context.subscriptions.push(stopClingoCommand);
+    context.subscriptions.push(toggleSettingsCommand);
     context.subscriptions.push(initClingoConfig);
     context.subscriptions.push(statusBar);
 
@@ -328,7 +410,9 @@ function activate(context) {
             usePathClingo = vscode.workspace.getConfiguration("aspLanguage").get("usePathClingo");
             usePath();
 
-            // Refresh the webview HTML
+            // Refresh the webview HTML. The rebuilt view asks for the settings
+            // again on its own, which is what re-marks the options that only one
+            // of the two solvers can honour.
             if (provider._view) {
                 provider._view.webview.html = provider._getHtmlForWebview(provider._view.webview);
             }

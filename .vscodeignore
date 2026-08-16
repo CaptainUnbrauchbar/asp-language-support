@@ -14,6 +14,9 @@ src/unitTests/**
 src/integrationTests/**
 src/testFiles/**
 
+# Development tooling, run from a checkout rather than from the package
+scripts/**
+
 # The readme links these from GitHub with absolute URLs, so shipping the
 # originals only makes the download bigger
 media/*.gif

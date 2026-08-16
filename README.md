@@ -22,15 +22,12 @@ We added multi-file support with v0.4.0!
 Just right click anywhere on a logic program (.lp) file and select `Compute all Answer Sets`, `Compute the first Answer Set` or `Compute Answer Sets (config.json)`.
 This will display Clingo's results in a seperate ASP tab located in the panel. You can also use the buttons in the top right of this tab to run bundled or PATH clingo depending on your `ASPLanguage: Use PATH Clingo` setting.
 
-If you want to add **additional startup arguments** you can use the `Compute Answer Sets (config.json)` option.
-For this, you can generate a **sample config.json** file with the `ASPLanguage: Initialize clingo config file in current working directory` command _(Press Ctrl+Shift+P)_.
+If you want to add **additional startup arguments**, open the **solver settings** with the gear in the panel toolbar. Time limits, parallel solving, constants, extra files and any custom clingo arguments are set there, and apply to `Compute all Answer Sets` and `Compute the first Answer Set`.
 
-This will create a config file with all supported arguments/settings in your current working directory.
-If you want to use your **own config file**, just change the config file name in the extension settings (`ASPLanguage: Set Config`).
-Additionally you can use **arguments not directly supported** by the config.json by passing them in the **"customArgs" setting** as a string.
+If you need to work with **multiple files**, write `#include "other.lp".` in your program. This is ordinary clingo syntax, is resolved relative to the file it appears in, and needs no configuration.
 
-If you need to work with multiple files specify them in **additional files** in this config file using the relative path from the current working directory.
-See the Clingo [Documentation](https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf) (PDF) for more details on the config settings!
+A **config.json** is still fully supported for projects that prefer to commit their options: generate one with the `ASPLanguage: Initialize clingo config file in current working directory` command _(Press Ctrl+Shift+P)_, point `ASPLanguage: Set Config` at it, and run it with `Compute Answer Sets (config.json)`. The file is looked up next to your program and in any folder above it. **Import from config.json** in the settings pane copies an existing one into the panel.
+See the Clingo [Documentation](https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf) (PDF) for more details on the available arguments!
 
 If you want to use your own Version of Clingo from PATH with this extension, please enable `ASPLanguage: Use PATH Clingo` option in your settings.
 
@@ -51,8 +48,9 @@ For the extension to work properly, please install the Answer Set Programming sy
 This extension contributes the following settings:
 
 -   `ASPLanguage: Use PATH Clingo`: Set this option if you would like to use the Clingo version from your PATH instead of the version included! (default: False)
--   `ASPLanguage: Turn Messages Off`: Set this option if you want to turn off all Messages (bottom right)! (default: True)
--   `ASPLanguage: Set Config`: Name of a clingo config file, looked up next to the .lp file you run (e.g. `config.json`, default: empty)
+-   `ASPLanguage: Set Config`: Name of a clingo config file, looked up next to the .lp file you run and in any folder above it (e.g. `config.json`, default: empty)
+
+Everything else is set in the panel's own settings, see below.
 
 Which solver is in use is shown in the status bar while an ASP file is open, together with the clingo version once you have run something. Click it to compute all answer sets, or to stop a run in progress.
 
@@ -65,6 +63,16 @@ This extension contributes the following features:
 -   `Compute Answer Sets (config.json)`: Compute answer sets using the clingo configuration from a config file
 -   `Stop the running Clingo solver`: Stop a run that is taking too long, either with the **Cancel** button on the progress notification, the stop button in the ASP panel or `Ctrl+Shift+S` / `Cmd+Shift+S`
 
+### Solver settings
+
+Click the gear in the ASP panel's toolbar, next to the run buttons, to set time limits, parallel solving, constants, extra files and custom clingo arguments. The settings are kept per workspace and are used by `Compute all Answer Sets` and `Compute the first Answer Set`, so no config file is needed for the usual case.
+
+Not every clingo option survives being compiled to WebAssembly. Settings the bundled solver cannot honour are greyed out and say which solver they need, rather than being offered and then quietly ignored — switch on `ASPLanguage: Use PATH Clingo` and they become available again. The **time limit** is the exception: clingo's own is inert under WebAssembly, so the extension enforces it by stopping the solver itself and keeping the answers found up to that point.
+
+The JSON config still works exactly as before: `Compute Answer Sets (config.json)` keeps reading the file, and `ASPLanguage: Initialize clingo config file in current working directory` still creates one. If you already have a config, **Import from config.json** in the settings pane copies it into the panel for you.
+
+To solve several files together, prefer `#include "other.lp".` in the program itself: it is plain clingo syntax and needs no configuration at all.
+
 ### The ASP output panel
 
 The panel header stays put while you scroll and holds everything you need for a result:
@@ -74,6 +82,7 @@ The panel header stays put while you scroll and holds everything you need for a 
 -   a **filter box** that narrows results to matching atoms and highlights what matched
 -   **Copy** for a single answer or, from the `...` menu, for all or only the filtered ones
 -   large results stay responsive: the first 500 answer sets are rendered while the true total is reported, and `Copy all` still gives you every one
+-   **solver statistics**, when the statistics level is set above zero, in a collapsible section under the toolbar
 
 ## Contributing
 

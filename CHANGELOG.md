@@ -10,7 +10,6 @@ If you want to contribute to the repository you are welcome to look at these pla
 -   **Testing**: Add more Unit Tests
 -   **Testing**: Find a way to do proper Integration Testing that works with CI/CD (currently only local and limited functionality because of the webview UI)
 -   **Localization**: Look into localization need/techniques and translate text
--   **Bug**: Verify/Fix that all parameters in the ASP config.json created by this extension actually work properly and/or are still supported by clingo
 
 ## 1.1.0: Stoppable Solving and a Rebuilt Output Panel :octagonal_sign:
 
@@ -42,6 +41,12 @@ If you want to contribute to the repository you are welcome to look at these pla
 -   **Added a status bar item** showing which solver is in use and its clingo version, with a spinner while solving. Click it to compute all answer sets, or to stop a running solve. It replaces the notifications that announced the solver on every activation
 -   **Config file problems are now readable**: instead of `[object Object]`, each problem names the field and what is wrong with it (e.g. `args.models: must be integer`), all problems are reported at once rather than one per run, and the message offers to open the config file
 -   Clarified the `Set Config` setting: the config file is looked up next to the .lp file you run, not in the workspace root
+-   **Added a solver settings pane to the ASP panel**, opened with the gear in the panel toolbar next to the run buttons. Time limits, parallel solving, constants, extra files and custom arguments are edited there and kept per workspace, so the everyday case needs no config file. The JSON config keeps working unchanged: `Compute Answer Sets (config.json)` still reads it, the command that creates one is still there, and **Import from config.json** copies an existing one into the pane
+-   **The time limit now works with the bundled solver.** Clingo's own `--time-limit` relies on a timer that cannot fire during a WebAssembly solve, so it was accepted and then silently ignored. The extension enforces it itself, and a run it stops reports the answers found up to that point instead of nothing at all. This applies to the time limit in a config.json as well
+-   **Settings the bundled solver cannot honour are now marked as such** in the pane, greyed out with the reason and left out of the run, instead of being offered and quietly ignored. They become available again with `Use PATH Clingo`. `Verbosity` and `Preprocess only` are affected: the WASM build never carries the first, and the second emits a format the extension cannot read back
+-   **Solver statistics are now shown**, in a collapsible section under the toolbar, whenever the statistics level is above zero. They were being requested from clingo and thrown away
+-   Added `npm run probe:settings`, which runs every setting against the bundled solver and reports what it really does, so a clingo-wasm upgrade cannot quietly turn an option into a no-op. This settles the long standing "verify that all config.json parameters actually work" item: every one of them is now checked by that command
+-   A config.json asking for `preProcessor` no longer fails the run with `Clingo WASM Error: [object Object]`; unsupported options are dropped with a warning that says why
 -   **Composing a program out of several files no longer needs a config**: `#include "other.lp".` now works with the bundled solver, resolved recursively and relative to the including file, and error positions point back at the file the line really came from
 -   **Config simplified**: `name`, `version` and `author` are no longer required, the config is found in any folder above the file as well, `additionalFiles` is resolved relative to the config and accepts globs like `instances/*.lp`, and unknown keys are now reported instead of silently ignored
 -   Removed the `Turn Messages Off` setting: the extension is quiet by default and only speaks up for errors and problems that are not already visible in the status bar

@@ -259,6 +259,241 @@ body {
     cursor: default;
 }
 
+/*
+ * Solver settings. Laid out like VSCode's own settings editor: a label and a
+ * short explanation on the left, the control on the right.
+ */
+/*
+ * The pane covers the whole panel rather than stacking above the answers: it is
+ * a mode you enter and leave, and splitting an already short panel in two left
+ * too little of either.
+ */
+.settings-pane {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0.75em 1em 1em 1em;
+    background-color: var(--vscode-editor-background);
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+}
+
+.settings-pane[hidden] {
+    display: none;
+}
+
+/* Content keeps a readable measure instead of stretching a label and its control
+   to opposite ends of a very wide panel, and sits in the middle of it so the
+   leftover room is shared by both sides rather than piling up on the right */
+.settings-intro,
+.settings-body,
+.settings-actions {
+    max-width: 54em;
+    margin-inline: auto;
+}
+
+.settings-intro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.6em;
+    margin-bottom: 0.75em;
+}
+
+.settings-scope {
+    color: var(--vscode-descriptionForeground);
+}
+
+.setting-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5em;
+    padding: 0.5em 0;
+    border-top: 1px solid var(--vscode-panel-border, transparent);
+}
+
+.setting-disabled {
+    opacity: 0.5;
+}
+
+/*
+ * A setting the current solver cannot honour. Dimmed less than a disabled row,
+ * because unlike those it does not become available by ticking something above
+ * it: the note is the point, so it has to stay readable.
+ */
+.setting-unavailable .setting-label,
+.setting-unavailable .setting-description {
+    opacity: 0.6;
+}
+
+.setting-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4em;
+    margin-top: 0.2em;
+    color: var(--vscode-descriptionForeground);
+}
+
+.setting-note .codicon {
+    flex: 0 0 auto;
+    margin-top: 0.15em;
+    font-size: 1em;
+}
+
+/* Takes the space the control does not, and may shrink to nothing before the
+   row is allowed to overflow sideways */
+.setting-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.setting-label {
+    font-weight: 600;
+}
+
+.setting-description {
+    color: var(--vscode-descriptionForeground);
+    overflow-wrap: anywhere;
+}
+
+/*
+ * A fixed width holder for whatever control the field needs. Sizing the holder
+ * rather than the control means vscode.css's `input { width: 100% }` fills this
+ * box instead of the whole row, which is what flattened the labels before.
+ */
+.setting-control {
+    display: flex;
+    align-items: center;
+    flex: 0 0 18em;
+    max-width: 18em;
+}
+
+.setting-control input[type="text"],
+.setting-control input[type="number"],
+.setting-control select {
+    width: 100%;
+    padding: 0.25em 0.4em;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-input-foreground);
+    background-color: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, var(--vscode-dropdown-border, rgba(128, 128, 128, 0.4)));
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+.setting-control select {
+    color: var(--vscode-dropdown-foreground, var(--vscode-input-foreground));
+    background-color: var(--vscode-dropdown-background, var(--vscode-input-background));
+}
+
+.setting-control input:focus,
+.setting-control select:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -2px;
+}
+
+/*
+ * VSCode does not draw native checkboxes anywhere in its own UI, and the browser
+ * default looks foreign in a dark theme, so this is the bordered square VSCode
+ * uses, with a check drawn from two borders.
+ */
+.setting-control input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    background-color: var(--vscode-checkbox-background, var(--vscode-input-background));
+    border: 1px solid var(--vscode-checkbox-border, var(--vscode-input-border, rgba(128, 128, 128, 0.5)));
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.setting-control input[type="checkbox"]:hover:not(:disabled) {
+    border-color: var(--vscode-focusBorder);
+}
+
+.setting-control input[type="checkbox"]:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 1px;
+}
+
+.setting-control input[type="checkbox"]:checked {
+    background-color: var(--vscode-checkbox-selectBackground, var(--vscode-checkbox-background, var(--vscode-input-background)));
+    border-color: var(--vscode-checkbox-selectBorder, var(--vscode-focusBorder));
+}
+
+.setting-control input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 4px;
+    height: 9px;
+    border: solid var(--vscode-checkbox-foreground, var(--vscode-foreground));
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.setting-control input[type="checkbox"]:disabled {
+    cursor: default;
+}
+
+/* Narrow panels stack the control under its label instead of squeezing both.
+   The threshold follows the control's own width, so the label keeps the same
+   room it had before the control grew. */
+@media (max-width: 37em) {
+    .setting-row {
+        flex-direction: column;
+        gap: 0.4em;
+    }
+
+    .setting-control {
+        flex: 0 0 auto;
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
+.settings-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin-top: 1em;
+}
+
+.settings-actions button {
+    width: auto;
+    padding: 0.35em 0.9em;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground));
+    background-color: var(--vscode-button-secondaryBackground, var(--vscode-button-background));
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.settings-actions button:hover {
+    background-color: var(--vscode-button-secondaryHoverBackground, var(--vscode-button-hoverBackground));
+}
+
+.settings-actions .settings-primary {
+    color: var(--vscode-button-foreground);
+    background-color: var(--vscode-button-background);
+}
+
+.settings-actions .settings-primary:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+
 .output-container {
     margin: 0;
     padding: 0.5em;
@@ -337,6 +572,37 @@ body {
     background-color: var(--vscode-textCodeBlock-background, var(--vscode-input-background));
     border-radius: 2px;
     white-space: pre-wrap;
+}
+
+/* Solver statistics collapse like the config options do: worth having, not
+   worth spending the top of the panel on */
+.stats-details {
+    margin-bottom: 0.75em;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-descriptionForeground);
+}
+
+.stats-details summary {
+    cursor: pointer;
+}
+
+/* Two columns so the figures line up under each other and can be read down the
+   page rather than hunted for on each line */
+.stats-table {
+    display: grid;
+    grid-template-columns: auto max-content;
+    gap: 0.1em 1.5em;
+    margin-top: 0.3em;
+    padding: 0.4em;
+    background-color: var(--vscode-textCodeBlock-background, var(--vscode-input-background));
+    border-radius: 2px;
+}
+
+.stats-value {
+    font-family: var(--vscode-editor-font-family);
+    color: var(--vscode-foreground);
+    text-align: right;
 }
 
 /*

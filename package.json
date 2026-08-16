@@ -113,6 +113,11 @@
                 "icon": "$(notebook-render-output)"
             },
             {
+                "command": "answer-set-programming-language-support.togglesettings",
+                "title": "Solver settings",
+                "icon": "$(settings-gear)"
+            },
+            {
                 "command": "answer-set-programming-language-support.stopclingo",
                 "title": "Stop the running Clingo solver",
                 "icon": "$(debug-stop)"
@@ -157,9 +162,14 @@
                     "group": "navigation@3"
                 },
                 {
+                    "command": "answer-set-programming-language-support.togglesettings",
+                    "when": "view == ASP.aspView",
+                    "group": "navigation@4"
+                },
+                {
                     "command": "answer-set-programming-language-support.stopclingo",
                     "when": "view == ASP.aspView && aspLanguage.clingoRunning",
-                    "group": "navigation@4"
+                    "group": "navigation@5"
                 }
             ]
         },
@@ -192,6 +202,7 @@
     },
     "scripts": {
         "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
+        "probe:settings": "node scripts/probe-settings.mjs",
         "test-e2e": "vscode-test"
     },
     "extensionDependencies": [

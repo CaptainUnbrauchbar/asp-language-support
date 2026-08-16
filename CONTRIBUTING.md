@@ -35,6 +35,12 @@ We are using SEMGREP to highlight general and security issues in the repository 
 
 Unit Tests are required for major features that contribute their own sections of code. In any other case feel free to open a discussion if it makes sense to introduce new tests.
 
+### After changing the bundled solver
+
+`npm run probe:settings` runs every solver setting against the bundled WASM clingo and reports which ones it honours, ignores, or rejects outright. Options that WebAssembly cannot support are accepted and then silently do nothing, so running them is the only way to tell them apart.
+
+**Run it after every `clingo-wasm` upgrade.** It fails when an option stops behaving as recorded, which is the signal to update both the cases in `scripts/probe-settings.mjs` and the `backends` markers in `src/solverSettings.js`. It takes about a minute, mostly waiting for one deliberately slow instance, so it is not part of `npm test`.
+
 ## Thank You
 
 For taking the time to improve our project and for your appreciation! :smile:

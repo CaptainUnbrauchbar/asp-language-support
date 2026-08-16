@@ -5,12 +5,34 @@ const crypto = require("crypto");
  * WebviewProvider class to manage the webview for the ASP extension.
  */
 class WebviewProvider {
-    constructor(_extensionUri) {
+    /**
+     * @param {*} _extensionUri
+     * @param {*} settingsStore Optional hooks for the solver settings pane
+     */
+    constructor(_extensionUri, settingsStore = undefined) {
         this._extensionUri = _extensionUri;
         /** Every answer set of the last run, including those the webview did not receive. @type {String[][]} */
         this._answers = [];
         /** The last payload sent to the webview, replayed whenever a new webview appears. */
         this._lastMessage = undefined;
+        /** Supplies and persists the settings the panel edits. */
+        this._settingsStore = settingsStore;
+    }
+
+    /**
+     * Sends a one-off instruction to the panel without remembering it, so it is
+     * not replayed when the view is later rebuilt.
+     * @param {Object} message
+     */
+    sendCommand(message) {
+        this._view?.webview.postMessage(message);
+    }
+
+    /** Pushes the current solver settings into the panel. */
+    sendSettings() {
+        if (this._settingsStore && this._view) {
+            this._view.webview.postMessage({ type: "updateSettings", ...this._settingsStore.describe() });
+        }
     }
 
     get viewType() {
@@ -62,6 +84,9 @@ class WebviewProvider {
         webviewView.webview.onDidReceiveMessage(async (data) => {
             switch (data.type) {
                 case "ready": {
+                    // The settings pane is part of the panel's furniture, so it is
+                    // filled in whether or not there are results to restore
+                    this.sendSettings();
                     // A freshly built webview starts on the welcome screen, so give
                     // it back whatever was on display before it was recreated. When
                     // it restored itself from its own state there is nothing to do,
@@ -69,6 +94,20 @@ class WebviewProvider {
                     if (!data.hasState && this._lastMessage) {
                         webviewView.webview.postMessage(this._lastMessage);
                     }
+                    break;
+                }
+                case "saveSettings": {
+                    await this._settingsStore?.save(data.settings);
+                    break;
+                }
+                case "resetSettings": {
+                    await this._settingsStore?.reset();
+                    this.sendSettings();
+                    break;
+                }
+                case "importConfig": {
+                    await this._settingsStore?.importFromConfig();
+                    this.sendSettings();
                     break;
                 }
                 case "colorSelected": {
@@ -177,6 +216,18 @@ class WebviewProvider {
                     <ul class="menu" role="menu" hidden></ul>
                 </div>
             </header>
+            <section class="settings-pane" hidden aria-label="Solver settings">
+                <div class="settings-intro">
+                    <strong>Solver settings</strong>
+                    <span class="settings-scope"></span>
+                </div>
+                <div class="settings-body"></div>
+                <div class="settings-actions">
+                    <button class="settings-close settings-primary">Done</button>
+                    <button class="settings-import">Import from config.json</button>
+                    <button class="settings-reset">Reset to defaults</button>
+                </div>
+            </section>
             <div class="output-container">
                 <textarea class="output-box welcome-box" rows="10" readonly>
 Welcome to Clingo!

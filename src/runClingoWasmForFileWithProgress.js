@@ -1,12 +1,32 @@
 const fs = require("fs");
 const { loadClingo, abortClingo, isAbortResult } = require("./clingoWasm.js");
 const { resolveIncludes, mapMessagePositions } = require("./resolveIncludes.js");
+const { partialResultFromModels, MAX_PARTIAL_MODELS } = require("./formatWasmResult.js");
 
 /** How often at most to push a model count into the progress UI, in ms. */
 const PROGRESS_THROTTLE_MS = 100;
 
 /** Clingo options that only exist in the multi threaded wasm build. */
 const THREAD_ARGS = /^(-t\b|--parallel-mode\b)/;
+
+/**
+ * Clingo's own time limit, which the wasm build accepts and then ignores.
+ * Matches both the "--time-limit=30" the extension produces and the spaced form.
+ */
+const TIME_LIMIT_ARG = /^--time-limit[=\s]+(\d+)/;
+
+/**
+ * Options the bundled solver cannot honour, and why.
+ *
+ * The settings pane keeps these out of a run in the first place, but a
+ * config.json can still ask for them, and one of them fails the whole run
+ * rather than being ignored. Dropping them with a word about it beats
+ * reporting an error the user cannot act on.
+ */
+const UNSUPPORTED_ARGS = [
+    { pattern: /^--pre\b/, reason: "the preprocessor emits aspif text, which the bundled solver cannot return" },
+    { pattern: /^(--verbose\b|-V\b)/, reason: "the bundled solver never carries clingo's verbose output" },
+];
 
 /**
  * @param {*} vscode Reference to vscode module import (workaround so we can test it)
@@ -83,6 +103,29 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         }
     }
 
+    if (clingoOptions?.length) {
+        const rejected = UNSUPPORTED_ARGS.filter(({ pattern }) => clingoOptions.some((arg) => pattern.test(arg)));
+        if (rejected.length) {
+            clingoOptions = clingoOptions.filter((arg) => !rejected.some(({ pattern }) => pattern.test(arg)));
+            vscode.window.showWarningMessage(
+                `Ignoring options the bundled solver cannot honour: ${rejected.map(({ reason }) => reason).join("; ")}. ` +
+                    "Enable the usePathClingo setting to run them with your own clingo."
+            );
+        }
+    }
+
+    // clingo's --time-limit is built on an OS timer that has to fire while the
+    // search runs. Under wasm the whole solve is one synchronous call that never
+    // yields to the event loop, so that timer never gets to fire and the option
+    // is accepted and then silently ignored. Enforce it here instead, using the
+    // same worker termination the stop button uses. Reading the limit off the
+    // arguments covers the settings pane and config.json in one place.
+    const timeLimitArg = clingoOptions?.find((arg) => TIME_LIMIT_ARG.test(arg));
+    const timeLimitSeconds = timeLimitArg ? Number(timeLimitArg.match(TIME_LIMIT_ARG)[1]) : 0;
+    if (timeLimitArg) {
+        clingoOptions = clingoOptions.filter((arg) => arg !== timeLimitArg);
+    }
+
     // Reading the files above is async, so the run can already be cancelled by
     // the time we get here. Starting it anyway would ignore the cancellation.
     if (token?.isCancellationRequested) {
@@ -104,8 +147,16 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
     // very many models do not flood the UI.
     let modelsFound = 0;
     let lastReport = 0;
-    const onModel = () => {
+    // Terminating the worker throws away clingo's own reply, so the models are
+    // kept here as they stream in. Without them a run stopped by the time limit
+    // would report nothing at all, even though the answers had already arrived.
+    /** @type {String[][]} */
+    const streamedModels = [];
+    const onModel = (witness) => {
         modelsFound++;
+        if (streamedModels.length < MAX_PARTIAL_MODELS && witness?.Value) {
+            streamedModels.push(witness.Value);
+        }
         const now = Date.now();
         if (now - lastReport < PROGRESS_THROTTLE_MS) {
             return;
@@ -114,17 +165,42 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         progress.report({ message: `Solving... ${modelsFound} model(s) found` });
     };
 
+    // Fires only where clingo's own limit could not: the worker is terminated,
+    // which resolves the pending run below with an abort result
+    let timedOut = false;
+    const timeLimitTimer =
+        timeLimitSeconds > 0
+            ? setTimeout(() => {
+                  timedOut = true;
+                  progress.report({ message: `Time limit of ${timeLimitSeconds}s reached, stopping Clingo...` });
+                  abortClingo();
+              }, timeLimitSeconds * 1000)
+            : undefined;
+
+    const startedAt = Date.now();
     /** @type {import("clingo-wasm").ClingoResult | import("clingo-wasm").ClingoError} */
     let wasmResult;
     try {
         wasmResult = await clingo.run(fileContent, models, clingoOptions, onModel);
     } finally {
         cancelListener?.dispose();
+        clearTimeout(timeLimitTimer);
     }
 
     // A cancelled run is the user's decision. The status bar going back to idle
-    // says so, and a notification would only be in the way.
-    if (cancelled || isAbortResult(wasmResult)) {
+    // says so, and a notification would only be in the way. Checked before the
+    // time limit so that stopping a run yourself is never reported as a timeout.
+    if (cancelled) {
+        return null;
+    }
+
+    // The run was stopped by the limit the user asked for, which is an outcome
+    // rather than a failure, so hand back what the search had already found
+    if (timedOut) {
+        return partialResultFromModels(streamedModels, modelsFound, (Date.now() - startedAt) / 1000, timeLimitSeconds);
+    }
+
+    if (isAbortResult(wasmResult)) {
         return null;
     }
 

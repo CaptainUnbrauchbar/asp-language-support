@@ -1,5 +1,5 @@
 // @ts-nocheck
-const { formatWasmResult, extractAnswers, MAX_RENDERED_ANSWERS } = require("../formatWasmResult.js");
+const { formatWasmResult, extractAnswers, partialResultFromModels, MAX_RENDERED_ANSWERS } = require("../formatWasmResult.js");
 const { loadClingo } = require("../clingoWasm.js");
 
 /** Runs a program through the real solver, so the fixtures cannot drift from clingo. */
@@ -68,5 +68,50 @@ describe("formatWasmResult", () => {
         const warned = formatWasmResult(await solve("a :- b."));
         expect(warned.warnings.length).toBeGreaterThan(0);
         expect(warned.warnings.join(" ")).toContain("atom does not occur in any rule head");
+    });
+
+    it("passes the solver statistics on when a run asked for them", async () => {
+        const withoutStats = formatWasmResult(await solve("{a;b}."));
+        expect(withoutStats.stats).toBeUndefined();
+
+        const clingo = await loadClingo();
+        const withStats = formatWasmResult(await clingo.run("{a;b}.", 0, ["--stats=2"]));
+
+        // Which figures clingo reports is its business, so this only checks that
+        // they arrive and are something the panel can walk
+        expect(withStats.stats).toBeDefined();
+        expect(Object.keys(withStats.stats).length).toBeGreaterThan(0);
+    });
+});
+
+describe("partialResultFromModels", () => {
+    it("rebuilds a clingo shaped result from the models a stopped run had found", () => {
+        const partial = partialResultFromModels([["a"], ["a", "b"]], 7, 3.0004, 3);
+
+        expect(partial.Result).toEqual("UNKNOWN");
+        expect(extractAnswers(partial)).toEqual([["a"], ["a", "b"]]);
+        // The count is what was found, which can exceed what was kept
+        expect(partial.Models).toEqual({ Number: 7, More: "yes" });
+        expect(partial.Time.Total).toEqual(3);
+        expect(partial.StoppedBy).toEqual({ reason: "time-limit", seconds: 3, kept: 2 });
+    });
+
+    it("formats into a payload the panel can render", () => {
+        const formatted = formatWasmResult(partialResultFromModels([["a"]], 1, 1, 1));
+
+        expect(formatted.result).toEqual("UNKNOWN");
+        expect(formatted.answers).toEqual([["a"]]);
+        expect(formatted.stoppedBy.reason).toEqual("time-limit");
+        // A terminated run never reported its version, and the panel leaves the
+        // solver out of the stat strip rather than showing an empty one
+        expect(formatted.solver).toBeUndefined();
+    });
+
+    it("survives a run that was stopped before it found anything", () => {
+        const formatted = formatWasmResult(partialResultFromModels([], 0, 5, 5));
+
+        expect(formatted.totalAnswers).toEqual(0);
+        expect(formatted.answers).toEqual([]);
+        expect(formatted.modelsNumber).toEqual(0);
     });
 });

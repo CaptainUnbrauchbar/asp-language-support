@@ -2,6 +2,7 @@ const { basename, dirname, join } = require("path");
 const fs = require("fs");
 const vscode = require("vscode");
 const Ajv = require("ajv").default;
+const { resolvePatterns } = require("./filePatterns.js");
 var jsonConfig;
 
 /**
@@ -134,68 +135,6 @@ function validateConfigSchema(contextAbsolutePath, pathToConfig) {
         });
 }
 
-/** Characters that turn an entry of additionalFiles into a pattern. */
-const GLOB_CHARACTERS = /[*?]/;
-
-/**
- * Translates a glob into a regular expression matching a path relative to the
- * base directory. Supports "**" for any depth, "*" within one segment and "?".
- * @param {String} pattern Always written with forward slashes
- */
-function globToRegExp(pattern) {
-    let source = "";
-    for (let index = 0; index < pattern.length; index++) {
-        const char = pattern[index];
-        if (char === "*") {
-            if (pattern[index + 1] === "*") {
-                // "**/" spans any number of directories, including none
-                index++;
-                if (pattern[index + 1] === "/") {
-                    index++;
-                }
-                source += "(?:.*/)?";
-            } else {
-                source += "[^/]*";
-            }
-        } else if (char === "?") {
-            source += "[^/]";
-        } else {
-            source += char.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-        }
-    }
-    return new RegExp(`^${source}$`, process.platform === "win32" ? "i" : "");
-}
-
-/**
- * Every file under `directory`, as paths relative to it and using forward
- * slashes so one pattern behaves the same on every platform.
- * @param {String} directory
- * @param {String} prefix
- * @returns {String[]}
- */
-function listFilesBelow(directory, prefix = "") {
-    /** @type {String[]} */
-    const found = [];
-    let entries;
-    try {
-        entries = fs.readdirSync(directory, { withFileTypes: true });
-    } catch {
-        return found;
-    }
-    for (const entry of entries) {
-        // Nothing worth including ever lives in these, and walking them is slow
-        if (entry.isDirectory()) {
-            if (entry.name === "node_modules" || entry.name.startsWith(".")) {
-                continue;
-            }
-            found.push(...listFilesBelow(join(directory, entry.name), `${prefix}${entry.name}/`));
-        } else {
-            found.push(`${prefix}${entry.name}`);
-        }
-    }
-    return found;
-}
-
 /**
  * Resolves the additionalFiles entries against the folder holding the config.
  *
@@ -209,27 +148,11 @@ function readFiles(configDirectory) {
     if (jsonConfig.additionalFiles == undefined) {
         return [];
     }
-
-    const resolved = [];
-    for (const entry of jsonConfig.additionalFiles) {
-        const cleaned = entry.replace(/\\/g, "/");
-        if (!GLOB_CHARACTERS.test(cleaned)) {
-            resolved.push(join(configDirectory, cleaned));
-            continue;
-        }
-
-        const matcher = globToRegExp(cleaned);
-        const matches = listFilesBelow(configDirectory)
-            .filter((relativePath) => matcher.test(relativePath))
-            .sort()
-            .map((relativePath) => join(configDirectory, relativePath));
-
-        if (!matches.length) {
-            vscode.window.showWarningMessage(`No file matches "${entry}" in ${basename(configDirectory)}.`);
-        }
-        resolved.push(...matches);
+    const { files, unmatched } = resolvePatterns(configDirectory, jsonConfig.additionalFiles);
+    for (const pattern of unmatched) {
+        vscode.window.showWarningMessage(`No file matches "${pattern}" next to ${basename(configDirectory)}.`);
     }
-    return resolved.map((path) => `"${path}"`);
+    return files.map((path) => `"${path}"`);
 }
 
 function readParallelMode() {
@@ -386,7 +309,6 @@ module.exports = {
     readSolveLimit,
     formatSchemaErrors,
     findConfig,
-    globToRegExp,
     optionName,
     RESERVED_ARGS,
     jsonConfig,

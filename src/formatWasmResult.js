@@ -12,6 +12,42 @@
 const MAX_RENDERED_ANSWERS = 500;
 
 /**
+ * How many streamed models to keep for a run that is stopped early. A program
+ * that produces models faster than the user can read them should not be able to
+ * fill memory while the time limit counts down.
+ */
+const MAX_PARTIAL_MODELS = 1000;
+
+/**
+ * Builds a clingo shaped result out of the models a stopped run had already
+ * streamed.
+ *
+ * Stopping a run means terminating the worker, which discards clingo's own
+ * reply along with it. The models had already arrived one by one though, so
+ * they are reassembled here into the same shape the rest of the pipeline reads,
+ * with the UNKNOWN result that clingo itself uses for a search cut short.
+ *
+ * @param {String[][]} models The answer sets seen before the run was stopped
+ * @param {Number} totalModels How many were found, which can exceed those kept
+ * @param {Number} seconds How long the run lasted
+ * @param {Number} timeLimit The limit that stopped it, in seconds
+ * @returns {Object}
+ */
+function partialResultFromModels(models, totalModels, seconds, timeLimit) {
+    return {
+        Result: "UNKNOWN",
+        Call: [{ Witnesses: models.map((Value) => ({ Value })) }],
+        Models: { Number: totalModels, More: "yes" },
+        Calls: 1,
+        Time: { Total: Number(seconds.toFixed(3)), Solve: Number(seconds.toFixed(3)), Model: 0 },
+        Warnings: [],
+        // Lets the panel name the limit that stopped the search instead of
+        // listing the possibilities
+        StoppedBy: { reason: "time-limit", seconds: timeLimit, kept: models.length },
+    };
+}
+
+/**
  * Collects the answer sets of a run as a list of atom lists.
  * Calls that produced no model carry no "Witnesses" at all, which is the normal
  * shape for an UNSATISFIABLE run and used to yield a phantom empty answer.
@@ -48,7 +84,20 @@ function formatWasmResult(result) {
         // Clingo reports a single empty string when there is nothing to warn about
         warnings: (result?.Warnings ?? []).filter((warning) => warning.trim()),
         result: result?.Result,
+        // Only present when the run asked for statistics. Passed through as
+        // clingo reported it, since the panel renders whatever it is given
+        // rather than a fixed set of figures.
+        stats: result?.Stats,
+        // Set when the extension stopped the run itself, so the panel can say
+        // which limit did it
+        stoppedBy: result?.StoppedBy,
     };
 }
 
-module.exports = { formatWasmResult, extractAnswers, MAX_RENDERED_ANSWERS };
+module.exports = {
+    formatWasmResult,
+    extractAnswers,
+    partialResultFromModels,
+    MAX_RENDERED_ANSWERS,
+    MAX_PARTIAL_MODELS,
+};

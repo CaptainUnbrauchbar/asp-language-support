@@ -10,6 +10,12 @@
     const filterBox = document.querySelector(".filter-box");
     const copyAllButton = document.querySelector(".copy-all");
     const compareButton = document.querySelector(".compare-button");
+    const settingsPane = document.querySelector(".settings-pane");
+    const settingsBody = document.querySelector(".settings-body");
+    const settingsScope = document.querySelector(".settings-scope");
+    const settingsImport = document.querySelector(".settings-import");
+    const settingsReset = document.querySelector(".settings-reset");
+    const settingsClose = document.querySelector(".settings-close");
     const moreButton = document.querySelector(".more-button");
     const menu = document.querySelector(".menu");
     const statStrip = document.querySelector(".stat-strip");
@@ -39,9 +45,21 @@
         }
         if (message.type === "updateOutputString") {
             lastResult = null;
-            header.hidden = true;
             closeMenu();
             showRawOutput(message.answers);
+            updateControls();
+        }
+        if (message.type === "toggleSettings") {
+            toggleSettings(!settingsOpen);
+        }
+        if (message.type === "updateSettings") {
+            settingFields = message.fields ?? settingFields;
+            settings = message.settings ?? {};
+            backend = message.backend ?? backend;
+            settingsScope.textContent = message.scope ?? "";
+            if (settingsOpen) {
+                renderSettings();
+            }
         }
     });
 
@@ -54,6 +72,156 @@
         compareMode = !compareMode;
         render();
     });
+
+    ///////////////////////////
+    /// Solver settings     ///
+    ///////////////////////////
+
+    /** The fields to render, sent by the extension so both sides agree on them. */
+    let settingFields = [];
+    /** The current values. */
+    let settings = {};
+    /** Which solver the settings apply to, so rows it cannot honour can say so. */
+    let backend = "wasm";
+    let settingsOpen = false;
+    let saveTimer;
+
+    /** Sends the edited settings back, debounced so typing does not spam the host. */
+    function saveSettings() {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => vscode.postMessage({ type: "saveSettings", settings }), 200);
+    }
+
+    /**
+     * Builds one labelled row. The control is chosen from the field's type, so
+     * adding an option to SETTING_FIELDS is enough to make it appear here.
+     * @param {Object} field
+     */
+    function makeSettingRow(field) {
+        const row = document.createElement("div");
+        row.className = "setting-row";
+        if (field.dependsOn && !settings[field.dependsOn]) {
+            row.classList.add("setting-disabled");
+        }
+
+        // Not every clingo option survives the trip through WebAssembly. One the
+        // solver accepts and then ignores is worse than one that is not offered,
+        // so say which solver it needs rather than letting it look functional.
+        const unsupported = Array.isArray(field.backends) && !field.backends.includes(backend);
+        if (unsupported) {
+            row.classList.add("setting-unavailable");
+        }
+
+        const text = document.createElement("div");
+        text.className = "setting-text";
+        const label = document.createElement("label");
+        label.className = "setting-label";
+        label.textContent = field.label;
+        text.appendChild(label);
+        const description = document.createElement("span");
+        description.className = "setting-description";
+        description.textContent = field.description;
+        text.appendChild(description);
+        if (unsupported) {
+            const note = document.createElement("span");
+            note.className = "setting-note";
+            const noteIcon = document.createElement("i");
+            noteIcon.className = "codicon codicon-info";
+            noteIcon.setAttribute("aria-hidden", "true");
+            note.appendChild(noteIcon);
+            const noteText = document.createElement("span");
+            noteText.textContent = field.unsupportedNote ?? "Not available with the solver you are using.";
+            note.appendChild(noteText);
+            text.appendChild(note);
+        }
+        row.appendChild(text);
+
+        let control;
+        if (field.type === "boolean") {
+            control = document.createElement("input");
+            control.type = "checkbox";
+            control.className = "setting-checkbox";
+            control.checked = !!settings[field.key];
+            control.addEventListener("change", () => {
+                settings[field.key] = control.checked;
+                saveSettings();
+                // other rows may depend on this one
+                renderSettings();
+            });
+        } else if (field.type === "select") {
+            control = document.createElement("select");
+            control.className = "setting-select";
+            field.options.forEach((option) => {
+                const item = document.createElement("option");
+                item.value = option;
+                item.textContent = option;
+                if (settings[field.key] === option) {
+                    item.selected = true;
+                }
+                control.appendChild(item);
+            });
+            control.addEventListener("change", () => {
+                settings[field.key] = control.value;
+                saveSettings();
+            });
+        } else {
+            control = document.createElement("input");
+            control.className = "setting-input";
+            control.type = field.type === "number" ? "number" : "text";
+            if (field.min !== undefined) {
+                control.min = String(field.min);
+            }
+            if (field.max !== undefined) {
+                control.max = String(field.max);
+            }
+            if (field.placeholder) {
+                control.placeholder = field.placeholder;
+            }
+            control.value = String(settings[field.key] ?? "");
+            control.addEventListener("input", () => {
+                settings[field.key] = field.type === "number" ? Number(control.value) : control.value;
+                saveSettings();
+            });
+        }
+
+        label.setAttribute("for", `setting-${field.key}`);
+        control.id = `setting-${field.key}`;
+        if (unsupported || (field.dependsOn && !settings[field.dependsOn])) {
+            control.disabled = true;
+        }
+
+        // The control sits in a fixed width holder rather than being sized
+        // itself: vscode.css styles `input:not([type=checkbox])` with width:100%
+        // at a specificity a plain class cannot beat, which collapsed the label
+        // column to nothing
+        const holder = document.createElement("div");
+        holder.className = "setting-control";
+        holder.appendChild(control);
+        row.appendChild(holder);
+        return row;
+    }
+
+    function renderSettings() {
+        settingsBody.innerHTML = "";
+        settingFields.forEach((field) => settingsBody.appendChild(makeSettingRow(field)));
+    }
+
+    /**
+     * The gear lives in the panel's own title bar, so opening and closing the
+     * pane arrives as a message rather than as a click in here.
+     * @param {Boolean} open
+     */
+    function toggleSettings(open) {
+        settingsOpen = open;
+        settingsPane.hidden = !open;
+        if (open) {
+            renderSettings();
+        }
+    }
+
+    settingsClose.addEventListener("click", () => toggleSettings(false));
+    settingsImport.addEventListener("click", () => vscode.postMessage({ type: "importConfig" }));
+    settingsReset.addEventListener("click", () => vscode.postMessage({ type: "resetSettings" }));
 
     copyAllButton.addEventListener("click", () => {
         vscode.postMessage({ type: "copyAll" });
@@ -91,8 +259,8 @@
             run: () => {
                 lastResult = null;
                 visibleIndices = [];
-                header.hidden = true;
                 outputContainer.innerHTML = "";
+                updateControls();
                 vscode.setState(undefined);
                 vscode.postMessage({ type: "clearOutput" });
             },
@@ -155,6 +323,25 @@
     ///////////////////////////
     /// Rendering           ///
     ///////////////////////////
+
+    /**
+     * Shows the toolbar only while there are results to act on, and enables the
+     * controls that need them. The gear lives in VSCode's own title bar, so
+     * nothing here has to stay reachable when the panel is empty.
+     */
+    function updateControls() {
+        const hasResult = !!lastResult;
+        header.hidden = !hasResult;
+        copyAllButton.disabled = !hasResult;
+        filterBox.disabled = !hasResult;
+        compareButton.disabled = !hasResult || !canCompare();
+        if (!hasResult) {
+            compareMode = false;
+            compareButton.setAttribute("aria-pressed", "false");
+            statStrip.innerHTML = "";
+            statStrip.title = "";
+        }
+    }
 
     /**
      * Creates a readonly textarea holding the given text.
@@ -322,15 +509,18 @@
             makeStat("list-ordered", `${lastResult.modelsNumber}${lastResult.modelsMore ? "+" : ""}`, "models")
         );
         statStrip.appendChild(makeStat("watch", `${lastResult.time.total}`, "s"));
-        statStrip.appendChild(
-            makeStat("server-process", String(lastResult.solver ?? "").replace(/^clingo version /i, "clingo "), "")
-        );
+        // A run stopped from outside clingo never got to report its version,
+        // so the solver only appears when it is actually known
+        const solverLabel = String(lastResult.solver ?? "").replace(/^clingo version /i, "clingo ");
+        if (solverLabel) {
+            statStrip.appendChild(makeStat("server-process", solverLabel, ""));
+        }
         statStrip.title = [
             `Result: ${lastResult.result}`,
             `Models: ${lastResult.models}`,
             `Calls: ${lastResult.calls}`,
             `Time: total ${lastResult.time.total}s, solve ${lastResult.time.solve}s, model ${lastResult.time.model}s`,
-            `Solver: ${lastResult.solver}`,
+            lastResult.solver ? `Solver: ${lastResult.solver}` : "",
             lastResult.truncated ? `Only the first ${lastResult.answers.length} of ${lastResult.totalAnswers} answer sets are rendered` : "",
         ]
             .filter(Boolean)
@@ -464,6 +654,86 @@
     }
 
     /**
+     * Flattens clingo's nested statistics into "Problem / LP / Atoms" rows.
+     *
+     * Which figures clingo reports depends on the statistics level and on what
+     * it had to do, so nothing here assumes a fixed set: whatever arrives is
+     * walked and shown.
+     * @param {Object} value
+     * @param {string} prefix
+     * @param {Array<[string, string]>} rows
+     */
+    function flattenStats(value, prefix, rows) {
+        Object.keys(value).forEach((key) => {
+            const entry = value[key];
+            const path = prefix ? `${prefix} / ${key}` : key;
+            if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+                flattenStats(entry, path, rows);
+            } else {
+                rows.push([path, Array.isArray(entry) ? entry.join(", ") : String(entry)]);
+            }
+        });
+        return rows;
+    }
+
+    /**
+     * The solver statistics, collapsed like the config options: they are only
+     * interesting when you went looking for them.
+     * @param {Object} stats
+     */
+    function makeStatsSection(stats) {
+        const rows = flattenStats(stats, "", []);
+        const details = document.createElement("details");
+        details.className = "stats-details";
+
+        const summaryLine = document.createElement("summary");
+        summaryLine.textContent = `Solver statistics (${rows.length})`;
+        details.appendChild(summaryLine);
+
+        const table = document.createElement("div");
+        table.className = "stats-table";
+        rows.forEach(([path, value]) => {
+            const name = document.createElement("span");
+            name.className = "stats-key";
+            name.textContent = path;
+            table.appendChild(name);
+
+            const number = document.createElement("span");
+            number.className = "stats-value";
+            number.textContent = value;
+            table.appendChild(number);
+        });
+        details.appendChild(table);
+        return details;
+    }
+
+    /**
+     * Explains a search that did not finish. When the extension stopped it
+     * itself it can name the limit, instead of listing what might have done it.
+     */
+    function makeStoppedCallout() {
+        const stopped = lastResult.stoppedBy;
+        if (stopped?.reason === "time-limit") {
+            const kept =
+                lastResult.totalAnswers < lastResult.modelsNumber
+                    ? ` The first ${lastResult.totalAnswers} of the ${lastResult.modelsNumber} answers found are kept.`
+                    : "";
+            return makeCallout(
+                "warning",
+                "watch",
+                `Stopped after ${stopped.seconds}s`,
+                `Your time limit ended the search, so these are the answers it had found by then.${kept}`
+            );
+        }
+        return makeCallout(
+            "warning",
+            "warning",
+            "Search stopped early",
+            "Clingo did not finish, so these answers may be incomplete. A solve limit is the usual cause."
+        );
+    }
+
+    /**
      * Briefly turns a copy button into a checkmark, because the confirmation
      * notification is easy to miss and is silenced by turnMessagesOff.
      * @param {*} icon The codicon element inside the button
@@ -482,6 +752,7 @@
         const query = filterBox.value.trim();
         const entries = applyFilter(query);
         visibleIndices = entries.map((entry) => entry.index);
+        updateControls();
 
         // Comparing a single answer against nothing would just dim everything
         if (!canCompare()) {
@@ -515,17 +786,15 @@
             outputContainer.appendChild(makeCallout("warning", "warning", "Clingo messages", lastResult.warnings.join("\n")));
         }
 
+        // Statistics only arrive when the run asked for them
+        if (lastResult.stats) {
+            outputContainer.appendChild(makeStatsSection(lastResult.stats));
+        }
+
         // A cut short search is worth saying out loud: the answers below, if any,
         // are only the ones found before the limit stopped the solver
         if (lastResult.result === "UNKNOWN") {
-            outputContainer.appendChild(
-                makeCallout(
-                    "warning",
-                    "warning",
-                    "Search stopped early",
-                    "Clingo did not finish, so these answers may be incomplete. A time limit or solve limit in your config is the usual cause."
-                )
-            );
+            outputContainer.appendChild(makeStoppedCallout());
         }
 
         if (lastResult.totalAnswers === 0) {
