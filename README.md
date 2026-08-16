@@ -28,10 +28,10 @@ If you want to add **additional startup arguments**, open the **solver settings*
 
 If you need to work with **multiple files**, write `#include "other.lp".` in your program. This is ordinary clingo syntax, is resolved relative to the file it appears in, and needs no configuration.
 
-If you already keep a **config.json**, point `ASPLanguage: Set Config` at it and use **Import from config.json** in the settings pane to bring its options across. The file is looked up next to your program and in any folder above it, and `ASPLanguage: Initialize clingo config file in current working directory` _(Press Ctrl+Shift+P)_ still writes a sample one. Running a config file directly was removed in 1.1.0; the settings pane covers it.
+If you already keep a **config.json**, point `ASPLanguage: Set Config` at it and use **Import from config.json** in the settings pane to bring its options across. **Export to config.json**, next to it, does the reverse and writes your current settings out as a file to share or commit. The file is looked up next to your program and in any folder above it, and `ASPLanguage: Initialize clingo config file in current working directory` _(Press Ctrl+Shift+P)_ still writes a sample one. Running a config file directly was removed in 1.1.0; the settings pane covers it.
 See the Clingo [Documentation](https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf) (PDF) for more details on the available arguments!
 
-If you want to use your own Version of Clingo from PATH with this extension, please enable `ASPLanguage: Use PATH Clingo` option in your settings.
+If you want to use your own Version of Clingo from PATH with this extension, please enable `ASPLanguage: Use PATH Clingo` option in your settings. It gets the same output panel as the bundled solver: the extension asks it for the same machine readable output and renders the answers, filter, comparison and statistics from that. If your custom arguments ask clingo for a format of their own, with `--outf`, `--text` or `--pre`, that is honoured instead and the panel shows what clingo printed.
 
 ## Customization
 
@@ -70,11 +70,13 @@ This extension contributes the following features:
 
 Click the gear in the ASP panel's toolbar, next to the run buttons, to set how many answer sets to compute, time limits, parallel solving, constants, extra files and custom clingo arguments. The settings are kept per workspace and are used by `Compute all Answer Sets` and `Compute the first Answer Set`, so no config file is needed for the usual case.
 
+The pane shows the **command line** your settings add up to, updated as you edit them, so a setting's effect is visible before anything is run. With the bundled solver it names the files an `#include` pulls in as well, since those are merged into the program before it is solved; your own clingo reads them itself and is only handed the file.
+
 Not every clingo option survives being compiled to WebAssembly. Settings the bundled solver cannot honour are greyed out and say which solver they need, rather than being offered and then quietly ignored — switch on `ASPLanguage: Use PATH Clingo` and they become available again.
 
 Two settings work differently than you might expect. The **time limit** is enforced by the extension rather than by clingo, whose own is inert under WebAssembly: the run is stopped and the answers found up to that point are kept. **Parallel solving** does work with the bundled solver, but only pays off on programs that take seconds rather than milliseconds — use four threads or more, and `split` mode when enumerating many answers.
 
-An existing JSON config is not lost: **Import from config.json** in the settings pane copies it into the panel, and `ASPLanguage: Initialize clingo config file in current working directory` still creates one to start from. Running a config file directly was removed in 1.1.0, so the pane is now the single place solver options live.
+An existing JSON config is not lost: **Import from config.json** in the settings pane copies it into the panel, and **Export to config.json** writes the panel's current settings back out, which is how a set of options gets handed to somebody else or committed next to a program. Exporting writes the same file importing reads — the name `ASPLanguage: Set Config` looks for, next to the program you have open — and asks first if that file already exists. `ASPLanguage: Initialize clingo config file in current working directory` still creates a sample one to start from. Running a config file directly was removed in 1.1.0, so the pane is now the single place solver options live.
 
 To solve several files together, prefer `#include "other.lp".` in the program itself: it is plain clingo syntax and needs no configuration at all.
 
@@ -88,6 +90,7 @@ The panel header stays put while you scroll and holds everything you need for a 
 -   **Copy** for a single answer or, from the `...` menu, for all of them or only the ones that matched the filter
 -   large results stay responsive: the first 500 answer sets are rendered while the true total is reported, and `Copy all` still gives you every one
 -   **solver statistics**, when the statistics level is set above zero, in a collapsible section under the toolbar
+-   the **command line** the run used, in a collapsible section of its own. Options come from the pane, the custom arguments field and an imported config between them, so the one line saying what clingo was actually asked is worth having when a result surprises you
 
 ## Contributing
 

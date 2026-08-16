@@ -1,0 +1,395 @@
+{
+    "program": "1 { x(1..6) } 3. :- x(1), x(2).",
+    "options": [
+        "--stats=2"
+    ],
+    "why": "real search, so the nested lemma figures are reported",
+    "result": {
+        "Solver": "clingo version 5.8.1",
+        "Call": [
+            {
+                "Start": 0,
+                "Witnesses": [
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(3)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(3)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(4)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(3)",
+                            "x(4)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(4)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(3)",
+                            "x(4)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(5)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(4)",
+                            "x(5)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(5)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(4)",
+                            "x(5)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(3)",
+                            "x(5)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(3)",
+                            "x(5)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(3)",
+                            "x(4)",
+                            "x(5)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(1)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(1)",
+                            "x(4)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(1)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(1)",
+                            "x(4)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(1)",
+                            "x(5)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(1)",
+                            "x(5)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(1)",
+                            "x(4)",
+                            "x(5)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(1)",
+                            "x(3)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(1)",
+                            "x(3)",
+                            "x(4)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(1)",
+                            "x(3)",
+                            "x(5)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(1)",
+                            "x(3)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(2)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(2)",
+                            "x(3)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(2)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(2)",
+                            "x(3)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(2)",
+                            "x(5)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(2)",
+                            "x(5)",
+                            "x(6)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(2)",
+                            "x(3)",
+                            "x(5)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(2)",
+                            "x(4)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(2)",
+                            "x(3)",
+                            "x(4)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(2)",
+                            "x(4)",
+                            "x(5)"
+                        ]
+                    },
+                    {
+                        "Time": 0.002,
+                        "Value": [
+                            "x(2)",
+                            "x(4)",
+                            "x(6)"
+                        ]
+                    }
+                ],
+                "Stop": 0.002
+            }
+        ],
+        "Result": "SATISFIABLE",
+        "Models": {
+            "Number": 36,
+            "More": "no"
+        },
+        "Calls": 1,
+        "Time": {
+            "Total": 0.002,
+            "Solve": 0,
+            "Model": 0,
+            "Unsat": 0,
+            "CPU": 0
+        },
+        "Stats": {
+            "Core": {
+                "Choices": 35,
+                "Conflicts": 0,
+                "Backtracks": 0,
+                "Backjumps": 0,
+                "Restarts": 0,
+                "RestartAvg": 0,
+                "RestartLast": 0
+            },
+            "More": {
+                "CPU": 0,
+                "Models": 36,
+                "AvgModel": 3.167,
+                "Splits": 0,
+                "Problems": 1,
+                "AvgGPLength": 0,
+                "Lemma": {
+                    "Sum": 0,
+                    "Deleted": 0,
+                    "Type": [
+                        {
+                            "Type": "Short",
+                            "Sum": 0,
+                            "Ratio": 0,
+                            "Binary": 0,
+                            "Ternary": 0
+                        },
+                        {
+                            "Type": "Conflict",
+                            "Sum": 0,
+                            "AvgLen": 0
+                        },
+                        {
+                            "Type": "Loop",
+                            "Sum": 0,
+                            "AvgLen": 0
+                        },
+                        {
+                            "Type": "Other",
+                            "Sum": 0,
+                            "AvgLen": 0
+                        }
+                    ]
+                }
+            },
+            "Jumps": {
+                "Sum": 0,
+                "Max": 0,
+                "MaxExec": 0,
+                "Avg": 0,
+                "AvgExec": 0,
+                "Levels": 0,
+                "LevelsExec": 0,
+                "Bounded": {
+                    "Sum": 0,
+                    "Max": 0,
+                    "Avg": 0,
+                    "Levels": 0
+                }
+            },
+            "LP": {
+                "Rules": {
+                    "Original": 7,
+                    "Final": 26,
+                    "Choice": {
+                        "Original": 1,
+                        "Final": 1
+                    }
+                },
+                "Atoms": 10,
+                "Bodies": {
+                    "Original": 5,
+                    "Final": 24,
+                    "Count": {
+                        "Original": 2,
+                        "Final": 0
+                    }
+                },
+                "Tight": "yes",
+                "Equivalences": {
+                    "Sum": 9,
+                    "Atom": 1,
+                    "Body": 0,
+                    "Other": 8
+                }
+            },
+            "Problem": {
+                "Variables": 7,
+                "Eliminated": 0,
+                "Frozen": 0,
+                "Constraints": {
+                    "Sum": 17,
+                    "Binary": 1,
+                    "Ternary": 0
+                },
+                "AcycEdges": 0
+            }
+        },
+        "Warnings": [
+            ""
+        ]
+    }
+}

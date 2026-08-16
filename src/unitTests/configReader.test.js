@@ -73,6 +73,47 @@ describe("readCustomArgs", () => {
         expect(readCustomArgs("")).toEqual([]);
         expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
     });
+
+    it("keeps quiet when asked to, since the pane previews on every keystroke", () => {
+        expect(readCustomArgs("--version", { quiet: true })).toEqual([]);
+        expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
+    });
+});
+
+describe("readCustomArgs for your own clingo", () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    it.each(["--outf=1", "--outf 1", "--text"])("lets it print in the format you asked for: %s", (arg) => {
+        // The bundled solver only exists to hand back the JSON of --outf=2 and
+        // parses whatever comes back, so a second format breaks the run. A binary
+        // has no such problem, and choosing the format is much of why you run one.
+        expect(readCustomArgs(arg, { backend: "path" })).toEqual([arg]);
+        expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
+
+        expect(readCustomArgs(arg, { backend: "wasm" })).toEqual([]);
+    });
+
+    it("still refuses what breaks either solver", () => {
+        // The count is passed separately, and these two print and exit without
+        // ever solving
+        for (const arg of ["--models 3", "-n 3", "--version", "--help"]) {
+            expect(readCustomArgs(arg, { backend: "path" })).toEqual([]);
+        }
+    });
+});
+
+describe("choosesOutputFormat", () => {
+    const { choosesOutputFormat } = require("../configReader.js");
+
+    it.each([["--outf=1"], ["--outf 1"], ["--text"], ["--pre"]])("recognises %s as picking a format", (arg) => {
+        expect(choosesOutputFormat([arg])).toBe(true);
+    });
+
+    it("leaves ordinary options to be run with the JSON output we ask for", () => {
+        expect(choosesOutputFormat(["--stats=2", "--const n=3", "--parallel-mode 4,split"])).toBe(false);
+        expect(choosesOutputFormat([])).toBe(false);
+        expect(choosesOutputFormat(undefined)).toBe(false);
+    });
 });
 
 describe("formatSchemaErrors", () => {
@@ -147,5 +188,25 @@ describe("validateConfigObject", () => {
 
     it("still accepts the models key older configs carry", () => {
         expect(validateConfigObject({ args: { models: 0 } }, root)).toEqual([]);
+    });
+
+    it("accepts what the settings pane exports", () => {
+        // Exporting writes a file meant to be imported again, on this machine or
+        // someone else's, so it has to satisfy the same schema importing checks
+        const { settingsToConfig, DEFAULT_SETTINGS } = require("../solverSettings.js");
+
+        expect(validateConfigObject(settingsToConfig(DEFAULT_SETTINGS), root)).toEqual([]);
+        expect(
+            validateConfigObject(
+                settingsToConfig({
+                    ...DEFAULT_SETTINGS,
+                    parallelEnabled: true,
+                    parallelMode: "split",
+                    constants: "n=3",
+                    additionalFiles: "lib.lp",
+                }),
+                root
+            )
+        ).toEqual([]);
     });
 });

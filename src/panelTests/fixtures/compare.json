@@ -1,0 +1,61 @@
+{
+    "program": "core. 1 { a; b; only } 2. :- only, a. :- only, b.",
+    "options": [],
+    "why": "one atom in every answer, one in a single answer, two that vary",
+    "result": {
+        "Solver": "clingo version 5.8.1",
+        "Call": [
+            {
+                "Start": 0,
+                "Witnesses": [
+                    {
+                        "Time": 0.004,
+                        "Value": [
+                            "core",
+                            "b"
+                        ]
+                    },
+                    {
+                        "Time": 0.004,
+                        "Value": [
+                            "core",
+                            "a"
+                        ]
+                    },
+                    {
+                        "Time": 0.004,
+                        "Value": [
+                            "core",
+                            "b",
+                            "a"
+                        ]
+                    },
+                    {
+                        "Time": 0.004,
+                        "Value": [
+                            "core",
+                            "only"
+                        ]
+                    }
+                ],
+                "Stop": 0.005
+            }
+        ],
+        "Result": "SATISFIABLE",
+        "Models": {
+            "Number": 4,
+            "More": "no"
+        },
+        "Calls": 1,
+        "Time": {
+            "Total": 0.005,
+            "Solve": 0.001,
+            "Model": 0,
+            "Unsat": 0.001,
+            "CPU": 0
+        },
+        "Warnings": [
+            ""
+        ]
+    }
+}

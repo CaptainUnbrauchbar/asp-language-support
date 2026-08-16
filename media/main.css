@@ -306,8 +306,9 @@ body {
    leftover room is shared by both sides rather than piling up on the right */
 .settings-intro,
 .settings-body,
+.settings-preview,
 .settings-actions {
-    max-width: 54em;
+    max-width: 58em;
     margin-inline: auto;
 }
 
@@ -479,6 +480,41 @@ body {
     }
 }
 
+/* The options above are edited one field at a time, which says nothing about
+   what they add up to. The line they produce does, and sits where it can be
+   watched changing while the fields are edited. */
+.settings-preview {
+    margin-top: 1.2em;
+    padding-top: 0.9em;
+    border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+}
+
+.settings-preview-label {
+    margin-bottom: 0.35em;
+    font-size: 0.9em;
+    color: var(--vscode-descriptionForeground);
+}
+
+.settings-preview-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+    padding: 0.6em 0.8em;
+    background-color: var(--vscode-textCodeBlock-background, var(--vscode-input-background));
+    border-radius: 2px;
+}
+
+.settings-command {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    color: var(--vscode-foreground);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: text;
+}
+
 .settings-actions {
     display: flex;
     flex-wrap: wrap;
@@ -642,6 +678,42 @@ body {
     white-space: nowrap;
 }
 
+/* What clingo was invoked with, collapsed beside the statistics for the same
+   reason: worth having on hand, not worth the top of the panel */
+.command-details {
+    margin-bottom: 0.75em;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-descriptionForeground);
+}
+
+.command-details summary {
+    cursor: pointer;
+}
+
+.command-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+    margin-top: 0.3em;
+    padding: 0.6em 0.8em;
+    background-color: var(--vscode-textCodeBlock-background, var(--vscode-input-background));
+    border-radius: 2px;
+}
+
+/* A long line wraps rather than scrolling sideways: it is read to see which
+   options a run used, and an option pushed off the right edge is a hidden one */
+.command-line {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    color: var(--vscode-foreground);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: text;
+}
+
 /*
  * Atoms live in a block element rather than a textarea, so an answer takes only
  * the room it needs and matches can be highlighted. Long results still cap out
@@ -671,8 +743,14 @@ body {
 /*
  * A match has to be findable at a glance in a wall of atoms. The translucent
  * "other matches" colour that editors use for the matches you are not on is too
- * faint for that here, so this takes the stronger current-match colour, weights
- * the text, and keeps a border for themes whose colour is pale.
+ * faint for that here, so this takes the stronger current-match colour and keeps
+ * a border for themes whose colour is pale.
+ *
+ * Everything here is drawn behind and around the text without taking any room of
+ * its own: no weight, no padding. Both widen the run they are applied to, which
+ * reflows every atom after it, so the answers shuffled sideways with each
+ * keystroke exactly while you were trying to read them. The outline overlaps the
+ * surrounding text by design rather than pushing it aside.
  */
 .match {
     color: inherit;
@@ -680,8 +758,6 @@ body {
     outline: 1px solid var(--vscode-editor-findMatchBorder, var(--vscode-focusBorder));
     outline-offset: 0;
     border-radius: 2px;
-    padding: 0 2px;
-    font-weight: 600;
 }
 
 /*

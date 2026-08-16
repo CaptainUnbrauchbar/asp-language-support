@@ -185,6 +185,8 @@
     },
     "scripts": {
         "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
+        "test:panel": "cross-env NODE_OPTIONS=--experimental-vm-modules jest src/panelTests",
+        "fixtures:panel": "node src/panelTests/fixtures/generate.mjs",
         "probe:settings": "node scripts/probe-settings.mjs",
         "test-e2e": "vscode-test"
     },
@@ -196,6 +198,7 @@
         "@vscode/test-electron": "^2.4.1",
         "cross-env": "^10.1.0",
         "jest": "^30.0.5",
+        "jest-environment-jsdom": "^30.4.1",
         "vscode-extension-tester": "^8.15.0",
         "vscode-test": "^1.3.0"
     },

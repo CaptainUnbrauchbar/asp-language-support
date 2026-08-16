@@ -6,7 +6,9 @@ const { resolvePatterns } = require("./filePatterns.js");
  * These do the same job as a config.json but are kept per workspace and edited
  * in the panel, so the common case needs no file at all. A project that already
  * has a config.json is not stranded: "Import from config.json" reads it through
- * configToSettings below, which is the only thing that reads one now.
+ * configToSettings below, which is the only thing that reads one now, and
+ * "Export to config.json" writes one back out through settingsToConfig, which
+ * is the only thing that writes one.
  */
 
 /** Everything off or unlimited, which is what plain clingo does. */
@@ -140,7 +142,9 @@ const SETTING_FIELDS = [
     {
         key: "customArgs",
         label: "Custom arguments",
-        description: "Passed to clingo as written. Options the extension controls itself are ignored.",
+        description:
+            "Passed to clingo as written. The model count, --version and --help are ignored, since the extension sets them itself. " +
+            "Asking your own clingo for another output format with --outf, --text or --pre works, and its output is then shown as clingo printed it.",
         type: "text",
         placeholder: "--opt-strategy=usc",
     },
@@ -305,12 +309,59 @@ function configToSettings(config) {
     });
 }
 
+/** Written into an exported file, so it explains itself to whoever receives it. */
+const EXPORT_DESCRIPTION =
+    "Clingo solver options exported from the ASP panel's settings pane. " +
+    "Bring them in with 'Import from config.json' in that pane, which is what runs them.";
+
+/**
+ * Turns the panel's settings back into a config.json object.
+ *
+ * The inverse of configToSettings, and what config.json is still for: handing
+ * your solver options to somebody else. Every option is written out, including
+ * the ones left at their default, so the file states what a run will do instead
+ * of leaving the reader to remember which defaults were in force.
+ *
+ * @param {Object} raw The stored settings
+ * @returns {Object} A config object that validates against schema.json
+ */
+function settingsToConfig(raw) {
+    const settings = normalizeSettings(raw);
+    return {
+        description: EXPORT_DESCRIPTION,
+        additionalFiles: splitList(settings.additionalFiles),
+        args: {
+            models: settings.models,
+            timeLimit: settings.timeLimit,
+            solveLimit: {
+                conflicts: settings.solveLimitConflicts,
+                restarts: settings.solveLimitRestarts,
+            },
+            // All three are written whether or not parallel solving is on: the
+            // schema requires them together, and a file missing them would not
+            // import on the other end
+            parallelMode: {
+                useParallelMode: settings.parallelEnabled,
+                threads: settings.parallelThreads,
+                mode: settings.parallelMode,
+            },
+            stats: settings.stats,
+            verboseMode: settings.verbose,
+            preProcessor: settings.preProcessor,
+            constants: splitList(settings.constants),
+            customArgs: settings.customArgs,
+        },
+    };
+}
+
 module.exports = {
     DEFAULT_SETTINGS,
     SETTING_FIELDS,
     NO_THREADS_NOTE,
+    EXPORT_DESCRIPTION,
     describeFields,
     normalizeSettings,
     settingsToArgs,
     configToSettings,
+    settingsToConfig,
 };

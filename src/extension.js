@@ -5,16 +5,42 @@ const fs = require("fs");
 const { findConfig, validateConfigObject } = require("./configReader.js");
 const { WebviewProvider } = require("./webviewProvider.js");
 const { runClingoWasmForFileWithProgress } = require("./runClingoWasmForFileWithProgress.js");
-const { runClingoPathForFileWithProgress } = require("./runClingoPathForFileWithProgress.js");
+const { runClingoPathForFileWithProgress, stopClingoProcess } = require("./runClingoPathForFileWithProgress.js");
 const { abortClingo, threadsAvailable } = require("./clingoWasm.js");
-const { formatWasmResult, extractAnswers } = require("./formatWasmResult.js");
+const { formatWasmResult, parseClingoOutput, extractAnswers, partialResultFromModels } = require("./formatWasmResult.js");
 const { ClingoStatusBar, parseClingoVersion, shouldShowStatusBar } = require("./statusBar.js");
+const { formatClingoCommand } = require("./clingoCommand.js");
+const { resolveIncludes } = require("./resolveIncludes.js");
 const { showReleaseNote, RELEASE_NOTE_KEY } = require("./releaseNote.js");
-const { readCustomArgs } = require("./configReader.js");
-const { DEFAULT_SETTINGS, describeFields, normalizeSettings, settingsToArgs, configToSettings } = require("./solverSettings.js");
+const { readCustomArgs, choosesOutputFormat } = require("./configReader.js");
+const {
+    DEFAULT_SETTINGS,
+    describeFields,
+    normalizeSettings,
+    settingsToArgs,
+    configToSettings,
+    settingsToConfig,
+} = require("./solverSettings.js");
 
 /** Where the panel's solver settings are kept, per workspace. */
 const SETTINGS_KEY = "aspLanguage.solverSettings";
+
+/** Used when the setConfig setting names no file, as the sample config does. */
+const DEFAULT_CONFIG_NAME = "config.json";
+
+/**
+ * How much text the panel is given for output it cannot take apart into answers.
+ * Enough to read a result by eye, far short of what freezes a webview laying it
+ * out in one box.
+ */
+const MAX_RAW_OUTPUT_CHARS = 200000;
+
+/**
+ * settingsToArgs quotes file paths for the command line they end up on. Declared
+ * out here rather than inside activate(), where anything read before its own
+ * declaration has run is a ReferenceError waiting for the right editor to be open.
+ */
+const unquote = (value) => String(value).replace(/^"|"$/g, "");
 
 //E_SAT       = 10, !< At least one model was found.
 //E_EXHAUST   = 20, !< Search-space was completely examined.
@@ -58,7 +84,10 @@ function activate(context) {
             settings: settingsStore.read(),
             backend: currentBackend(),
             scope: 'Used by "Compute all/first Answer Sets" in this workspace.',
+            command: previewCommand(),
         }),
+        /** Just the command line, for redrawing the preview without the pane. */
+        previewCommand,
         /** Fills the pane from an existing config.json so nobody has to retype it. */
         importFromConfig: async () => {
             const editor = vscode.window.activeTextEditor;
@@ -86,6 +115,56 @@ function activate(context) {
                 await context.workspaceState.update(SETTINGS_KEY, configToSettings(parsed));
             } catch (error) {
                 vscode.window.showErrorMessage(`Could not read ${basename(configPath)}: ${error.message}`);
+            }
+        },
+        /**
+         * Writes the pane's settings out as a config.json, which is the other
+         * half of importing one: it is how a set of options gets handed to
+         * somebody else, or committed alongside a program.
+         *
+         * It writes the very file importing would read, rather than asking where
+         * to put it, so the two are one thing in two directions: export, hand the
+         * file over, import. Overwriting is confirmed first, since that file may
+         * be the config someone else wrote.
+         */
+        exportToConfig: async () => {
+            const editor = vscode.window.activeTextEditor;
+            const directory = editor ? dirname(editor.document.fileName) : vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+            if (!directory) {
+                vscode.window.showErrorMessage("Open a logic program first: the config is written next to it.");
+                return;
+            }
+
+            const name = setConfig || DEFAULT_CONFIG_NAME;
+            // The same lookup importing uses, so an existing config is updated
+            // where it lies rather than shadowed by a second one further down
+            const existing = findConfig(directory, name);
+            const target = existing ?? join(directory, name);
+            if (existing) {
+                const overwrite = await vscode.window.showWarningMessage(
+                    `Overwrite ${basename(existing)} with the current solver settings?`,
+                    { modal: true, detail: existing },
+                    "Overwrite"
+                );
+                if (overwrite !== "Overwrite") {
+                    return;
+                }
+            }
+
+            try {
+                fs.writeFileSync(target, `${JSON.stringify(settingsToConfig(settingsStore.read()), undefined, 4)}\n`);
+                // A config the extension cannot find again is not much of an
+                // export, so point the setting at it when it names nothing yet.
+                // An existing choice is left alone.
+                if (!setConfig) {
+                    await vscode.workspace.getConfiguration("aspLanguage").update("setConfig", name);
+                }
+                // Opened rather than merely written: the point of the file is to
+                // be passed on, and seeing it is how you check what you are
+                // passing on
+                await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(vscode.Uri.file(target)));
+            } catch (error) {
+                vscode.window.showErrorMessage(`Could not write ${basename(target)}: ${error.message}`);
             }
         },
     };
@@ -166,10 +245,13 @@ function activate(context) {
     async function runClingoPathForFile(filePath, models = undefined, options = undefined) {
         return await vscode.window.withProgress(
             {
-                location: vscode.ProgressLocation.Window,
+                // A notification rather than the status bar, and cancellable, so
+                // your own clingo can be stopped the same way the bundled one is
+                location: vscode.ProgressLocation.Notification,
                 title: "Path Clingo is running",
+                cancellable: true,
             },
-            async (progress) => await runClingoPathForFileWithProgress(vscode, progress, path, filePath, models, options)
+            async (progress, token) => await runClingoPathForFileWithProgress(vscode, progress, path, filePath, models, options, token)
         );
     }
 
@@ -204,20 +286,90 @@ function activate(context) {
      * additionalFiles are resolved against the workspace folder when there is
      * one, since the settings belong to the workspace rather than to whichever
      * file happens to be open.
+     *
+     * @param {Boolean} quiet Suppresses the warnings about arguments that were
+     *        dropped or matched nothing. The pane's live preview builds the same
+     *        arguments after every keystroke, where a notification per stroke
+     *        would be unusable; a real run still reports them.
      * @returns {String[]}
      */
-    function solverArgsFromSettings() {
+    function solverArgsFromSettings(quiet = false) {
         const editor = vscode.window.activeTextEditor;
         const base =
-            vscode.workspace.getWorkspaceFolder?.(editor.document.uri)?.uri.fsPath ??
+            (editor && vscode.workspace.getWorkspaceFolder?.(editor.document.uri)?.uri.fsPath) ??
             vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ??
-            dirname(editor.document.fileName);
+            (editor && dirname(editor.document.fileName));
 
-        const { args, unmatched } = settingsToArgs(settingsStore.read(), base, readCustomArgs, currentBackend());
-        for (const pattern of unmatched) {
-            vscode.window.showWarningMessage(`No file matches "${pattern}" in the workspace.`);
+        // Nothing to resolve extra files against, which only happens while
+        // previewing with no file open
+        if (!base) {
+            return [];
+        }
+
+        const readArgs = (value) => readCustomArgs(value, { quiet, backend: currentBackend() });
+        const { args, unmatched } = settingsToArgs(settingsStore.read(), base, readArgs, currentBackend());
+        if (!quiet) {
+            for (const pattern of unmatched) {
+                vscode.window.showWarningMessage(`No file matches "${pattern}" in the workspace.`);
+            }
         }
         return args;
+    }
+
+    /**
+     * The command the settings as they stand would produce, for the pane to show
+     * before anything is run.
+     *
+     * It describes "Compute all Answer Sets", the run the model limit applies to.
+     * The file is whichever ASP file is open, or a stand in, since the settings
+     * belong to the workspace rather than to one program.
+     * @returns {String}
+     */
+    function previewCommand() {
+        const editor = vscode.window.activeTextEditor;
+        const openFile = editor?.document.languageId === "asp" ? editor.document.fileName : "program.lp";
+        const backend = currentBackend();
+        const args = solverArgsFromSettings(true);
+
+        // The bundled solver is handed extra files as part of the program rather
+        // than as arguments, which is the split its runner makes too. Doing the
+        // same here keeps the preview and the line a run reports identical.
+        const extraFiles = backend === "wasm" ? args.filter((arg) => !arg.startsWith("-")).map(unquote) : [];
+        const options = backend === "wasm" ? args.filter((arg) => arg.startsWith("-")) : pathRunOptions(args);
+        const programs = [openFile, ...extraFiles].flatMap((file) => contributingFiles(file, backend));
+
+        return formatClingoCommand({
+            // One file reached two ways is still one file on the line
+            programs: [...new Set(programs)],
+            models: settingsStore.read().models,
+            options,
+            backend,
+        });
+    }
+
+    /**
+     * Every file that would end up in the program, for the preview to name.
+     *
+     * Your own clingo reads `#include` itself, so the one file it is given is
+     * the whole story there. The bundled solver has no filesystem to read from,
+     * so the extension inlines the includes before the run and a line naming
+     * only the file that was opened would hide the rules doing the work.
+     * @param {String} file
+     * @param {String} backend
+     * @returns {String[]}
+     */
+    function contributingFiles(file, backend) {
+        if (backend !== "wasm") {
+            return [file];
+        }
+        try {
+            const resolved = resolveIncludes(file, (path) => fs.readFileSync(path, "utf8"));
+            return resolved.files.length ? resolved.files : [file];
+        } catch {
+            // Unsaved, unreadable, or the stand in name used when nothing is
+            // open. The file on its own still says more than nothing.
+            return [file];
+        }
     }
 
     /**
@@ -264,23 +416,88 @@ function activate(context) {
      * @param {Number} models The number of models to run.
      */
     async function runPathClingo(models) {
-        const clingoResult = await runClingoPathForFile(
-            vscode.window.activeTextEditor.document.fileName,
-            models,
-            solverArgsFromSettings()
-        );
+        const filePath = vscode.window.activeTextEditor.document.fileName;
+        const options = pathRunOptions(solverArgsFromSettings());
+        const clingoResult = await runClingoPathForFile(filePath, models, options);
 
-        if (CLINGO_SUCCESS_CODES.includes(clingoResult.code)) {
-            // The binary prints its version on the first line of its output
+        // A run that was stopped is an outcome rather than a failure, the same
+        // as with the bundled solver: whatever clingo printed before it went is
+        // worth more than a complaint about the exit code of a process the user
+        // ended on purpose.
+        if (!clingoResult.stopped && !CLINGO_SUCCESS_CODES.includes(clingoResult.code)) {
+            vscode.window.showErrorMessage(`Clingo process exited with code ${clingoResult.code}: ${clingoResult.errorOutput}`);
+            return;
+        }
+
+        // Your own clingo is spawned with exactly these, so the line the panel
+        // shows is the one that ran
+        const command = formatClingoCommand({ programs: [filePath], models, options, backend: "path" });
+        const parsed = parseClingoOutput(clingoResult.output, clingoResult.errorOutput);
+
+        if (!parsed) {
+            // A stopped run leaves its JSON cut off wherever clingo was when it
+            // ended, so it will not parse as a whole. The answers it had already
+            // written are complete though, and are worth as much here as they
+            // are when the bundled solver is stopped.
+            const witnesses = clingoResult.witnesses ?? [];
+            if (witnesses.length) {
+                const total = clingoResult.totalWitnesses ?? witnesses.length;
+                const partial = partialResultFromModels(witnesses, total, clingoResult.seconds, { reason: "cancelled" }, command);
+                provider.setAnswers(witnesses);
+                provider.post({ type: "updateOutput", answers: formatWasmResult(partial) });
+                return;
+            }
+
+            // Output in a format the user asked for is theirs to read, not ours
+            // to take apart, so it is shown as it came
             statusBar.setVersion(parseClingoVersion(clingoResult.output));
-
             provider.post({
                 type: "updateOutputString",
-                answers: clingoResult.output,
+                answers: cappedOutput(clingoResult.output) || (clingoResult.stopped ? "Clingo was stopped before it printed anything." : ""),
+                command,
             });
-        } else {
-            vscode.window.showErrorMessage(`Clingo process exited with code ${clingoResult.code}: ${clingoResult.errorOutput}`);
+            return;
         }
+
+        parsed.Command = command;
+        statusBar.setVersion(parseClingoVersion(parsed.Solver));
+        // The webview only receives the first MAX_RENDERED_ANSWERS, so keep the
+        // complete list here for copying
+        provider.setAnswers(extractAnswers(parsed));
+        provider.post({ type: "updateOutput", answers: formatWasmResult(parsed) });
+    }
+
+    /**
+     * What your own clingo is actually spawned with.
+     *
+     * It is asked for the same JSON the bundled solver returns, so a run from
+     * PATH gets the whole panel rather than a wall of text it has to be read out
+     * of. Custom arguments that pick a format of their own are left to do so,
+     * which is a large part of why somebody runs their own binary at all.
+     * @param {String[]} options
+     * @returns {String[]}
+     */
+    function pathRunOptions(options) {
+        return choosesOutputFormat(options) ? options : ["--outf=2", ...options];
+    }
+
+    /**
+     * Trims text that is only ever going to be read from the top.
+     *
+     * Clingo asked for a format of its own can print without limit, and the
+     * whole of it used to be sent to the panel and put in a single box. A run
+     * with a million answers froze the window for as long as it took to lay that
+     * out, which is not a price anybody agreed to pay for scrolling to line four.
+     * @param {String} output
+     * @returns {String}
+     */
+    function cappedOutput(output) {
+        const text = String(output ?? "");
+        if (text.length <= MAX_RAW_OUTPUT_CHARS) {
+            return text;
+        }
+        const kept = text.slice(0, MAX_RAW_OUTPUT_CHARS);
+        return `${kept}\n\n... output truncated after ${MAX_RAW_OUTPUT_CHARS.toLocaleString()} characters of ${text.length.toLocaleString()}.`;
     }
 
     /**
@@ -343,7 +560,10 @@ function activate(context) {
             return;
         }
         if (usePathClingo) {
-            vscode.window.showWarningMessage("Use the prompt shown by the running process to stop your own version of Clingo.");
+            // Your own clingo is a process this extension spawned and holds on
+            // to, so it can be stopped like any other run rather than being left
+            // to the user to hunt down
+            stopClingoProcess();
             return;
         }
         await abortClingo();
@@ -371,9 +591,9 @@ function activate(context) {
     // Register initClingoConfig command for the extension to create a new config file for the user
     const initClingoConfig = vscode.commands.registerCommand("answer-set-programming-language-support.initClingoConfig", function () {
         const sampleConfig = fs.readFileSync(join(context.asAbsolutePath(""), `sampleConfig.json`));
-        fs.writeFileSync(join(dirname(vscode.window.activeTextEditor.document.fileName), `config.json`), sampleConfig);
+        fs.writeFileSync(join(dirname(vscode.window.activeTextEditor.document.fileName), DEFAULT_CONFIG_NAME), sampleConfig);
         // Update the configuration to use the new config file
-        vscode.workspace.getConfiguration("aspLanguage").update("setConfig", "config.json");
+        vscode.workspace.getConfiguration("aspLanguage").update("setConfig", DEFAULT_CONFIG_NAME);
     });
 
     // Keep the results when the panel is hidden, otherwise switching to the
@@ -415,7 +635,10 @@ function activate(context) {
 
 // this method is called when your extension is deactivated
 async function deactivate() {
-    // Tear down the solver worker so an in-flight run cannot outlive the extension
+    // Neither solver may outlive the extension. The worker is torn down, and a
+    // clingo from PATH is a real process that would otherwise go on searching
+    // after the window that started it has closed, with nothing left to stop it.
+    stopClingoProcess();
     await abortClingo();
 }
 

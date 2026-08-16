@@ -1,0 +1,55 @@
+{
+    "program": "{a;b}.",
+    "options": [],
+    "why": "4 answers, and no statistics",
+    "result": {
+        "Solver": "clingo version 5.8.1",
+        "Call": [
+            {
+                "Start": 0,
+                "Witnesses": [
+                    {
+                        "Time": 0.001,
+                        "Value": []
+                    },
+                    {
+                        "Time": 0.001,
+                        "Value": [
+                            "b"
+                        ]
+                    },
+                    {
+                        "Time": 0.001,
+                        "Value": [
+                            "a"
+                        ]
+                    },
+                    {
+                        "Time": 0.001,
+                        "Value": [
+                            "a",
+                            "b"
+                        ]
+                    }
+                ],
+                "Stop": 0.001
+            }
+        ],
+        "Result": "SATISFIABLE",
+        "Models": {
+            "Number": 4,
+            "More": "no"
+        },
+        "Calls": 1,
+        "Time": {
+            "Total": 0.001,
+            "Solve": 0,
+            "Model": 0,
+            "Unsat": 0,
+            "CPU": 0
+        },
+        "Warnings": [
+            ""
+        ]
+    }
+}

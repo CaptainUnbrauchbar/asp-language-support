@@ -209,6 +209,53 @@ describe("runClingoWasmForFile", () => {
         expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
         // Dropped silently would leave the user wondering why nothing changed
         expect(vscode.window.showWarningMessage).toHaveBeenCalled();
+        // The panel shows this line, so it has to be what clingo ended up with
+        // rather than what was asked for and then thrown away
+        expect(result.Command).not.toContain("--pre");
+        expect(result.Command).not.toContain("--verbose");
+    });
+
+    it("should report the command clingo was really given", async () => {
+        const vscode = { window: { showErrorMessage: jest.fn(), showWarningMessage: jest.fn() } };
+
+        const result = await runClingoWasmForFileWithProgress(
+            vscode,
+            { report: jest.fn() },
+            "src/testFiles/sudoku.lp",
+            3,
+            ["--const n=3", '"src/testFiles/ex01.lp"']
+        );
+
+        // Every file is named even though the bundled solver is handed one merged
+        // program, since the line is there to be read and reproduced
+        expect(result.Command).toEqual("clingo --outf=2 --const n=3 sudoku.lp ex01.lp 3");
+    });
+
+    it("should name the files an #include pulled in", async () => {
+        // The include is resolved here rather than by clingo, so a command line
+        // built from what the run was handed would name only the entry file and
+        // hide the rules that actually did the work
+        const result = await runClingoWasmForFileWithProgress(
+            { window: jest.fn() },
+            { report: jest.fn() },
+            "src/testFiles/withInclude.lp",
+            0
+        );
+
+        expect(result.Command).toEqual("clingo --outf=2 withInclude.lp ex01.lp 0");
+    });
+
+    it("should name a file reached twice only once", async () => {
+        // ex01.lp arrives both through the include and as an extra file
+        const result = await runClingoWasmForFileWithProgress(
+            { window: jest.fn() },
+            { report: jest.fn() },
+            "src/testFiles/withInclude.lp",
+            0,
+            ['"src/testFiles/ex01.lp"']
+        );
+
+        expect(result.Command).toEqual("clingo --outf=2 withInclude.lp ex01.lp 0");
     });
 
     it("should stop a run at the time limit that clingo itself ignores", async () => {

@@ -11,6 +11,7 @@ vsc-extension-quickstart.md
 
 # Tests and their fixtures are never run from an installed extension
 src/unitTests/**
+src/panelTests/**
 src/integrationTests/**
 src/testFiles/**
 

@@ -1,0 +1,30 @@
+{
+    "program": "a. :- a.",
+    "options": [],
+    "why": "no answers at all",
+    "result": {
+        "Solver": "clingo version 5.8.1",
+        "Call": [
+            {
+                "Start": 0,
+                "Stop": 0.001
+            }
+        ],
+        "Result": "UNSATISFIABLE",
+        "Models": {
+            "Number": 0,
+            "More": "no"
+        },
+        "Calls": 1,
+        "Time": {
+            "Total": 0.001,
+            "Solve": 0,
+            "Model": 0,
+            "Unsat": 0,
+            "CPU": 0
+        },
+        "Warnings": [
+            ""
+        ]
+    }
+}

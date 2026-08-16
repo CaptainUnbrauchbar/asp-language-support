@@ -7,6 +7,7 @@ const {
     normalizeSettings,
     settingsToArgs,
     configToSettings,
+    settingsToConfig,
 } = require("../solverSettings.js");
 
 /** Ignores the filesystem, so these tests only judge the argument building. */
@@ -214,5 +215,84 @@ describe("configToSettings", () => {
         const settings = configToSettings({ args: { timeLimit: 60, constants: ["n=3"] } });
 
         expect(optionsFor(settings)).toEqual(["--time-limit=60", "--const n=3"]);
+    });
+});
+
+describe("settingsToConfig", () => {
+    /** Settings with every field moved off its default, so nothing can be missed. */
+    const tuned = {
+        models: 5,
+        timeLimit: 60,
+        solveLimitConflicts: 10,
+        solveLimitRestarts: 20,
+        parallelEnabled: true,
+        parallelThreads: 8,
+        parallelMode: "split",
+        stats: 2,
+        verbose: 3,
+        preProcessor: true,
+        constants: "n=3, k=2",
+        additionalFiles: "lib.lp, instances/*.lp",
+        customArgs: "--opt-strategy=usc",
+    };
+
+    it("carries every setting out to the file", () => {
+        expect(settingsToConfig(tuned)).toMatchObject({
+            additionalFiles: ["lib.lp", "instances/*.lp"],
+            args: {
+                models: 5,
+                timeLimit: 60,
+                solveLimit: { conflicts: 10, restarts: 20 },
+                parallelMode: { useParallelMode: true, threads: 8, mode: "split" },
+                stats: 2,
+                verboseMode: 3,
+                preProcessor: true,
+                constants: ["n=3", "k=2"],
+                customArgs: "--opt-strategy=usc",
+            },
+        });
+    });
+
+    it("survives the trip to a file and back unchanged", () => {
+        // The whole point of exporting is that the settings arrive intact on
+        // someone else's machine, so importing what was written has to give the
+        // settings back exactly
+        expect(configToSettings(settingsToConfig(tuned))).toEqual(normalizeSettings(tuned));
+    });
+
+    it("round trips the defaults as well as a tuned setup", () => {
+        expect(configToSettings(settingsToConfig(DEFAULT_SETTINGS))).toEqual(DEFAULT_SETTINGS);
+        // Called on nothing at all, as it would be before anything was changed
+        expect(configToSettings(settingsToConfig(undefined))).toEqual(DEFAULT_SETTINGS);
+    });
+
+    it("writes the options that are still at their default", () => {
+        // A shared file that only listed the changed options would leave the
+        // reader guessing at the rest
+        const args = settingsToConfig(DEFAULT_SETTINGS).args;
+
+        expect(Object.keys(args).sort()).toEqual(
+            ["constants", "customArgs", "models", "parallelMode", "preProcessor", "solveLimit", "stats", "timeLimit", "verboseMode"]
+        );
+        expect(args.timeLimit).toEqual(0);
+    });
+
+    it("always writes the parallel options in full", () => {
+        // The schema requires the three together, so leaving them out with
+        // parallel solving off would produce a file that will not import
+        const off = settingsToConfig({ ...DEFAULT_SETTINGS, parallelEnabled: false }).args.parallelMode;
+
+        expect(off).toEqual({ useParallelMode: false, threads: DEFAULT_SETTINGS.parallelThreads, mode: "compete" });
+    });
+
+    it("says what it is, for whoever receives it", () => {
+        expect(settingsToConfig(DEFAULT_SETTINGS).description).toContain("Import from config.json");
+    });
+
+    it("drops empty entries rather than writing blanks into the lists", () => {
+        const config = settingsToConfig({ ...DEFAULT_SETTINGS, constants: " , n=3 ,", additionalFiles: "" });
+
+        expect(config.args.constants).toEqual(["n=3"]);
+        expect(config.additionalFiles).toEqual([]);
     });
 });

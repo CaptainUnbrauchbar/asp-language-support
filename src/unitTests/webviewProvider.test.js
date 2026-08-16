@@ -158,3 +158,113 @@ describe("WebviewProvider", () => {
         expect(vscode.env.clipboard.writeText).toHaveBeenCalledWith("a\nc");
     });
 });
+
+describe("the settings pane", () => {
+    // The clipboard mock is shared with the block above, so without this a
+    // "copied nothing" assertion would see the copies those tests made
+    beforeEach(() => jest.clearAllMocks());
+
+    /** Stands in for the store activate() builds around workspace state. */
+    function fakeStore() {
+        return {
+            save: jest.fn(async () => {}),
+            reset: jest.fn(async () => {}),
+            importFromConfig: jest.fn(async () => {}),
+            exportToConfig: jest.fn(async () => {}),
+            previewCommand: jest.fn(() => "clingo --outf=2 program.lp 0"),
+            describe: () => ({ fields: [], settings: {}, backend: "wasm", scope: "", command: "clingo --outf=2 program.lp 0" }),
+        };
+    }
+
+    /** @returns {{view: Object, store: Object}} */
+    function paneWithStore() {
+        const store = fakeStore();
+        const view = fakeView();
+        new WebviewProvider({ path: "/ext" }, store).resolveWebviewView(view, {}, {});
+        return { view, store };
+    }
+
+    it("offers importing and exporting side by side", () => {
+        const view = fakeView();
+        new WebviewProvider({ path: "/ext" }, fakeStore()).resolveWebviewView(view, {}, {});
+
+        // A config file is only worth keeping if it can be produced as well as
+        // read: exporting is how a set of options gets handed to someone else
+        expect(view.webview.html).toContain("Import from config.json");
+        expect(view.webview.html).toContain("Export to config.json");
+    });
+
+    it("hands each pane action to the store", async () => {
+        const { view, store } = paneWithStore();
+
+        await view.handler({ type: "importConfig" });
+        await view.handler({ type: "exportConfig" });
+        await view.handler({ type: "resetSettings" });
+
+        expect(store.importFromConfig).toHaveBeenCalledTimes(1);
+        expect(store.exportToConfig).toHaveBeenCalledTimes(1);
+        expect(store.reset).toHaveBeenCalledTimes(1);
+    });
+
+    it("sends the settings back after the ones that change them", async () => {
+        const { view, store } = paneWithStore();
+        view.webview.postMessage.mockClear();
+
+        await view.handler({ type: "importConfig" });
+        const afterImport = view.webview.postMessage.mock.calls.length;
+        await view.handler({ type: "exportConfig" });
+
+        // Importing replaces the settings, so the pane has to be redrawn;
+        // exporting only reads them, and redrawing would be noise
+        expect(afterImport).toBeGreaterThan(0);
+        expect(view.webview.postMessage).toHaveBeenCalledTimes(afterImport);
+        expect(store.exportToConfig).toHaveBeenCalled();
+    });
+
+    it("survives a pane action with no store behind it", async () => {
+        const view = fakeView();
+        new WebviewProvider({ path: "/ext" }).resolveWebviewView(view, {}, {});
+
+        await expect(view.handler({ type: "exportConfig" })).resolves.not.toThrow();
+        await expect(view.handler({ type: "saveSettings", settings: {} })).resolves.not.toThrow();
+    });
+
+    it("shows what a run would invoke, and keeps it current as fields are edited", () => {
+        const view = fakeView();
+        new WebviewProvider({ path: "/ext" }, fakeStore()).resolveWebviewView(view, {}, {});
+
+        expect(view.webview.html).toContain("settings-command");
+        expect(view.webview.html).toContain("will run");
+    });
+
+    it("refreshes only the preview after an edit, never the fields", async () => {
+        const { view, store } = paneWithStore();
+        view.webview.postMessage.mockClear();
+
+        await view.handler({ type: "saveSettings", settings: { timeLimit: 30 } });
+
+        // Resending the settings would rebuild the very field being typed into
+        expect(store.save).toHaveBeenCalledWith({ timeLimit: 30 });
+        expect(view.webview.postMessage).toHaveBeenCalledTimes(1);
+        expect(view.webview.postMessage).toHaveBeenCalledWith({
+            type: "commandPreview",
+            command: "clingo --outf=2 program.lp 0",
+        });
+    });
+
+    it("copies a command line through VSCode rather than the webview clipboard", async () => {
+        const { view } = paneWithStore();
+
+        await view.handler({ type: "copyText", text: "clingo --outf=2 program.lp 0" });
+
+        expect(vscode.env.clipboard.writeText).toHaveBeenCalledWith("clingo --outf=2 program.lp 0");
+    });
+
+    it("copies nothing when there is no command to copy", async () => {
+        const { view } = paneWithStore();
+
+        await view.handler({ type: "copyText", text: "" });
+
+        expect(vscode.env.clipboard.writeText).not.toHaveBeenCalled();
+    });
+});

@@ -21,7 +21,10 @@
     const settingsBody = document.querySelector(".settings-body");
     const settingsScope = document.querySelector(".settings-scope");
     const settingsImport = document.querySelector(".settings-import");
+    const settingsExport = document.querySelector(".settings-export");
     const settingsReset = document.querySelector(".settings-reset");
+    const settingsCommand = document.querySelector(".settings-command");
+    const settingsCommandCopy = document.querySelector(".settings-command-copy");
     const settingsClose = document.querySelector(".settings-close");
     const moreButton = document.querySelector(".more-button");
     const menu = document.querySelector(".menu");
@@ -58,7 +61,7 @@
         if (message.type === "updateOutputString") {
             lastResult = null;
             closeMenu();
-            showRawOutput(message.answers);
+            showRawOutput(message.answers, message.command);
             updateControls();
         }
         if (message.type === "toggleSettings") {
@@ -68,9 +71,15 @@
             settingFields = message.fields ?? settingFields;
             settings = message.settings ?? {};
             settingsScope.textContent = message.scope ?? "";
+            showCommandPreview(message.command);
             if (settingsOpen) {
                 renderSettings();
             }
+        }
+        if (message.type === "commandPreview") {
+            // Sent on its own after every edit, so the line can follow the
+            // settings without the pane being rebuilt around the cursor
+            showCommandPreview(message.command);
         }
     });
 
@@ -248,8 +257,32 @@
         }
     }
 
+    /**
+     * Shows what a run with the current settings would invoke. Options come from
+     * a pane, a text field and a config file between them, so the one line that
+     * says what clingo will actually be asked is worth having in front of you
+     * while you edit them.
+     * @param {String} [command]
+     */
+    function showCommandPreview(command) {
+        if (command === undefined) {
+            return;
+        }
+        settingsCommand.textContent = command;
+        settingsCommandCopy.disabled = !command;
+    }
+
+    settingsCommandCopy.addEventListener("click", () => {
+        vscode.postMessage({ type: "copyText", text: settingsCommand.textContent });
+        const icon = settingsCommandCopy.children[0];
+        if (icon) {
+            flashCopied(icon);
+        }
+    });
+
     settingsClose.addEventListener("click", () => toggleSettings(false));
     settingsImport.addEventListener("click", () => vscode.postMessage({ type: "importConfig" }));
+    settingsExport.addEventListener("click", () => vscode.postMessage({ type: "exportConfig" }));
     settingsReset.addEventListener("click", () => vscode.postMessage({ type: "resetSettings" }));
 
     copyAllButton.addEventListener("click", () => {
@@ -407,13 +440,17 @@
      * Rebuilds the container instead of reusing whatever ".output-box" happens
      * to be first, which would otherwise overwrite an answer of a previous run.
      * @param {string} text
+     * @param {string} [command] What clingo was invoked with, when it is known
      */
-    function showRawOutput(text) {
+    function showRawOutput(text, command) {
         outputContainer.innerHTML = "";
+        if (command) {
+            outputContainer.appendChild(makeCommandSection(command));
+        }
         const box = makeBox("output-box", text, "20em");
         outputContainer.appendChild(box);
         box.scrollTop = box.scrollHeight;
-        vscode.setState({ kind: "raw", text });
+        vscode.setState({ kind: "raw", text, command });
     }
 
     /**
@@ -552,24 +589,6 @@
     function renderStats(shown, query) {
         statStrip.innerHTML = "";
 
-        // A count of what is on screen only means something when the list is
-        // actually shorter than the result, so it stays out of the way otherwise
-        if (query) {
-            const chip = document.createElement("span");
-            chip.className = "shown-chip";
-            // While only highlighting, everything is on screen, so the useful
-            // number is how many answers matched rather than how many are shown
-            chip.textContent = hideUnmatched
-                ? `${shown} of ${lastResult.answers.length}`
-                : `${matchIndices.length} of ${lastResult.answers.length} match`;
-            statStrip.appendChild(chip);
-        } else if (lastResult.truncated) {
-            const chip = document.createElement("span");
-            chip.className = "shown-chip";
-            chip.textContent = `first ${lastResult.answers.length} of ${lastResult.totalAnswers}`;
-            statStrip.appendChild(chip);
-        }
-
         const outcome = resultBadgeInfo(lastResult.result);
         const badge = document.createElement("span");
         badge.className = `result-badge result-${outcome.tone}`;
@@ -591,6 +610,28 @@
         if (solverLabel) {
             statStrip.appendChild(makeStat("server-process", solverLabel, ""));
         }
+
+        // Last, after the figures that are there for every run. The chip comes
+        // and goes as you type and as the filter mode is switched, and anything
+        // ahead of it would be shoved sideways each time it did.
+        if (query) {
+            const chip = document.createElement("span");
+            chip.className = "shown-chip";
+            // Both modes count the answers that matched; what differs is whether
+            // the rest are still on screen. Saying "match" either way means the
+            // number keeps its meaning when the mode is switched, and only the
+            // word after it changes.
+            chip.textContent = hideUnmatched
+                ? `${shown} of ${lastResult.answers.length} match (filtered)`
+                : `${matchIndices.length} of ${lastResult.answers.length} match (highlighted)`;
+            statStrip.appendChild(chip);
+        } else if (lastResult.truncated) {
+            const chip = document.createElement("span");
+            chip.className = "shown-chip";
+            chip.textContent = `first ${lastResult.answers.length} of ${lastResult.totalAnswers}`;
+            statStrip.appendChild(chip);
+        }
+
         statStrip.title = [
             `Result: ${lastResult.result}`,
             `Models: ${lastResult.models}`,
@@ -876,6 +917,49 @@
     }
 
     /**
+     * What clingo was invoked with, collapsed like the statistics: it is only
+     * interesting once a run has surprised you.
+     *
+     * Reported by the run itself rather than rebuilt from the settings, so
+     * options the solver turned out not to support are already gone from it.
+     * @param {String} command
+     */
+    function makeCommandSection(command) {
+        const details = document.createElement("details");
+        details.className = "command-details";
+
+        const summaryLine = document.createElement("summary");
+        summaryLine.textContent = "Command line";
+        summaryLine.title = "The exact command clingo was invoked with (argument --outf=2 is always used for correct solver output formatting)";
+        details.appendChild(summaryLine);
+
+        const row = document.createElement("div");
+        row.className = "command-row";
+
+        const line = document.createElement("code");
+        line.className = "command-line";
+        line.textContent = command;
+        row.appendChild(line);
+
+        const copy = document.createElement("button");
+        copy.className = "icon-button command-copy";
+        copy.title = "Copy command line";
+        copy.setAttribute("aria-label", "Copy command line");
+        const icon = document.createElement("i");
+        icon.className = "codicon codicon-copy";
+        icon.setAttribute("aria-hidden", "true");
+        copy.appendChild(icon);
+        copy.addEventListener("click", () => {
+            vscode.postMessage({ type: "copyText", text: command });
+            flashCopied(icon);
+        });
+        row.appendChild(copy);
+
+        details.appendChild(row);
+        return details;
+    }
+
+    /**
      * Explains a search that did not finish. When the extension stopped it
      * itself it can name the limit, instead of listing what might have done it.
      */
@@ -955,6 +1039,10 @@
         // Statistics only arrive when the run asked for them
         if (lastResult.stats) {
             outputContainer.appendChild(makeStatsSection(lastResult.stats));
+        }
+
+        if (lastResult.command) {
+            outputContainer.appendChild(makeCommandSection(lastResult.command));
         }
 
         // A cut short search is worth saying out loud: the answers below, if any,
@@ -1042,7 +1130,7 @@
         header.hidden = false;
         render();
     } else if (saved?.kind === "raw") {
-        showRawOutput(saved.text);
+        showRawOutput(saved.text, saved.command);
     }
 
     // Announce that the script is running. The extension only replays its last

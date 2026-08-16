@@ -17,7 +17,8 @@ Running a config file directly is gone, along with its toolbar button and `Ctrl+
 **Your existing config is not lost.** It stays supported as a way to carry options between people and projects:
 
 -   **Import from config.json** in the settings pane copies one into your settings
--   `ASPLanguage: Initialize clingo config file in current working directory` still writes one out
+-   **Export to config.json**, next to it, writes your current settings back into that same file, to share or commit
+-   `ASPLanguage: Initialize clingo config file in current working directory` still writes a sample one
 -   `ASPLanguage: Set Config` still says which file to look for
 
 Point `Set Config` at your file, open the settings pane, and press **Import from config.json** once. After that the panel is where your options live.

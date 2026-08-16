@@ -1,0 +1,83 @@
+{
+    "program": "{a;b;c}.",
+    "options": [],
+    "why": "8 answers, the everyday case",
+    "result": {
+        "Solver": "clingo version 5.8.1",
+        "Call": [
+            {
+                "Start": 0,
+                "Witnesses": [
+                    {
+                        "Time": 0.013,
+                        "Value": []
+                    },
+                    {
+                        "Time": 0.014,
+                        "Value": [
+                            "b"
+                        ]
+                    },
+                    {
+                        "Time": 0.014,
+                        "Value": [
+                            "c"
+                        ]
+                    },
+                    {
+                        "Time": 0.014,
+                        "Value": [
+                            "b",
+                            "c"
+                        ]
+                    },
+                    {
+                        "Time": 0.014,
+                        "Value": [
+                            "a"
+                        ]
+                    },
+                    {
+                        "Time": 0.014,
+                        "Value": [
+                            "a",
+                            "c"
+                        ]
+                    },
+                    {
+                        "Time": 0.014,
+                        "Value": [
+                            "a",
+                            "b"
+                        ]
+                    },
+                    {
+                        "Time": 0.014,
+                        "Value": [
+                            "a",
+                            "b",
+                            "c"
+                        ]
+                    }
+                ],
+                "Stop": 0.015
+            }
+        ],
+        "Result": "SATISFIABLE",
+        "Models": {
+            "Number": 8,
+            "More": "no"
+        },
+        "Calls": 1,
+        "Time": {
+            "Total": 0.015,
+            "Solve": 0.002,
+            "Model": 0,
+            "Unsat": 0.001,
+            "CPU": 0
+        },
+        "Warnings": [
+            ""
+        ]
+    }
+}

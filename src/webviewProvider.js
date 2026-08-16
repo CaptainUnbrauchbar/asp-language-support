@@ -35,6 +35,13 @@ class WebviewProvider {
         }
     }
 
+    /** Refreshes just the pane's preview of the command a run would use. */
+    sendCommandPreview() {
+        if (this._settingsStore?.previewCommand && this._view) {
+            this._view.webview.postMessage({ type: "commandPreview", command: this._settingsStore.previewCommand() });
+        }
+    }
+
     get viewType() {
         return "ASP.aspView";
     }
@@ -98,6 +105,10 @@ class WebviewProvider {
                 }
                 case "saveSettings": {
                     await this._settingsStore?.save(data.settings);
+                    // Only the preview line is sent back, never the settings: a
+                    // full redraw while someone is typing into a field would
+                    // rebuild the field under the cursor
+                    this.sendCommandPreview();
                     break;
                 }
                 case "resetSettings": {
@@ -110,6 +121,12 @@ class WebviewProvider {
                     this.sendSettings();
                     break;
                 }
+                case "exportConfig": {
+                    // Nothing to send back: exporting reads the settings out, it
+                    // does not change them
+                    await this._settingsStore?.exportToConfig();
+                    break;
+                }
                 case "colorSelected": {
                     vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));
                     break;
@@ -118,6 +135,12 @@ class WebviewProvider {
                     const answer = this._answers[data.index];
                     if (answer) {
                         await this._copy(answer.join(", "));
+                    }
+                    break;
+                }
+                case "copyText": {
+                    if (data.text) {
+                        await this._copy(data.text);
                     }
                     break;
                 }
@@ -225,9 +248,19 @@ class WebviewProvider {
                     <span class="settings-scope"></span>
                 </div>
                 <div class="settings-body"></div>
+                <div class="settings-preview">
+                    <div class="settings-preview-label">"Compute all Answer Sets" will run (derived from last command)</div>
+                    <div class="settings-preview-row">
+                        <code class="settings-command"></code>
+                        <button class="icon-button settings-command-copy" title="Copy command line" aria-label="Copy command line">
+                            <i class="codicon codicon-copy" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
                 <div class="settings-actions">
                     <button class="settings-close settings-primary">Done</button>
                     <button class="settings-import">Import from config.json</button>
+                    <button class="settings-export">Export to config.json</button>
                     <button class="settings-reset">Reset to defaults</button>
                 </div>
             </section>

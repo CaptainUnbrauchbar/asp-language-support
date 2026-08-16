@@ -2,6 +2,7 @@ const fs = require("fs");
 const { loadClingo, abortClingo, isAbortResult, noteThreadSupport, isThreadOptionRejected } = require("./clingoWasm.js");
 const { resolveIncludes, mapMessagePositions } = require("./resolveIncludes.js");
 const { partialResultFromModels, MAX_PARTIAL_MODELS } = require("./formatWasmResult.js");
+const { formatClingoCommand } = require("./clingoCommand.js");
 
 /** How often at most to push a model count into the progress UI, in ms. */
 const PROGRESS_THROTTLE_MS = 100;
@@ -59,6 +60,12 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
     let fileContent = resolved.program;
     let lineMap = resolved.lineMap;
 
+    // Every file that ends up in the program, entry point first. The command
+    // line is built from this rather than from what the run was handed: an
+    // "#include" is resolved here instead of by clingo, so a line naming only
+    // the file that was run would leave the included ones invisible.
+    const programFiles = [...resolved.files];
+
     const additionalFiles = options?.filter((arg) => arg && !arg.startsWith("-")).map((filePath) => filePath.replace(/"/g, ""));
 
     if (additionalFiles?.length) {
@@ -76,6 +83,8 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
             if (extra.program.trim()) {
                 fileContent += `\n${extra.program}`;
                 lineMap = [...lineMap, { file: additionalFilePath, line: 0 }, ...extra.lineMap];
+                // Includes the extra file pulls in of its own belong on the line too
+                programFiles.push(...extra.files);
             }
         }
     }
@@ -196,6 +205,17 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         clearTimeout(timeLimitTimer);
     }
 
+    // Built here rather than before the run, so it reports what clingo was
+    // really given: options the solver refused have been dropped by now, and
+    // saying otherwise would mislead exactly when the line is worth reading
+    const command = formatClingoCommand({
+        // A file reached through several routes is still one file on the line
+        programs: [...new Set(programFiles)],
+        models,
+        options: clingoOptions ?? [],
+        backend: "wasm",
+    });
+
     // A run that was stopped, by the user or by their time limit, is an outcome
     // rather than a failure: hand back whatever the search had already found so
     // the answers are not thrown away along with the worker.
@@ -207,7 +227,7 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
     const stoppedByUser = cancelled || (!timedOut && isAbortResult(wasmResult));
     if (stoppedByUser || timedOut) {
         const stopped = stoppedByUser ? { reason: "cancelled" } : { reason: "time-limit", seconds: timeLimitSeconds };
-        return partialResultFromModels(streamedModels, modelsFound, (Date.now() - startedAt) / 1000, stopped);
+        return partialResultFromModels(streamedModels, modelsFound, (Date.now() - startedAt) / 1000, stopped, command);
     }
 
     progress.report({
@@ -228,6 +248,7 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
     if (wasmResult.Warnings?.length) {
         wasmResult.Warnings = wasmResult.Warnings.map((warning) => mapMessagePositions(warning, lineMap));
     }
+    wasmResult.Command = command;
     return wasmResult;
 }
 
