@@ -64,6 +64,7 @@ This extension contributes the following features:
 -   `Compute the first Answer Set`: Get the first answer set for the current logic program file, with `Ctrl+Shift+X` / `Cmd+Shift+X`
 -   `Solver settings`: Open the panel's solver settings with the gear in its toolbar
 -   `Stop the running Clingo solver`: Stop a run that is taking too long, either with the **Cancel** button on the progress notification, the stop button in the ASP panel or `Ctrl+Shift+S` / `Cmd+Shift+S`
+-   `ASPLanguage: Show release notes`: Show what changed in this version again, after the one-time notice has been dismissed
 
 ### Solver settings
 

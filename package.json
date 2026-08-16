@@ -120,6 +120,10 @@
             {
                 "command": "answer-set-programming-language-support.initClingoConfig",
                 "title": "ASPLanguage: Initialize clingo config file in current working directory"
+            },
+            {
+                "command": "answer-set-programming-language-support.showreleasenotes",
+                "title": "ASPLanguage: Show release notes"
             }
         ],
         "menus": {

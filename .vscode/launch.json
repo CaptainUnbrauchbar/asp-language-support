@@ -15,13 +15,17 @@
 			]
 		},
 		{
-			"name": "Extension Tests",
+			// Same, but with its own throwaway profile, so anything the extension
+			// remembers about the user starts empty every time. Use this to see
+			// first-run behaviour, such as the one-time release notification,
+			// which otherwise never appears again once dismissed.
+			"name": "Run Extension (fresh profile)",
 			"type": "extensionHost",
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/src/test/suite/index"
+				"--user-data-dir=${workspaceFolder}/.vscode-test/dev-profile"
 			]
 		}
 	]

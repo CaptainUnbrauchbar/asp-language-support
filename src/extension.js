@@ -9,6 +9,7 @@ const { runClingoPathForFileWithProgress } = require("./runClingoPathForFileWith
 const { abortClingo, threadsAvailable } = require("./clingoWasm.js");
 const { formatWasmResult, extractAnswers } = require("./formatWasmResult.js");
 const { ClingoStatusBar, parseClingoVersion, shouldShowStatusBar } = require("./statusBar.js");
+const { showReleaseNote, RELEASE_NOTE_KEY } = require("./releaseNote.js");
 const { readCustomArgs } = require("./configReader.js");
 const { DEFAULT_SETTINGS, describeFields, normalizeSettings, settingsToArgs, configToSettings } = require("./solverSettings.js");
 
@@ -33,6 +34,12 @@ function activate(context) {
     var setConfig = vscode.workspace.getConfiguration("aspLanguage").get("setConfig");
     var path;
     var clingoRunning = false;
+    /**
+     * Guards against a second dialog while the first is still waiting. Declared
+     * up here with the rest of the state because onAspFilesChanged runs during
+     * activation, before the body below it has been evaluated.
+     */
+    var releaseNotePending = false;
 
     /**
      * The solver settings edited in the panel. They live in workspace state
@@ -50,7 +57,7 @@ function activate(context) {
             fields: describeFields(currentBackend(), threadsAvailable()),
             settings: settingsStore.read(),
             backend: currentBackend(),
-            scope: 'Used by "Compute all/first Answer Sets" in this workspace. The config.json command keeps using the file.',
+            scope: 'Used by "Compute all/first Answer Sets" in this workspace.',
         }),
         /** Fills the pane from an existing config.json so nobody has to retype it. */
         importFromConfig: async () => {
@@ -86,20 +93,35 @@ function activate(context) {
     const provider = new WebviewProvider(context.extensionUri, settingsStore);
     const statusBar = new ClingoStatusBar(vscode);
 
+    // The note is about the release, not about the machine, so Settings Sync
+    // carries the flag and it does not reappear on a second computer
+    context.globalState.setKeysForSync([RELEASE_NOTE_KEY]);
+
     // Register the listeners before the first check, so an editor that becomes
     // active while activation is still running cannot slip past unnoticed
-    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(updateStatusBarVisibility));
-    context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(updateStatusBarVisibility));
-    context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(updateStatusBarVisibility));
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(onAspFilesChanged));
+    context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(onAspFilesChanged));
+    context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(onAspFilesChanged));
 
     usePath();
-    updateStatusBarVisibility();
+    onAspFilesChanged();
 
     /**
-     * The status bar item only makes sense while an ASP file is open.
+     * The status bar item only makes sense while an ASP file is open, and the
+     * release note waits for one too: the extension can activate before any
+     * editor is ready, and a dialog over an empty window explains nothing.
      */
-    function updateStatusBarVisibility() {
-        statusBar.setVisible(shouldShowStatusBar(vscode.window.activeTextEditor, vscode.workspace.textDocuments));
+    function onAspFilesChanged() {
+        const hasAspFile = shouldShowStatusBar(vscode.window.activeTextEditor, vscode.workspace.textDocuments);
+        statusBar.setVisible(hasAspFile);
+
+        if (hasAspFile && !releaseNotePending) {
+            releaseNotePending = true;
+            // Awaiting would hold up whichever event brought us here
+            showReleaseNote(vscode, context.globalState, { extensionUri: context.extensionUri }).finally(() => {
+                releaseNotePending = false;
+            });
+        }
     }
 
     /**
@@ -338,6 +360,14 @@ function activate(context) {
         }
     );
 
+    // Register showReleaseNotes, which brings the one-time notice back on demand.
+    // Without it the only way to see it again is to clear extension state, which
+    // has no user interface at all.
+    const showReleaseNotesCommand = vscode.commands.registerCommand(
+        "answer-set-programming-language-support.showreleasenotes",
+        async () => await showReleaseNote(vscode, context.globalState, { force: true, extensionUri: context.extensionUri })
+    );
+
     // Register initClingoConfig command for the extension to create a new config file for the user
     const initClingoConfig = vscode.commands.registerCommand("answer-set-programming-language-support.initClingoConfig", function () {
         const sampleConfig = fs.readFileSync(join(context.asAbsolutePath(""), `sampleConfig.json`));
@@ -357,6 +387,7 @@ function activate(context) {
     context.subscriptions.push(computeSingleSetCommand);
     context.subscriptions.push(stopClingoCommand);
     context.subscriptions.push(toggleSettingsCommand);
+    context.subscriptions.push(showReleaseNotesCommand);
     context.subscriptions.push(initClingoConfig);
     context.subscriptions.push(statusBar);
 
