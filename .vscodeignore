@@ -1,8 +1,22 @@
 .vscode/**
 .vscode-test/**
+.vscode-test.js
+.github/**
 test/**
 .gitignore
 vsc-extension-quickstart.md
 **/jsconfig.json
 **/*.map
 **/.eslintrc.json
+
+# Tests and their fixtures are never run from an installed extension
+src/unitTests/**
+src/integrationTests/**
+src/testFiles/**
+
+# The readme links these from GitHub with absolute URLs, so shipping the
+# originals only makes the download bigger
+media/*.gif
+
+# Previously published packages that live in the repository
+*.vsix

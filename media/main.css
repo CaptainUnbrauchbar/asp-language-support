@@ -371,6 +371,35 @@ body {
     border-radius: 2px;
 }
 
+/*
+ * Comparison mode. Atoms every answer agrees on recede, so what is left on
+ * screen is exactly what tells the answers apart: atoms only some answers have,
+ * and the ones that belong to a single answer alone.
+ */
+.atom-common {
+    opacity: 0.4;
+}
+
+.atom-varying {
+    color: var(--vscode-charts-blue, #4daafc);
+}
+
+.atom-unique {
+    padding: 0 0.15em;
+    border-radius: 2px;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-diffEditor-insertedTextBackground, rgba(63, 185, 80, 0.25));
+}
+
+/* A pressed toolbar toggle, the way VSCode shows an active action */
+.icon-button[aria-pressed="true"] {
+    color: var(--vscode-inputOption-activeForeground, var(--vscode-foreground));
+    background-color: var(--vscode-inputOption-activeBackground, var(--vscode-toolbar-hoverBackground));
+    outline: 1px solid var(--vscode-inputOption-activeBorder, var(--vscode-focusBorder));
+    outline-offset: -1px;
+}
+
 /* Callouts for clingo's messages and for runs that produced nothing */
 .callout {
     display: flex;

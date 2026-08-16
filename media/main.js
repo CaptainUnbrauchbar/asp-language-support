@@ -9,6 +9,7 @@
     const header = document.querySelector(".panel-header");
     const filterBox = document.querySelector(".filter-box");
     const copyAllButton = document.querySelector(".copy-all");
+    const compareButton = document.querySelector(".compare-button");
     const moreButton = document.querySelector(".more-button");
     const menu = document.querySelector(".menu");
     const statStrip = document.querySelector(".stat-strip");
@@ -20,6 +21,8 @@
     let lastResult = null;
     /** Indices of the answers currently on screen, for the filtered copy action. */
     let visibleIndices = [];
+    /** Whether answers are being compared against each other. */
+    let compareMode = false;
     let filterTimer;
 
     // Handle messages sent from the extension to the webview
@@ -45,6 +48,11 @@
     filterBox.addEventListener("input", () => {
         clearTimeout(filterTimer);
         filterTimer = setTimeout(render, FILTER_DEBOUNCE_MS);
+    });
+
+    compareButton.addEventListener("click", () => {
+        compareMode = !compareMode;
+        render();
     });
 
     copyAllButton.addEventListener("click", () => {
@@ -184,10 +192,36 @@
      */
     function persist() {
         if (lastResult) {
-            vscode.setState({ kind: "result", result: lastResult, filter: filterBox.value });
+            vscode.setState({ kind: "result", result: lastResult, filter: filterBox.value, compare: compareMode });
         } else {
             vscode.setState(undefined);
         }
+    }
+
+    /**
+     * Explains what the comparison did, including the fact that it can only look
+     * at the answers this panel actually received.
+     * @param {{counts: Map<string, number>, total: number}} tally
+     */
+    function makeCompareHint(tally) {
+        let shared = 0;
+        let unique = 0;
+        tally.counts.forEach((seen) => {
+            if (seen >= tally.total) {
+                shared++;
+            } else if (seen === 1) {
+                unique++;
+            }
+        });
+
+        const sentences = [
+            `${shared} atom(s) shared by all ${tally.total} answers are dimmed.`,
+            `${unique} appear in only one answer.`,
+        ];
+        if (lastResult.truncated) {
+            sentences.push(`Only the first ${lastResult.answers.length} of ${lastResult.totalAnswers} answers were compared.`);
+        }
+        return makeCallout("info", "git-compare", "Comparing answers", sentences.join(" "));
     }
 
     /**
@@ -336,20 +370,65 @@
     }
 
     /**
+     * Counts how many answer sets each atom occurs in.
+     *
+     * That count is what separates the answers: an atom in every one of them is
+     * part of the shared core and says nothing about a particular answer, while
+     * an atom in exactly one is the reason that answer exists at all.
+     * @returns {{counts: Map<string, number>, total: number}}
+     */
+    function countOccurrences() {
+        const counts = new Map();
+        lastResult.answers.forEach((atoms) => {
+            // a Set so an atom repeated inside one answer still counts once
+            new Set(atoms).forEach((atom) => counts.set(atom, (counts.get(atom) ?? 0) + 1));
+        });
+        return { counts, total: lastResult.answers.length };
+    }
+
+    /**
+     * Builds the function that labels an atom as shared, varying or unique.
+     * Returns undefined when there is nothing to compare.
+     * @returns {undefined | ((atom: string) => string)}
+     */
+    function buildComparison() {
+        if (!compareMode || !canCompare()) {
+            return undefined;
+        }
+        const { counts, total } = countOccurrences();
+        return (atom) => {
+            const seen = counts.get(atom) ?? 0;
+            if (seen >= total) {
+                return "atom-common";
+            }
+            return seen === 1 ? "atom-unique" : "atom-varying";
+        };
+    }
+
+    /** Comparing needs at least two answers to compare. */
+    function canCompare() {
+        return (lastResult?.answers?.length ?? 0) > 1;
+    }
+
+    /**
      * The atoms of one answer. A block element rather than a textarea, so the
      * box grows with its content instead of always being eight lines tall, and
      * so matches can be highlighted.
      * @param {string[]} atoms
      * @param {string} query
+     * @param {undefined | ((atom: string) => string)} classify
      */
-    function makeAtomList(atoms, query) {
+    function makeAtomList(atoms, query, classify) {
         const list = document.createElement("div");
         list.className = "atom-list";
         atoms.forEach((atom, index) => {
             if (index > 0) {
                 list.appendChild(document.createTextNode(", "));
             }
-            appendHighlighted(list, atom, query);
+            const span = document.createElement("span");
+            span.className = classify ? `atom ${classify(atom)}` : "atom";
+            appendHighlighted(span, atom, query);
+            list.appendChild(span);
         });
         return list;
     }
@@ -403,6 +482,15 @@
         const query = filterBox.value.trim();
         const entries = applyFilter(query);
         visibleIndices = entries.map((entry) => entry.index);
+
+        // Comparing a single answer against nothing would just dim everything
+        if (!canCompare()) {
+            compareMode = false;
+        }
+        compareButton.disabled = !canCompare();
+        compareButton.setAttribute("aria-pressed", String(compareMode));
+        const classify = buildComparison();
+
         persist();
 
         outputContainer.innerHTML = ""; // Clear previous content
@@ -441,6 +529,10 @@
             return;
         }
 
+        if (classify) {
+            outputContainer.appendChild(makeCompareHint(countOccurrences()));
+        }
+
         // Loop through the answers and create output boxes
         entries.forEach((entry) => {
             const answerContainer = document.createElement("div");
@@ -475,7 +567,7 @@
             answerHeader.appendChild(copyButton);
 
             answerContainer.appendChild(answerHeader);
-            answerContainer.appendChild(makeAtomList(entry.atoms, query));
+            answerContainer.appendChild(makeAtomList(entry.atoms, query, classify));
             outputContainer.appendChild(answerContainer);
         });
     }
@@ -487,6 +579,7 @@
     if (saved?.kind === "result") {
         lastResult = saved.result;
         filterBox.value = saved.filter ?? "";
+        compareMode = !!saved.compare;
         header.hidden = false;
         render();
     } else if (saved?.kind === "raw") {

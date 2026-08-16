@@ -50,10 +50,8 @@ For the extension to work properly, please install the Answer Set Programming sy
 
 This extension contributes the following settings:
 
--   `ASPLanguage: Select Operating System`: Select your Operating System, so the currect clingo version is used! (default: Auto)
--   `ASPLanguage: Terminal Mode`: Select if you want a new Terminal after every execution! (default: False)
 -   `ASPLanguage: Use PATH Clingo`: Set this option if you would like to use the Clingo version from your PATH instead of the version included! (default: False)
--   `ASPLanguage: Turn Messages Off`: Set this option if you want to turn off all Messages (bottom right)! (default: False)
+-   `ASPLanguage: Turn Messages Off`: Set this option if you want to turn off all Messages (bottom right)! (default: True)
 -   `ASPLanguage: Set Config`: Name of a clingo config file, looked up next to the .lp file you run (e.g. `config.json`, default: empty)
 
 Which solver is in use is shown in the status bar while an ASP file is open, together with the clingo version once you have run something. Click it to compute all answer sets, or to stop a run in progress.
@@ -66,6 +64,16 @@ This extension contributes the following features:
 -   `Compute the first Answer Set`: Get the first answer set for the current logic program file!
 -   `Compute Answer Sets (config.json)`: Compute answer sets using the clingo configuration from a config file
 -   `Stop the running Clingo solver`: Stop a run that is taking too long, either with the **Cancel** button on the progress notification, the stop button in the ASP panel or `Ctrl+Shift+S` / `Cmd+Shift+S`
+
+### The ASP output panel
+
+The panel header stays put while you scroll and holds everything you need for a result:
+
+-   a **result badge** (green when satisfiable, red when not) next to the model count, solve time and clingo version
+-   **Compare answer sets** dims the atoms that every answer agrees on and highlights what actually tells them apart, marking atoms that occur in only a single answer
+-   a **filter box** that narrows results to matching atoms and highlights what matched
+-   **Copy** for a single answer or, from the `...` menu, for all or only the filtered ones
+-   large results stay responsive: the first 500 answer sets are rendered while the true total is reported, and `Copy all` still gives you every one
 
 ## Contributing
 

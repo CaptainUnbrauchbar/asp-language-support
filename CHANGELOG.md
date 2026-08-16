@@ -12,7 +12,7 @@ If you want to contribute to the repository you are welcome to look at these pla
 -   **Localization**: Look into localization need/techniques and translate text
 -   **Bug**: Verify/Fix that all parameters in the ASP config.json created by this extension actually work properly and/or are still supported by clingo
 
-## 1.1.0: Stoppable Solving :octagonal_sign:
+## 1.1.0: Stoppable Solving and a Rebuilt Output Panel :octagonal_sign:
 
 -   Updated [**WASM Clingo**](https://github.com/domoritz/clingo-wasm) from 0.3.2 to 0.6.0
 -   **A running solve can now be stopped.** Clingo runs in a worker that can be terminated, so an endless loop no longer means restarting VSCode:
@@ -38,6 +38,7 @@ If you want to contribute to the repository you are welcome to look at these pla
     -   While filtering, the **matching part of each atom is highlighted**
     -   Copy buttons confirm with a checkmark in place, not only through a notification
     -   Clingo messages and empty results are shown as proper callouts with an icon and a coloured edge
+    -   Added a **Compare answer sets** toggle that dims the atoms every answer agrees on and highlights what tells them apart, marking atoms that occur in only a single answer
 -   **Added a status bar item** showing which solver is in use and its clingo version, with a spinner while solving. Click it to compute all answer sets, or to stop a running solve. It replaces the notifications that announced the solver on every activation
 -   **Config file problems are now readable**: instead of `[object Object]`, each problem names the field and what is wrong with it (e.g. `args.models: must be integer`), all problems are reported at once rather than one per run, and the message offers to open the config file
 -   Clarified the `Set Config` setting: the config file is looked up next to the .lp file you run, not in the workspace root

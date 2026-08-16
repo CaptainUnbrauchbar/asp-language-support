@@ -167,6 +167,9 @@ class WebviewProvider {
 			<body>
             <header class="panel-header" hidden>
                 <span class="stat-strip" role="status" aria-live="polite"></span>
+                <button class="icon-button compare-button" title="Compare answer sets" aria-label="Compare answer sets" aria-pressed="false">
+                    <i class="codicon codicon-git-compare" aria-hidden="true"></i>
+                </button>
                 <div class="filter-field">
                     <i class="codicon codicon-search" aria-hidden="true"></i>
                     <input class="filter-box" type="search" placeholder="Filter atoms" aria-label="Filter atoms">
