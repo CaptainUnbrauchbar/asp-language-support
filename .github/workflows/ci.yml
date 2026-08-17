@@ -19,16 +19,16 @@ jobs:
             vsixPath: ${{ steps.packageExtension.outputs.vsixPath }}
         steps:
             - name: Harden the runner (Audit all outbound calls)
-              uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
+              uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
               with:
                   egress-policy: audit
                   #ToDo: Change to block after couple of workflow runs
 
             - name: Checkout Repository
-              uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - name: Install Node 22
-              uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
               with:
                   node-version: 22
 
@@ -48,7 +48,7 @@ jobs:
                   dryRun: true
 
             - name: Upload Extension Package as Artifact
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
               with:
                   name: VSIX Extension File
                   path: ${{ steps.packageExtension.outputs.vsixPath }}
