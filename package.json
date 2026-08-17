@@ -1,7 +1,7 @@
 {
     "name": "answer-set-programming-language-support",
     "displayName": "Clingo for VSCode",
-    "version": "1.0.6",
+    "version": "1.0.8",
     "description": "Language Support for Clingo ASP (developed at University of Potsdam).",
     "publisher": "ffrankreiter",
     "jest": {
@@ -162,19 +162,19 @@
                 "command": "answer-set-programming-language-support.runinterminalall",
                 "key": "ctrl+shift+a",
                 "mac": "cmd+shift+a",
-                "when": "editorTextFocus"
+                "when": "editorTextFocus && editorLangId == 'asp'"
             },
             {
                 "command": "answer-set-programming-language-support.runinterminalsingle",
-                "key": "ctrl+shift+s",
-                "mac": "cmd+shift+s",
-                "when": "editorTextFocus"
+                "key": "ctrl+shift+x",
+                "mac": "cmd+shift+x",
+                "when": "editorTextFocus && editorLangId == 'asp'"
             },
             {
                 "command": "answer-set-programming-language-support.runinterminalconfig",
                 "key": "ctrl+shift+c",
                 "mac": "cmd+shift+c",
-                "when": "editorTextFocus"
+                "when": "editorTextFocus && editorLangId == 'asp'"
             }
         ]
     },
