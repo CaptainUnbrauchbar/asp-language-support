@@ -34,16 +34,7 @@ const OPEN_SETTINGS = "Open Solver Settings";
 const NOTES_FILE = "RELEASE-NOTES.md";
 
 /**
- * Shows the notice unless it has been seen, and remembers that it has.
- *
- * An ordinary notification, so it sits in the corner of the window and can be
- * ignored, rather than a modal dialog standing between the user and the file
- * they opened. Carrying an action button also stops VSCode from hiding it after
- * a few seconds, so it waits to be read.
- *
- * The promise only settles once the notification is dismissed or acted on, so
- * closing VSCode with it still on screen leaves it unseen and it comes back.
- * That is the right way round: it should survive being missed, not being read.
+ * Shows the notice NOTES_FILE unless it has been seen/closed by the user
  *
  * @param {*} vscode The vscode module
  * @param {{get: Function, update: Function}} globalState context.globalState

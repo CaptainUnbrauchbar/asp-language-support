@@ -15,6 +15,7 @@
         },
         "stats": 0,
         "verboseMode": 0,
+        "outputFormat": 2,
         "preProcessor": false,
         "constants": [],
         "customArgs": ""

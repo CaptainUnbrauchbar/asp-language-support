@@ -470,15 +470,18 @@ function activate(context) {
     /**
      * What your own clingo is actually spawned with.
      *
-     * It is asked for the same JSON the bundled solver returns, so a run from
-     * PATH gets the whole panel rather than a wall of text it has to be read out
-     * of. Custom arguments that pick a format of their own are left to do so,
-     * which is a large part of why somebody runs their own binary at all.
+     * The output format comes from the settings pane, which defaults to clingo's
+     * JSON: that is the only output answers can be read out of, so it is what
+     * gets a run from PATH the whole panel rather than a wall of text. Any other
+     * choice is honoured and its output shown as clingo printed it.
+     *
+     * A custom argument naming a format wins outright. Adding ours alongside it
+     * would hand clingo two, which it refuses with "multiple occurrences".
      * @param {String[]} options
      * @returns {String[]}
      */
     function pathRunOptions(options) {
-        return choosesOutputFormat(options) ? options : ["--outf=2", ...options];
+        return choosesOutputFormat(options) ? options : [`--outf=${settingsStore.read().outputFormat}`, ...options];
     }
 
     /**

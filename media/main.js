@@ -190,10 +190,14 @@
             control = document.createElement("select");
             control.className = "setting-select";
             field.options.forEach((option) => {
+                // An option is a plain string where the value reads well on its
+                // own, and a {value, label} pair where it does not: "1" says
+                // nothing about clingo's competition output format
+                const value = typeof option === "string" ? option : option.value;
                 const item = document.createElement("option");
-                item.value = option;
-                item.textContent = option;
-                if (settings[field.key] === option) {
+                item.value = value;
+                item.textContent = typeof option === "string" ? option : option.label;
+                if (String(settings[field.key]) === value) {
                     item.selected = true;
                 }
                 control.appendChild(item);
@@ -415,6 +419,7 @@
      */
     function showWelcome() {
         outputContainer.innerHTML = "";
+        outputContainer.classList.remove("raw-output");
         if (welcomeBox) {
             outputContainer.appendChild(welcomeBox);
         }
@@ -424,14 +429,16 @@
      * Creates a readonly textarea holding the given text.
      * @param {string} className
      * @param {string} text
-     * @param {string} height
+     * @param {string} [height] Left off for boxes the stylesheet sizes itself
      */
     function makeBox(className, text, height) {
         const box = document.createElement("textarea");
         box.className = className;
         box.readOnly = true;
         box.value = text;
-        box.style.height = height;
+        if (height) {
+            box.style.height = height;
+        }
         return box;
     }
 
@@ -444,10 +451,15 @@
      */
     function showRawOutput(text, command) {
         outputContainer.innerHTML = "";
+        // Text clingo printed is all there is to look at, so it gets the whole
+        // panel and follows it when the panel is resized. No height is set here:
+        // the stylesheet sizes it against the panel, which a number in here
+        // could only guess at.
+        outputContainer.classList.add("raw-output");
         if (command) {
             outputContainer.appendChild(makeCommandSection(command));
         }
-        const box = makeBox("output-box", text, "20em");
+        const box = makeBox("output-box", text);
         outputContainer.appendChild(box);
         box.scrollTop = box.scrollHeight;
         vscode.setState({ kind: "raw", text, command });
@@ -1028,6 +1040,8 @@
         persist();
 
         outputContainer.innerHTML = ""; // Clear previous content
+        // Answers scroll with the page rather than inside one fixed height box
+        outputContainer.classList.remove("raw-output");
         renderStats(entries.length, query);
 
         // Clingo's warnings and info messages point at real problems in the

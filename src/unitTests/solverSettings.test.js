@@ -8,6 +8,7 @@ const {
     settingsToArgs,
     configToSettings,
     settingsToConfig,
+    optionValues,
 } = require("../solverSettings.js");
 
 /** Ignores the filesystem, so these tests only judge the argument building. */
@@ -218,6 +219,47 @@ describe("configToSettings", () => {
     });
 });
 
+describe("the output format", () => {
+    const field = () => SETTING_FIELDS.find((entry) => entry.key === "outputFormat");
+    const reasonFor = (fields, key) => fields.find((entry) => entry.key === key)?.unavailable;
+
+    it("defaults to clingo's JSON, the only output answers can be read from", () => {
+        expect(DEFAULT_SETTINGS.outputFormat).toEqual("2");
+    });
+
+    it("offers every format clingo has, each explained", () => {
+        // "Use {0=default|1=competition|2=JSON|3=no} output", per clingo's own help
+        expect(optionValues(field())).toEqual(["0", "1", "2", "3"]);
+        // A bare "1" tells nobody what competition output is
+        expect(field().options.every((option) => option.label.length > 3)).toBe(true);
+    });
+
+    it("belongs to your own clingo alone", () => {
+        // The bundled solver supplies its own --outf=2 and parses what comes
+        // back, so a second format would break the run outright
+        expect(reasonFor(describeFields("wasm", true), "outputFormat")).toBeDefined();
+        expect(reasonFor(describeFields("path", true), "outputFormat")).toBeUndefined();
+    });
+
+    it("is never emitted as an argument here", () => {
+        // The bundled solver adds its own, so it is applied where the run for
+        // your own clingo is assembled instead
+        expect(optionsFor({ ...DEFAULT_SETTINGS, outputFormat: "0" }).join(" ")).not.toContain("--outf");
+        expect(settingsToArgs({ ...DEFAULT_SETTINGS, outputFormat: "0" }, noFiles, keepArgs, "path").args.join(" ")).not.toContain("--outf");
+    });
+
+    it("falls back to JSON when handed something clingo has no format for", () => {
+        expect(normalizeSettings({ outputFormat: "9" }).outputFormat).toEqual("2");
+        expect(normalizeSettings({ outputFormat: "nonsense" }).outputFormat).toEqual("2");
+        expect(normalizeSettings({ outputFormat: undefined }).outputFormat).toEqual("2");
+    });
+
+    it("understands a config that writes it as the number it looks like", () => {
+        expect(normalizeSettings({ outputFormat: 0 }).outputFormat).toEqual("0");
+        expect(configToSettings({ args: { outputFormat: 1 } }).outputFormat).toEqual("1");
+    });
+});
+
 describe("settingsToConfig", () => {
     /** Settings with every field moved off its default, so nothing can be missed. */
     const tuned = {
@@ -271,9 +313,18 @@ describe("settingsToConfig", () => {
         // reader guessing at the rest
         const args = settingsToConfig(DEFAULT_SETTINGS).args;
 
-        expect(Object.keys(args).sort()).toEqual(
-            ["constants", "customArgs", "models", "parallelMode", "preProcessor", "solveLimit", "stats", "timeLimit", "verboseMode"]
-        );
+        expect(Object.keys(args).sort()).toEqual([
+            "constants",
+            "customArgs",
+            "models",
+            "outputFormat",
+            "parallelMode",
+            "preProcessor",
+            "solveLimit",
+            "stats",
+            "timeLimit",
+            "verboseMode",
+        ]);
         expect(args.timeLimit).toEqual(0);
     });
 

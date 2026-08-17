@@ -45,6 +45,12 @@
                     }
                 },
                 "stats": { "type": "integer", "description": "How much solver statistics clingo reports, 0 to 2. 0 is off" },
+                "outputFormat": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3,
+                    "description": "Which output format to ask clingo for: 0 default text, 1 competition, 2 JSON, 3 none. 2 is the default and the only one the panel can read answers out of. Only applies to your own clingo from PATH; the bundled solver always uses 2"
+                },
                 "preProcessor": {
                     "type": "boolean",
                     "description": "Only works with your own clingo from PATH: the preprocessor emits aspif text rather than the JSON the bundled solver returns"

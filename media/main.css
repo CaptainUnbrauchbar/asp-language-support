@@ -552,6 +552,23 @@ body {
     padding: 0.5em;
 }
 
+/*
+ * Output the panel cannot take apart into answers is a single box of text, and
+ * that box is then the only thing worth looking at, so it gets the whole panel
+ * rather than a fixed twenty lines with empty space under it.
+ *
+ * The height is taken from the viewport, which for a webview is the panel, so it
+ * follows the panel being dragged taller or shorter without anything having to
+ * measure it. The container becomes a column so that a command line above the
+ * box takes its own height and leaves the rest to the box.
+ */
+.output-container.raw-output {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
 .answer-container {
     margin-bottom: 0.75em;
 }
@@ -595,6 +612,17 @@ body {
 .output-box:focus {
     outline: 1px solid var(--vscode-focusBorder);
     outline-offset: -1px;
+}
+
+/*
+ * Takes whatever height the column has left. The minimum keeps it readable in a
+ * panel dragged down to almost nothing, where it is better to scroll the page
+ * than to look at two lines of a result.
+ */
+.output-container.raw-output .output-box {
+    flex: 1 1 auto;
+    min-height: 8em;
+    resize: none;
 }
 
 /*

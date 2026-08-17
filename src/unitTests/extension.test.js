@@ -509,6 +509,32 @@ describe("running your own clingo from PATH", () => {
         expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
     });
 
+    it("asks for the output format chosen in the settings pane", async () => {
+        runClingoPathForFileWithProgress.mockResolvedValue({ code: 10, output: "Answer: 1\na b\n", errorOutput: "" });
+
+        await runAndCapture(fakeContext({}, { outputFormat: "0" }));
+
+        expect(runClingoPathForFileWithProgress.mock.calls[0][5]).toContain("--outf=0");
+        expect(runClingoPathForFileWithProgress.mock.calls[0][5]).not.toContain("--outf=2");
+    });
+
+    it("shows what clingo printed when another format was chosen", async () => {
+        runClingoPathForFileWithProgress.mockResolvedValue({ code: 10, output: "Answer: 1\na b\nSATISFIABLE", errorOutput: "" });
+
+        const { posted } = await runAndCapture(fakeContext({}, { outputFormat: "0" }));
+
+        expect(posted.type).toEqual("updateOutputString");
+        expect(posted.answers).toContain("SATISFIABLE");
+    });
+
+    it("lets a custom argument override the chosen format rather than sending two", async () => {
+        // clingo refuses a second occurrence with "multiple occurrences: 'outf'"
+        await runAndCapture(fakeContext({}, { outputFormat: "2", customArgs: "--outf=1" }));
+
+        const sent = runClingoPathForFileWithProgress.mock.calls[0][5];
+        expect(sent.filter((argument) => argument.startsWith("--outf"))).toEqual(["--outf=1"]);
+    });
+
     it("still reports a run that failed outright", async () => {
         runClingoPathForFileWithProgress.mockResolvedValue({ code: 1, output: "", errorOutput: "syntax error" });
 

@@ -254,6 +254,37 @@ describe("raw output from your own clingo", () => {
 
         expect(panel.one(".command-details").textContent).toContain("clingo program.lp 0 --stats=2");
     });
+
+    it("gives the text the whole panel instead of a fixed twenty lines", () => {
+        // It is the only thing on screen, so leaving empty space under it wastes
+        // the panel; and a height set here could only guess at the panel's own
+        expect(panel.output().className).toContain("raw-output");
+        expect(panel.one(".output-box").style.height).toEqual("");
+    });
+
+    it("sizes it against the panel, so it follows the panel being resized", () => {
+        // jsdom does no layout, so the rule itself is what there is to check
+        const css = require("fs").readFileSync(require("path").join(__dirname, "..", "..", "media", "main.css"), "utf8");
+        const container = css.match(/\.output-container\.raw-output \{[^}]*\}/)[0];
+        const box = css.match(/\.output-container\.raw-output \.output-box \{[^}]*\}/)[0];
+
+        expect(container).toMatch(/height:\s*100vh/);
+        expect(container).toMatch(/flex-direction:\s*column/);
+        expect(box).toMatch(/flex:\s*1/);
+    });
+
+    it("goes back to scrolling with the page once there are answers again", () => {
+        show(panel, "subsets3");
+
+        expect(panel.output().className).not.toContain("raw-output");
+    });
+
+    it("does not leave the welcome screen stretched to the panel either", () => {
+        panel.click(".more-button");
+        panel.menuButtons()[2].dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+
+        expect(panel.output().className).not.toContain("raw-output");
+    });
 });
 
 describe("moving the panel to another position", () => {

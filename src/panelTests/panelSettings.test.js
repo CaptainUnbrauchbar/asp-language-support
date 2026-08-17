@@ -211,6 +211,77 @@ describe("the preview of what a run would use", () => {
     });
 });
 
+describe("a dropdown whose values need explaining", () => {
+    /** How the extension describes clingo's output formats. */
+    const OUTPUT_FORMAT = {
+        key: "outputFormat",
+        label: "Output format",
+        description: "which format to ask for",
+        type: "select",
+        options: [
+            { value: "0", label: "0 - default text" },
+            { value: "1", label: "1 - competition" },
+            { value: "2", label: "2 - JSON (recommended)" },
+            { value: "3", label: "3 - no output" },
+        ],
+    };
+
+    function paneWithFormats(selected = "2") {
+        const panel = loadPanel();
+        panel.send({
+            type: "updateSettings",
+            fields: [OUTPUT_FORMAT],
+            settings: { outputFormat: selected },
+            scope: "this workspace",
+        });
+        panel.send({ type: "toggleSettings" });
+        return panel;
+    }
+
+    it("shows what each choice means rather than a bare number", () => {
+        const panel = paneWithFormats();
+        const options = [...panel.one(".setting-select").options];
+
+        expect(options.map((option) => option.value)).toEqual(["0", "1", "2", "3"]);
+        expect(options.map((option) => option.textContent)).toContain("2 - JSON (recommended)");
+    });
+
+    it("starts on the value it was given", () => {
+        expect(paneWithFormats("2").one(".setting-select").value).toEqual("2");
+        expect(paneWithFormats("0").one(".setting-select").value).toEqual("0");
+    });
+
+    it("saves the value, not the label", async () => {
+        const panel = paneWithFormats();
+        panel.posted.length = 0;
+
+        const select = panel.one(".setting-select");
+        select.value = "1";
+        select.dispatchEvent(new window.Event("change"));
+        // Saving is debounced, so that typing does not spam the extension
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        expect(panel.posted[0].type).toEqual("saveSettings");
+        expect(panel.posted[0].settings.outputFormat).toEqual("1");
+    });
+
+    it("still renders a dropdown whose values speak for themselves", () => {
+        // Thread mode is compete or split, which need no gloss
+        const panel = loadPanel();
+        panel.send({
+            type: "updateSettings",
+            fields: [{ key: "parallelMode", label: "Thread mode", description: "how", type: "select", options: ["compete", "split"] }],
+            settings: { parallelMode: "split" },
+            scope: "",
+        });
+        panel.send({ type: "toggleSettings" });
+
+        const options = [...panel.one(".setting-select").options];
+        expect(options.map((option) => option.textContent)).toEqual(["compete", "split"]);
+        expect(panel.one(".setting-select").value).toEqual("split");
+    });
+});
+
 describe("the pane alongside a result", () => {
     it("does not disturb the answers behind it", () => {
         const panel = loadPanel();

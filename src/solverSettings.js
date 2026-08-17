@@ -25,6 +25,9 @@ const DEFAULT_SETTINGS = Object.freeze({
     parallelMode: "compete",
     stats: 0,
     verbose: 0,
+    // clingo's JSON, which is the only output the panel can read answers out of.
+    // Kept as a string because that is what a dropdown hands back.
+    outputFormat: "2",
     preProcessor: false,
     constants: "",
     additionalFiles: "",
@@ -140,15 +143,45 @@ const SETTING_FIELDS = [
         unsupportedNote: "The preprocessor emits aspif text rather than the JSON the bundled solver returns, so it only works with your own clingo from PATH.",
     },
     {
+        key: "outputFormat",
+        label: "Output format",
+        description:
+            "Which of clingo's output formats to ask for. JSON is the default because it is the only one answers can be read out of: " +
+            "the answer list, the filter, Compare answer sets, the statistics and the copy buttons all come from it. " +
+            "Choose another and the panel shows what clingo printed, as it printed it.",
+        type: "select",
+        options: [
+            { value: "0", label: "0 - default text" },
+            { value: "1", label: "1 - competition" },
+            { value: "2", label: "2 - JSON (recommended)" },
+            { value: "3", label: "3 - no output" },
+        ],
+        backends: ["path"],
+        unsupportedNote:
+            "The bundled solver exists to hand back the JSON of --outf=2 and parses whatever comes back, so a second format would break the run. " +
+            "Your own clingo from PATH can print in any of clingo's formats.",
+    },
+    {
         key: "customArgs",
         label: "Custom arguments",
         description:
             "Passed to clingo as written. The model count, --version and --help are ignored, since the extension sets them itself. " +
-            "Asking your own clingo for another output format with --outf, --text or --pre works, and its output is then shown as clingo printed it.",
+            "Some arguments are reserved because they are used elsewhere and will be ignored with a notification.",
         type: "text",
         placeholder: "--opt-strategy=usc",
     },
 ];
+
+/**
+ * The values a dropdown accepts. Options are plain strings where the value reads
+ * well on its own, and {value, label} pairs where it does not: nobody can be
+ * expected to know what clingo's output format 1 is without being told.
+ * @param {Object} field
+ * @returns {String[]}
+ */
+function optionValues(field) {
+    return (field.options ?? []).map((option) => (typeof option === "string" ? option : option.value));
+}
 
 /**
  * Fills in anything missing and coerces the types, so a stored object from an
@@ -166,7 +199,10 @@ function normalizeSettings(raw) {
         } else if (field.type === "boolean") {
             settings[field.key] = !!value;
         } else if (field.type === "select") {
-            settings[field.key] = field.options.includes(value) ? value : DEFAULT_SETTINGS[field.key];
+            // Compared as a string so a config that writes the output format as
+            // the number it looks like is still understood
+            const asText = value === undefined || value === null ? "" : String(value);
+            settings[field.key] = optionValues(field).includes(asText) ? asText : DEFAULT_SETTINGS[field.key];
         } else {
             settings[field.key] = String(value ?? "");
         }
@@ -249,6 +285,10 @@ function settingsToArgs(raw, baseDirectory, filterCustomArgs = () => [], backend
     // "models" is deliberately absent: clingo takes the model count as a bare
     // positional argument, not as an option, and both solvers are handed it
     // separately. Emitting --models here would give clingo two of them.
+    //
+    // "outputFormat" is absent for the same kind of reason: the bundled solver
+    // supplies its own --outf=2 and would end up with two, so the option is added
+    // for your own clingo alone, where the run is assembled.
 
     // The bundled solver accepts --time-limit and then ignores it, so the run is
     // stopped from the extension instead. The option still travels with the run,
@@ -302,6 +342,7 @@ function configToSettings(config) {
         parallelMode: args.parallelMode?.mode,
         stats: args.stats,
         verbose: args.verboseMode,
+        outputFormat: args.outputFormat,
         preProcessor: args.preProcessor,
         constants: (args.constants ?? []).join(", "),
         additionalFiles: (config?.additionalFiles ?? []).join(", "),
@@ -347,6 +388,9 @@ function settingsToConfig(raw) {
             },
             stats: settings.stats,
             verboseMode: settings.verbose,
+            // Written as the number clingo takes, since a config is read by
+            // people as well as by this extension
+            outputFormat: Number(settings.outputFormat),
             preProcessor: settings.preProcessor,
             constants: splitList(settings.constants),
             customArgs: settings.customArgs,
@@ -361,6 +405,7 @@ module.exports = {
     EXPORT_DESCRIPTION,
     describeFields,
     normalizeSettings,
+    optionValues,
     settingsToArgs,
     configToSettings,
     settingsToConfig,
