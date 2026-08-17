@@ -56,8 +56,8 @@ function isClingoProcessRunning() {
  * @param {Number} models Number of models
  * @param {String[]} options Array of options to be passed to Clingo
  * @param {*} token Optional vscode CancellationToken used to stop the run
- * @returns {Promise<{code: Number, output: String, errorOutput: String, stopped: Boolean,
- *          seconds: Number, witnesses: String[][], totalWitnesses: Number}>}
+ * @returns {Promise<{code: Number, signal: String | null, output: String, errorOutput: String,
+ *          stopped: Boolean, seconds: Number, witnesses: String[][], totalWitnesses: Number}>}
  *          Always resolves. A run that failed to start or was stopped is an
  *          outcome the caller reports, and a promise that never settled would
  *          leave the extension believing a solve is still in flight and refuse
@@ -158,9 +158,14 @@ async function runClingoPathForFileWithProgress(
             finish({ code: -1, output, errorOutput: errorOutput || String(error?.message ?? error), stopped });
         });
 
-        child.on("close", (code) => {
+        // "close" rather than "exit": it fires once the output streams have
+        // ended too, so nothing clingo printed on its way out is missed. The
+        // signal is carried along because a process killed by one reports no
+        // exit code at all, and a solver that crashed should say so rather than
+        // being reported as having exited with code null.
+        child.on("close", (code, signal) => {
             progress.report({ increment: 100, message: stopped ? "Clingo stopped." : "Clingo finished." });
-            finish({ code, output, errorOutput, stopped });
+            finish({ code, signal, output, errorOutput, stopped });
         });
     });
 }

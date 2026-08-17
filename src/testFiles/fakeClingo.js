@@ -41,6 +41,14 @@ if (mode === "json") {
 } else if (mode === "fail") {
     process.stderr.write("syntax error, unexpected EOF\n");
     process.exit(1);
+} else if (mode === "pre") {
+    // What "Preprocess only" does: prints the program in aspif and exits 0,
+    // having performed no search at all
+    process.stdout.write("asp 1 0 0\n1 0 1 1 0 0\n0\n");
+    process.exit(0);
+} else if (mode === "quiet-failure") {
+    // Fails without explaining itself, which is where an empty message came from
+    process.exit(65);
 } else if (mode === "args") {
     // Echoes the program it was pointed at and everything after it, so the tests
     // can see that each argument arrived whole rather than re-split by a shell

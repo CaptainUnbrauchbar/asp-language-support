@@ -146,9 +146,9 @@ const SETTING_FIELDS = [
         key: "outputFormat",
         label: "Output format",
         description:
-            "Which of clingo's output formats to ask for. JSON is the default because it is the only one answers can be read out of: " +
-            "the answer list, the filter, Compare answer sets, the statistics and the copy buttons all come from it. " +
-            "Choose another and the panel shows what clingo printed, as it printed it.",
+            "Which of clingo's output formats to ask for. JSON is default because it is the only one directly usable by this extension: " +
+            "Live model count tracking during computation, answer formatting, search/filter, comparing answer sets, statistics and copy buttons all only work on JSON output. " +
+            "Choose another and the panel shows plain unformatted clingo output.",
         type: "select",
         options: [
             { value: "0", label: "0 - default text" },

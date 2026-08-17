@@ -70,8 +70,6 @@ This extension contributes the following features:
 
 Click the gear in the ASP panel's toolbar, next to the run buttons, to set how many answer sets to compute, time limits, parallel solving, constants, extra files and custom clingo arguments. The settings are kept per workspace and are used by `Compute all Answer Sets` and `Compute the first Answer Set`, so no config file is needed for the usual case.
 
-The pane shows the **command line** your settings add up to, updated as you edit them, so a setting's effect is visible before anything is run. With the bundled solver it names the files an `#include` pulls in as well, since those are merged into the program before it is solved; your own clingo reads them itself and is only handed the file.
-
 Not every clingo option survives being compiled to WebAssembly. Settings the bundled solver cannot honour are greyed out and say which solver they need, rather than being offered and then quietly ignored — switch on `ASPLanguage: Use PATH Clingo` and they become available again.
 
 Two settings work differently than you might expect. The **time limit** is enforced by the extension rather than by clingo, whose own is inert under WebAssembly: the run is stopped and the answers found up to that point are kept. **Parallel solving** does work with the bundled solver, but only pays off on programs that take seconds rather than milliseconds — use four threads or more, and `split` mode when enumerating many answers.

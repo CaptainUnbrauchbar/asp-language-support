@@ -171,8 +171,7 @@ describe("the settings pane", () => {
             reset: jest.fn(async () => {}),
             importFromConfig: jest.fn(async () => {}),
             exportToConfig: jest.fn(async () => {}),
-            previewCommand: jest.fn(() => "clingo --outf=2 program.lp 0"),
-            describe: () => ({ fields: [], settings: {}, backend: "wasm", scope: "", command: "clingo --outf=2 program.lp 0" }),
+            describe: () => ({ fields: [], settings: {}, backend: "wasm", scope: "" }),
         };
     }
 
@@ -227,29 +226,6 @@ describe("the settings pane", () => {
 
         await expect(view.handler({ type: "exportConfig" })).resolves.not.toThrow();
         await expect(view.handler({ type: "saveSettings", settings: {} })).resolves.not.toThrow();
-    });
-
-    it("shows what a run would invoke, and keeps it current as fields are edited", () => {
-        const view = fakeView();
-        new WebviewProvider({ path: "/ext" }, fakeStore()).resolveWebviewView(view, {}, {});
-
-        expect(view.webview.html).toContain("settings-command");
-        expect(view.webview.html).toContain("will run");
-    });
-
-    it("refreshes only the preview after an edit, never the fields", async () => {
-        const { view, store } = paneWithStore();
-        view.webview.postMessage.mockClear();
-
-        await view.handler({ type: "saveSettings", settings: { timeLimit: 30 } });
-
-        // Resending the settings would rebuild the very field being typed into
-        expect(store.save).toHaveBeenCalledWith({ timeLimit: 30 });
-        expect(view.webview.postMessage).toHaveBeenCalledTimes(1);
-        expect(view.webview.postMessage).toHaveBeenCalledWith({
-            type: "commandPreview",
-            command: "clingo --outf=2 program.lp 0",
-        });
     });
 
     it("copies a command line through VSCode rather than the webview clipboard", async () => {

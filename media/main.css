@@ -306,7 +306,6 @@ body {
    leftover room is shared by both sides rather than piling up on the right */
 .settings-intro,
 .settings-body,
-.settings-preview,
 .settings-actions {
     max-width: 58em;
     margin-inline: auto;
@@ -478,41 +477,6 @@ body {
         max-width: 100%;
         width: 100%;
     }
-}
-
-/* The options above are edited one field at a time, which says nothing about
-   what they add up to. The line they produce does, and sits where it can be
-   watched changing while the fields are edited. */
-.settings-preview {
-    margin-top: 1.2em;
-    padding-top: 0.9em;
-    border-top: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
-}
-
-.settings-preview-label {
-    margin-bottom: 0.35em;
-    font-size: 0.9em;
-    color: var(--vscode-descriptionForeground);
-}
-
-.settings-preview-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5em;
-    padding: 0.6em 0.8em;
-    background-color: var(--vscode-textCodeBlock-background, var(--vscode-input-background));
-    border-radius: 2px;
-}
-
-.settings-command {
-    flex: 1 1 auto;
-    min-width: 0;
-    font-family: var(--vscode-editor-font-family);
-    font-size: var(--vscode-editor-font-size);
-    color: var(--vscode-foreground);
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    user-select: text;
 }
 
 .settings-actions {

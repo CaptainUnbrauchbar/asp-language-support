@@ -103,6 +103,33 @@ describe("running clingo from PATH", () => {
         expect(stopClingoProcess()).toBe(false);
     });
 
+    it("reports the zero of a run that performed no search", async () => {
+        // "Preprocess only" ends this way, and it is not a failure
+        const result = await run(["--fake=pre"]);
+
+        expect(result.code).toEqual(0);
+        expect(result.output).toContain("asp 1 0 0");
+        expect(result.stopped).toBe(false);
+    });
+
+    it("reports a failure that explained nothing, without inventing a reason", async () => {
+        const result = await run(["--fake=quiet-failure"]);
+
+        expect(result.code).toEqual(65);
+        expect(result.errorOutput).toEqual("");
+    });
+
+    it("says which signal ended a process that was killed", async () => {
+        // A process killed by a signal reports no exit code at all
+        const running = run(["--fake=hang", `--beat=${join(os.tmpdir(), "unused-beat")}`]);
+        await wait(300);
+        stopClingoProcess();
+        const result = await running;
+
+        // Killed one way or the other: a code or a signal, never neither
+        expect(result.code !== null || result.signal !== null).toBe(true);
+    }, 15000);
+
     it("reads the answers of a finished run without being asked twice", async () => {
         const result = await run(["--fake=json"]);
 

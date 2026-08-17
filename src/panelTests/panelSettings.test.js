@@ -175,42 +175,6 @@ describe("the pane's actions", () => {
     });
 });
 
-describe("the preview of what a run would use", () => {
-    it("shows the line the extension worked out", () => {
-        const panel = panelWithSettings({ command: "clingo --outf=2 a.lp 0" });
-
-        expect(panel.text(".settings-command")).toEqual("clingo --outf=2 a.lp 0");
-    });
-
-    it("follows an edit without the fields being rebuilt underneath", () => {
-        // A full redraw while someone is typing rebuilds the field under the cursor
-        const panel = panelWithSettings({ command: "clingo --outf=2 a.lp 0" });
-        const before = panel.settingRows()[0];
-
-        panel.send({ type: "commandPreview", command: "clingo --outf=2 --time-limit=30 a.lp 0" });
-
-        expect(panel.text(".settings-command")).toEqual("clingo --outf=2 --time-limit=30 a.lp 0");
-        expect(panel.settingRows()[0]).toBe(before);
-    });
-
-    it("is left alone by a settings message that carries no command", () => {
-        const panel = panelWithSettings({ command: "clingo --outf=2 a.lp 0" });
-
-        panel.send({ type: "updateSettings", fields: AS_WASM, settings: { ...VALUES }, scope: "this workspace" });
-
-        expect(panel.text(".settings-command")).toEqual("clingo --outf=2 a.lp 0");
-    });
-
-    it("can be copied through the extension", () => {
-        const panel = panelWithSettings({ command: "clingo --outf=2 a.lp 0" });
-        panel.posted.length = 0;
-
-        panel.click(".settings-command-copy");
-
-        expect(panel.posted[0]).toEqual({ type: "copyText", text: "clingo --outf=2 a.lp 0" });
-    });
-});
-
 describe("a dropdown whose values need explaining", () => {
     /** How the extension describes clingo's output formats. */
     const OUTPUT_FORMAT = {

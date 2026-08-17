@@ -35,17 +35,45 @@ const DEFAULT_CONFIG_NAME = "config.json";
  */
 const MAX_RAW_OUTPUT_CHARS = 200000;
 
-/**
- * settingsToArgs quotes file paths for the command line they end up on. Declared
- * out here rather than inside activate(), where anything read before its own
- * declaration has run is a ReferenceError waiting for the right editor to be open.
- */
-const unquote = (value) => String(value).replace(/^"|"$/g, "");
 
-//E_SAT       = 10, !< At least one model was found.
-//E_EXHAUST   = 20, !< Search-space was completely examined.
-//E_SAT & E_EXHAUST = 30
-const CLINGO_SUCCESS_CODES = [10, 20, 30];
+/**
+ * Exit codes that are not a failure, measured against the bundled clingo:
+ *   0  no search was performed, which is how --pre and friends finish. It is
+ *      clasp's E_UNKNOWN, and leaving it out turned a successful preprocessing
+ *      run into "Clingo process exited with code 0:" and nothing after the colon
+ *   10 E_SAT, at least one model was found
+ *   20 E_EXHAUST, the search space was examined completely
+ *   30 both of the above, the ordinary end of a satisfiable run
+ */
+const CLINGO_SUCCESS_CODES = [0, 10, 20, 30];
+
+/**
+ * What the exit codes that are failures mean, where the number alone says
+ * nothing. Anything else is left to whatever clingo wrote, which is more use
+ * than a name invented here.
+ */
+const CLINGO_EXIT_REASONS = Object.freeze({
+    1: "bad argument or interrupted",
+    33: "out of memory",
+    128: "clingo did not run",
+});
+
+/**
+ * Explains a run that failed, in the terms clingo left behind.
+ *
+ * A process killed by a signal reports no exit code at all, and saying "exited
+ * with code null" of a solver that segfaulted helps nobody. Diagnostics are
+ * taken from stderr, or from stdout when clingo put them there, and the message
+ * stops rather than trailing off after a colon when there are none.
+ * @param {{code: Number, signal?: String, errorOutput?: String, output?: String}} result
+ * @returns {String}
+ */
+function clingoFailureMessage({ code, signal, errorOutput, output }) {
+    const named = CLINGO_EXIT_REASONS[code];
+    const ending = signal ? `was stopped by ${signal}` : `exited with code ${code}${named ? ` (${named})` : ""}`;
+    const detail = String(errorOutput || output || "").trim();
+    return detail ? `Clingo ${ending}: ${detail}` : `Clingo ${ending} and reported nothing.`;
+}
 
 /**
  * Main program. Activates the extension.
@@ -84,10 +112,7 @@ function activate(context) {
             settings: settingsStore.read(),
             backend: currentBackend(),
             scope: 'Used by "Compute all/first Answer Sets" in this workspace.',
-            command: previewCommand(),
         }),
-        /** Just the command line, for redrawing the preview without the pane. */
-        previewCommand,
         /** Fills the pane from an existing config.json so nobody has to retype it. */
         importFromConfig: async () => {
             const editor = vscode.window.activeTextEditor;
@@ -317,57 +342,23 @@ function activate(context) {
     }
 
     /**
-     * The command the settings as they stand would produce, for the pane to show
-     * before anything is run.
+     * Every file that makes up the program, for the command line to name.
      *
-     * It describes "Compute all Answer Sets", the run the model limit applies to.
-     * The file is whichever ASP file is open, or a stand in, since the settings
-     * belong to the workspace rather than to one program.
-     * @returns {String}
-     */
-    function previewCommand() {
-        const editor = vscode.window.activeTextEditor;
-        const openFile = editor?.document.languageId === "asp" ? editor.document.fileName : "program.lp";
-        const backend = currentBackend();
-        const args = solverArgsFromSettings(true);
-
-        // The bundled solver is handed extra files as part of the program rather
-        // than as arguments, which is the split its runner makes too. Doing the
-        // same here keeps the preview and the line a run reports identical.
-        const extraFiles = backend === "wasm" ? args.filter((arg) => !arg.startsWith("-")).map(unquote) : [];
-        const options = backend === "wasm" ? args.filter((arg) => arg.startsWith("-")) : pathRunOptions(args);
-        const programs = [openFile, ...extraFiles].flatMap((file) => contributingFiles(file, backend));
-
-        return formatClingoCommand({
-            // One file reached two ways is still one file on the line
-            programs: [...new Set(programs)],
-            models: settingsStore.read().models,
-            options,
-            backend,
-        });
-    }
-
-    /**
-     * Every file that would end up in the program, for the preview to name.
-     *
-     * Your own clingo reads `#include` itself, so the one file it is given is
-     * the whole story there. The bundled solver has no filesystem to read from,
-     * so the extension inlines the includes before the run and a line naming
-     * only the file that was opened would hide the rules doing the work.
+     * The bundled solver has no filesystem, so the extension resolves `#include`
+     * itself and hands over one merged program. Your own clingo resolves them on
+     * its own and only ever sees the file it was given. Either way the rules that
+     * did the work came from those files, and a line naming only the one that was
+     * open hides where they came from, which is the question the line is read to
+     * answer.
      * @param {String} file
-     * @param {String} backend
      * @returns {String[]}
      */
-    function contributingFiles(file, backend) {
-        if (backend !== "wasm") {
-            return [file];
-        }
+    function programFilesFor(file) {
         try {
             const resolved = resolveIncludes(file, (path) => fs.readFileSync(path, "utf8"));
             return resolved.files.length ? resolved.files : [file];
         } catch {
-            // Unsaved, unreadable, or the stand in name used when nothing is
-            // open. The file on its own still says more than nothing.
+            // Unsaved or unreadable. The file on its own still says more than nothing.
             return [file];
         }
     }
@@ -425,13 +416,11 @@ function activate(context) {
         // worth more than a complaint about the exit code of a process the user
         // ended on purpose.
         if (!clingoResult.stopped && !CLINGO_SUCCESS_CODES.includes(clingoResult.code)) {
-            vscode.window.showErrorMessage(`Clingo process exited with code ${clingoResult.code}: ${clingoResult.errorOutput}`);
+            vscode.window.showErrorMessage(clingoFailureMessage(clingoResult));
             return;
         }
 
-        // Your own clingo is spawned with exactly these, so the line the panel
-        // shows is the one that ran
-        const command = formatClingoCommand({ programs: [filePath], models, options, backend: "path" });
+        const command = formatClingoCommand({ programs: programFilesFor(filePath), models, options, backend: "path" });
         const parsed = parseClingoOutput(clingoResult.output, clingoResult.errorOutput);
 
         if (!parsed) {

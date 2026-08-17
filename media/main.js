@@ -23,8 +23,6 @@
     const settingsImport = document.querySelector(".settings-import");
     const settingsExport = document.querySelector(".settings-export");
     const settingsReset = document.querySelector(".settings-reset");
-    const settingsCommand = document.querySelector(".settings-command");
-    const settingsCommandCopy = document.querySelector(".settings-command-copy");
     const settingsClose = document.querySelector(".settings-close");
     const moreButton = document.querySelector(".more-button");
     const menu = document.querySelector(".menu");
@@ -71,15 +69,9 @@
             settingFields = message.fields ?? settingFields;
             settings = message.settings ?? {};
             settingsScope.textContent = message.scope ?? "";
-            showCommandPreview(message.command);
             if (settingsOpen) {
                 renderSettings();
             }
-        }
-        if (message.type === "commandPreview") {
-            // Sent on its own after every edit, so the line can follow the
-            // settings without the pane being rebuilt around the cursor
-            showCommandPreview(message.command);
         }
     });
 
@@ -260,29 +252,6 @@
             renderSettings();
         }
     }
-
-    /**
-     * Shows what a run with the current settings would invoke. Options come from
-     * a pane, a text field and a config file between them, so the one line that
-     * says what clingo will actually be asked is worth having in front of you
-     * while you edit them.
-     * @param {String} [command]
-     */
-    function showCommandPreview(command) {
-        if (command === undefined) {
-            return;
-        }
-        settingsCommand.textContent = command;
-        settingsCommandCopy.disabled = !command;
-    }
-
-    settingsCommandCopy.addEventListener("click", () => {
-        vscode.postMessage({ type: "copyText", text: settingsCommand.textContent });
-        const icon = settingsCommandCopy.children[0];
-        if (icon) {
-            flashCopied(icon);
-        }
-    });
 
     settingsClose.addEventListener("click", () => toggleSettings(false));
     settingsImport.addEventListener("click", () => vscode.postMessage({ type: "importConfig" }));

@@ -298,106 +298,6 @@ describe("exporting the solver settings", () => {
     });
 });
 
-describe("the command a run would use", () => {
-    const { join } = require("path");
-    const testFile = (name) => join(__dirname, "..", "testFiles", name);
-
-    /** The settings pane's own store, which activate() hands to the panel. */
-    function storeFrom(context) {
-        activate(context);
-        return vscode.window.registerWebviewViewProvider.mock.calls[0][1]._settingsStore;
-    }
-
-    /** Puts an ASP file in front of the extension, the way an open editor does. */
-    function open(name) {
-        const document = { languageId: "asp", fileName: testFile(name), uri: { fsPath: testFile(name) } };
-        vscode.window.activeTextEditor = { document };
-        vscode.workspace.textDocuments = [document];
-    }
-
-    beforeEach(() => {
-        jest.clearAllMocks();
-        Object.values(listeners).forEach((list) => (list.length = 0));
-        configuration.usePathClingo = false;
-        configuration.setConfig = "";
-        vscode.window.activeTextEditor = undefined;
-        vscode.workspace.textDocuments = [];
-    });
-
-    it("turns the settings into the line a run would invoke", () => {
-        open("ex01.lp");
-
-        expect(storeFrom(fakeContext({}, { timeLimit: 30, constants: "n=3", models: 5 })).previewCommand()).toEqual(
-            "clingo --outf=2 --time-limit=30 --const n=3 ex01.lp 5"
-        );
-    });
-
-    it("names the files an #include would pull in", () => {
-        // The bundled solver has no filesystem, so the extension inlines the
-        // includes: a line naming only the open file hides where the rules came
-        // from, which is exactly what it is being read to find out
-        open("withInclude.lp");
-
-        expect(storeFrom(fakeContext()).previewCommand()).toEqual("clingo --outf=2 withInclude.lp ex01.lp 0");
-    });
-
-    it("leaves includes to your own clingo, which reads them itself", () => {
-        // The binary is handed the file and resolves #include on its own, so
-        // listing the included files would describe a command nobody ran
-        configuration.usePathClingo = true;
-        open("withInclude.lp");
-
-        expect(storeFrom(fakeContext()).previewCommand()).toEqual("clingo withInclude.lp 0 --outf=2");
-    });
-
-    it("shows that your own clingo is asked for the same JSON as the bundled one", () => {
-        // Which is what gets a run from PATH the whole panel rather than a wall
-        // of text, so the preview has to admit to it
-        configuration.usePathClingo = true;
-        open("ex01.lp");
-
-        expect(storeFrom(fakeContext()).previewCommand()).toContain("--outf=2");
-    });
-
-    it("stops asking for JSON once a custom argument picks a format", () => {
-        configuration.usePathClingo = true;
-        open("ex01.lp");
-
-        const command = storeFrom(fakeContext({}, { customArgs: "--text" })).previewCommand();
-
-        expect(command).toContain("--text");
-        expect(command).not.toContain("--outf=2");
-    });
-
-    it("describes the run the model limit applies to", () => {
-        // The pane says "Compute all Answer Sets", which is the run capped by
-        // the limit; computing the first always asks for one
-        open("ex01.lp");
-
-        expect(storeFrom(fakeContext({}, { models: 3 })).previewCommand()).toContain(" 3");
-    });
-
-    it("still says something with no file open", () => {
-        expect(storeFrom(fakeContext()).previewCommand()).toEqual("clingo --outf=2 program.lp 0");
-    });
-
-    it("keeps quiet about arguments it drops while previewing", () => {
-        // The preview is rebuilt after every keystroke, so a warning per stroke
-        // would bury the panel. A real run still reports them.
-        open("ex01.lp");
-
-        storeFrom(fakeContext({}, { customArgs: "--outf=3" })).previewCommand();
-
-        expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
-    });
-
-    it("is offered to the panel along with the settings", () => {
-        open("ex01.lp");
-
-        expect(storeFrom(fakeContext()).describe().command).toContain("clingo");
-    });
-});
-
 describe("running your own clingo from PATH", () => {
     const { join } = require("path");
     const program = { languageId: "asp", fileName: join(__dirname, "..", "testFiles", "ex01.lp"), uri: {} };
@@ -470,6 +370,19 @@ describe("running your own clingo from PATH", () => {
         expect(posted.answers.command).toContain("ex01.lp");
     });
 
+    it("names the files an #include pulled in, the same as the bundled solver", async () => {
+        // The rules that did the work came from those files whichever solver ran,
+        // and a line naming only the file that was open hides where they came
+        // from, which is the question the line is read to answer
+        const withInclude = { languageId: "asp", fileName: join(__dirname, "..", "testFiles", "withInclude.lp"), uri: {} };
+        vscode.window.activeTextEditor = { document: withInclude };
+        vscode.workspace.textDocuments = [withInclude];
+
+        const { posted } = await runAndCapture();
+
+        expect(posted.answers.command).toEqual("clingo withInclude.lp ex01.lp 0 --outf=2");
+    });
+
     it("carries clingo's warnings across from stderr", async () => {
         runClingoPathForFileWithProgress.mockResolvedValue({
             code: 10,
@@ -536,11 +449,100 @@ describe("running your own clingo from PATH", () => {
     });
 
     it("still reports a run that failed outright", async () => {
-        runClingoPathForFileWithProgress.mockResolvedValue({ code: 1, output: "", errorOutput: "syntax error" });
+        runClingoPathForFileWithProgress.mockResolvedValue({ code: 65, output: "", errorOutput: "syntax error" });
 
         await runAndCapture();
 
         expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining("syntax error"));
+    });
+});
+
+describe("how a run from PATH ends", () => {
+    const { join } = require("path");
+    const program = { languageId: "asp", fileName: join(__dirname, "..", "testFiles", "ex01.lp"), uri: {} };
+
+    async function runAndCapture(context = fakeContext()) {
+        activate(context);
+        const provider = vscode.window.registerWebviewViewProvider.mock.calls[0][1];
+        const run = vscode.commands.registerCommand.mock.calls.find((call) => call[0].endsWith(".runinterminalall"))[1];
+        await run();
+        return { provider, posted: provider._lastMessage };
+    }
+
+    const failureMessage = () => vscode.window.showErrorMessage.mock.calls[0]?.[0];
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        Object.values(listeners).forEach((list) => (list.length = 0));
+        configuration.usePathClingo = true;
+        configuration.setConfig = "";
+        vscode.window.activeTextEditor = { document: program };
+        vscode.workspace.textDocuments = [program];
+    });
+
+    afterEach(() => {
+        configuration.usePathClingo = false;
+    });
+
+    it("treats a run that performed no search as the success it is", async () => {
+        // Which is how "Preprocess only" finishes: clingo exits 0 having printed
+        // the program in aspif rather than solving it. Calling that a failure
+        // put an error on screen with nothing after the colon.
+        runClingoPathForFileWithProgress.mockResolvedValue({
+            code: 0,
+            output: "asp 1 0 0\n1 0 1 1 0 0\n0\n",
+            errorOutput: "",
+        });
+
+        const { posted } = await runAndCapture(fakeContext({}, { preProcessor: true }));
+
+        expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+        expect(posted.type).toEqual("updateOutputString");
+        expect(posted.answers).toContain("asp 1 0 0");
+    });
+
+    it("names what an exit code means where the number says nothing", async () => {
+        runClingoPathForFileWithProgress.mockResolvedValue({ code: 33, output: "", errorOutput: "" });
+
+        await runAndCapture();
+
+        expect(failureMessage()).toContain("out of memory");
+    });
+
+    it("says a solver was stopped by a signal rather than blaming a missing code", async () => {
+        // A process killed by one reports no exit code at all, and "exited with
+        // code null" of a solver that crashed helps nobody
+        runClingoPathForFileWithProgress.mockResolvedValue({ code: null, signal: "SIGSEGV", output: "", errorOutput: "" });
+
+        await runAndCapture();
+
+        expect(failureMessage()).toContain("SIGSEGV");
+        expect(failureMessage()).not.toContain("null");
+    });
+
+    it("stops rather than trailing off when clingo explained nothing", async () => {
+        runClingoPathForFileWithProgress.mockResolvedValue({ code: 65, output: "", errorOutput: "" });
+
+        await runAndCapture();
+
+        expect(failureMessage()).not.toMatch(/:\s*$/);
+        expect(failureMessage()).toContain("reported nothing");
+    });
+
+    it("reads the diagnostics off stdout when that is where clingo put them", async () => {
+        runClingoPathForFileWithProgress.mockResolvedValue({ code: 65, output: "*** ERROR: unexpected end of file", errorOutput: "" });
+
+        await runAndCapture();
+
+        expect(failureMessage()).toContain("unexpected end of file");
+    });
+
+    it("prefers what clingo wrote to stderr when it wrote to both", async () => {
+        runClingoPathForFileWithProgress.mockResolvedValue({ code: 65, output: "some models", errorOutput: "the real problem" });
+
+        await runAndCapture();
+
+        expect(failureMessage()).toContain("the real problem");
     });
 });
 
