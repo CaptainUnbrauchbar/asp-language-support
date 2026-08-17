@@ -63,7 +63,7 @@ function grownTo(result, total) {
  */
 function loadPanel({ state = undefined } = {}) {
     // Required through the registry so the vscode mock a test installed applies
-    const { WebviewProvider } = require("../webviewProvider.js");
+    const { WebviewProvider, PANEL_SCRIPTS } = require("../webviewProvider.js");
 
     /** @type {Object[]} */
     const posted = [];
@@ -87,8 +87,11 @@ function loadPanel({ state = undefined } = {}) {
         getState: () => webviewState,
     });
 
+    // The same scripts the HTML above loads, in the same order, so the panel is
+    // assembled here exactly as VSCode assembles it. Resetting the registry
+    // first re-runs all of them, which is what gives each test a fresh panel.
     jest.resetModules();
-    require("../../media/main.js");
+    PANEL_SCRIPTS.forEach((name) => require(`../../media/${name}`));
 
     const one = (selector) => document.querySelector(selector);
     const all = (selector) => [...document.querySelectorAll(selector)];

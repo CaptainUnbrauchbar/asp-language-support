@@ -2,6 +2,28 @@ const vscode = require("vscode");
 const crypto = require("crypto");
 
 /**
+ * The panel's scripts, relative to media/ and in the order they have to load.
+ *
+ * They meet on a single AspPanel object rather than going through a bundler, so
+ * panel/core.js has to be first: it builds that object, and main.js is last
+ * because it drives what the others put on it.
+ *
+ * Listed here rather than in the HTML because the panel tests load exactly this
+ * list, so a script that is renamed or added cannot end up in one place and not
+ * the other.
+ */
+const PANEL_SCRIPTS = [
+    "panel/core.js",
+    "panel/dom.js",
+    "panel/stats.js",
+    "panel/answers.js",
+    "panel/settings.js",
+    "panel/menu.js",
+    "panel/render.js",
+    "main.js",
+];
+
+/**
  * WebviewProvider class to manage the webview for the ASP extension.
  */
 class WebviewProvider {
@@ -118,10 +140,6 @@ class WebviewProvider {
                     await this._settingsStore?.exportToConfig();
                     break;
                 }
-                case "colorSelected": {
-                    vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`#${data.value}`));
-                    break;
-                }
                 case "copyAnswer": {
                     const answer = this._answers[data.index];
                     if (answer) {
@@ -175,8 +193,6 @@ class WebviewProvider {
      * @returns
      */
     _getHtmlForWebview(webview) {
-        // Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
-        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "main.js"));
         // Do the same for the stylesheet.
         const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "vscode.css"));
         const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "main.css"));
@@ -190,6 +206,13 @@ class WebviewProvider {
             : "the bundled WASM Clingo Solver";
         // Use a nonce to only allow a specific script to be run.
         const nonce = this._getNonce();
+        // One tag per panel script, in load order. Every one carries the nonce,
+        // which is what the content security policy admits them by, so splitting
+        // the panel up needs no change to that policy.
+        const scriptTags = PANEL_SCRIPTS.map((name) => {
+            const uri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", ...name.split("/")));
+            return `<script nonce="${nonce}" src="${uri}"></script>`;
+        }).join("\n\t\t\t");
         return `<!DOCTYPE html>
 			<html lang="en">
 			<head>
@@ -256,7 +279,7 @@ Using ${clingoSolver}.
 > Click the copy icon next to an answer to copy it to the clipboard.
 > Once you have results, use the filter box to narrow them down.</textarea>
             </div>
-				<script nonce="${nonce}" src="${scriptUri}"></script>
+			${scriptTags}
 			</body>
 			</html>`;
     }
@@ -267,3 +290,4 @@ Using ${clingoSolver}.
 }
 
 exports.WebviewProvider = WebviewProvider;
+exports.PANEL_SCRIPTS = PANEL_SCRIPTS;
