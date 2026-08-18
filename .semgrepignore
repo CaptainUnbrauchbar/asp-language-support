@@ -1,0 +1,16 @@
+# Semgrep drops its built-in ignore list as soon as this file exists, so the
+# parts of it that matter here are spelled out again.
+:include .gitignore
+
+.git/
+
+# Test code, which is not part of the shipped extension.
+#
+# The path-traversal rule fires on join(__dirname, ...) in the fixture loaders
+# and on paths built from literals such as join("/work", name); the ajv rule
+# fires on validating fixture configs against the real schema, which is what
+# keeps the tests from drifting away from it. Neither reads reachable input.
+src/unitTests/
+src/panelTests/
+src/integrationTests/
+src/testFiles/

@@ -11,6 +11,7 @@ const { formatWasmResult, parseClingoOutput, extractAnswers, partialResultFromMo
 const { ClingoStatusBar, parseClingoVersion, shouldShowStatusBar } = require("./statusBar.js");
 const { formatClingoCommand } = require("./clingoCommand.js");
 const { resolveIncludes } = require("./resolveIncludes.js");
+const { workspaceRootFor } = require("./workspaceRoot.js");
 const { showReleaseNote, RELEASE_NOTE_KEY } = require("./releaseNote.js");
 const {
     DEFAULT_SETTINGS,
@@ -281,7 +282,11 @@ function activate(context) {
      */
     function programFilesFor(file) {
         try {
-            const resolved = resolveIncludes(file, (path) => fs.readFileSync(path, "utf8"));
+            const resolved = resolveIncludes(
+                file,
+                (path) => fs.readFileSync(path, "utf8"),
+                workspaceRootFor(vscode, file)
+            );
             return resolved.files.length ? resolved.files : [file];
         } catch {
             // Unsaved or unreadable. The file on its own still says more than nothing.

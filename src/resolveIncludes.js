@@ -9,6 +9,10 @@
  *
  * `#include <incmode>` and friends are left untouched: those are built into
  * clingo and resolve without a filesystem.
+ *
+ * Includes may not reach outside the root directory. A `.lp` file is program
+ * text that arrives with a cloned project, and an `#include "../../../.ssh/id_rsa".`
+ * would otherwise be inlined into the program and shown back in the panel.
  */
 const { dirname, isAbsolute, join, relative, resolve, sep } = require("path");
 
@@ -42,15 +46,30 @@ function displayNameOf(path, entryDirectory) {
  * @property {{file: String, line: Number}[]} lineMap One entry per line of `program`
  * @property {String[]} files Every file that contributed, entry point first
  * @property {String[]} errors Includes that could not be read
+ * @property {String[]} blocked Includes that pointed outside the root directory
  */
+
+/**
+ * Whether `path` is `root` or sits below it.
+ * @param {String} root
+ * @param {String} path
+ * @returns {Boolean}
+ */
+function isInside(root, path) {
+    const inside = relative(root, resolve(path));
+    return !inside || (!inside.startsWith(`..${sep}`) && inside !== ".." && !isAbsolute(inside));
+}
 
 /**
  * @param {String} entryPath Absolute path of the file being solved
  * @param {(path: String) => String} readFile Reads a file, throws if it cannot
+ * @param {String} [rootDirectory] Includes may not reach outside this directory.
+ *        Defaults to the entry point's own directory.
  * @returns {ResolvedProgram}
  */
-function resolveIncludes(entryPath, readFile) {
+function resolveIncludes(entryPath, readFile, rootDirectory = undefined) {
     const entryDirectory = dirname(resolve(entryPath));
+    const root = resolve(rootDirectory ?? entryDirectory);
     /** @type {String[]} */
     const lines = [];
     /** @type {{file: String, line: Number}[]} */
@@ -59,6 +78,8 @@ function resolveIncludes(entryPath, readFile) {
     const files = [];
     /** @type {String[]} */
     const errors = [];
+    /** @type {String[]} */
+    const blocked = [];
     const included = new Set();
 
     /**
@@ -88,6 +109,12 @@ function resolveIncludes(entryPath, readFile) {
             const include = line.match(FILE_INCLUDE);
             if (include) {
                 const target = isAbsolute(include[1]) ? include[1] : join(dirname(path), include[1]);
+                // Reported rather than dropped, so a legitimate include that sits
+                // outside the workspace says why it did not arrive
+                if (!isInside(root, target)) {
+                    blocked.push(include[1]);
+                    return;
+                }
                 inline(target, [...stack, identity]);
                 return;
             }
@@ -98,7 +125,7 @@ function resolveIncludes(entryPath, readFile) {
 
     inline(resolve(entryPath), []);
 
-    return { program: lines.join("\n"), lineMap, files, errors };
+    return { program: lines.join("\n"), lineMap, files, errors, blocked };
 }
 
 /**

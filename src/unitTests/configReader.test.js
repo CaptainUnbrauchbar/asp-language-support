@@ -8,7 +8,7 @@ jest.mock(
 
 const vscode = require("vscode");
 const Ajv = require("ajv").default;
-const { readCustomArgs, optionName, formatSchemaErrors, validateConfigObject } = require("../configReader.js");
+const { readCustomArgs, optionName, formatSchemaErrors, validateConfigObject, findConfig } = require("../configReader.js");
 const schema = require("../../schema.json");
 
 /** Validates against the real schema, so the tests cannot drift from it. */
@@ -208,5 +208,56 @@ describe("validateConfigObject", () => {
                 root
             )
         ).toEqual([]);
+    });
+});
+
+describe("findConfig", () => {
+    const fs = require("fs");
+    const { join } = require("path");
+    // resolve() so the drive letter matches what findConfig itself produces
+    const BASE = require("path").resolve("/work");
+
+    /** Only the listed absolute paths exist. */
+    function onDisk(...paths) {
+        const present = new Set(paths);
+        jest.spyOn(fs, "existsSync").mockImplementation((path) => present.has(String(path)));
+    }
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it("finds a config sitting next to the file", () => {
+        onDisk(join(BASE, "config.json"));
+
+        expect(findConfig(BASE, "config.json")).toEqual(join(BASE, "config.json"));
+    });
+
+    it("keeps looking upwards so one config can serve a whole project", () => {
+        onDisk(join(BASE, "config.json"));
+
+        expect(findConfig(join(BASE, "a", "b"), "config.json")).toEqual(join(BASE, "config.json"));
+    });
+
+    it("takes a name carrying a path relative to the file", () => {
+        onDisk(join(BASE, "conf", "solver.json"));
+
+        expect(findConfig(BASE, "conf/solver.json")).toEqual(join(BASE, "conf", "solver.json"));
+    });
+
+    it.each([
+        ["../../../etc/passwd"],
+        // Stripping a leading "../" is not enough on its own
+        ["conf/../../../etc/passwd"],
+        [".."],
+        ["."],
+    ])("refuses %s, which points outside the project", (name) => {
+        jest.spyOn(fs, "existsSync").mockReturnValue(true);
+
+        expect(findConfig(BASE, name)).toBeUndefined();
+    });
+
+    it("gives up rather than walking forever when nothing is found", () => {
+        onDisk();
+
+        expect(findConfig(join(BASE, "a"), "config.json")).toBeUndefined();
     });
 });

@@ -126,3 +126,57 @@ describe("mapMessagePositions", () => {
         expect(mapMessagePositions("no positions here", lineMap)).toEqual("no positions here");
     });
 });
+
+describe("resolveIncludes confinement", () => {
+    const project = {
+        "/p/main.lp": '#include "../secret.lp".\na.',
+        "/p/secret.lp": "should not be reachable.",
+        "/secret.lp": "secret.",
+    };
+
+    it("does not read an include that climbs out of the root directory", () => {
+        const result = resolveIncludes("/p/main.lp", reader(project), "/p");
+
+        expect(result.blocked).toEqual(["../secret.lp"]);
+        expect(result.program).toEqual("a.");
+    });
+
+    it("does not read an absolute include pointing outside the root directory", () => {
+        const result = resolveIncludes(
+            "/p/main.lp",
+            reader({ "/p/main.lp": '#include "/secret.lp".\na.', "/secret.lp": "secret." }),
+            "/p"
+        );
+
+        expect(result.blocked).toEqual(["/secret.lp"]);
+        expect(result.program).toEqual("a.");
+    });
+
+    it("confines to the entry point's own directory when no root is given", () => {
+        const result = resolveIncludes("/p/main.lp", reader(project));
+
+        expect(result.blocked).toEqual(["../secret.lp"]);
+    });
+
+    it("allows a sibling directory when the root reaches over both", () => {
+        const result = resolveIncludes(
+            "/p/app/main.lp",
+            reader({ "/p/app/main.lp": '#include "../lib/shared.lp".', "/p/lib/shared.lp": "shared." }),
+            "/p"
+        );
+
+        expect(result.blocked).toEqual([]);
+        expect(result.program).toEqual("shared.");
+    });
+
+    it("tells a blocked include apart from one that is simply missing", () => {
+        const result = resolveIncludes(
+            "/p/main.lp",
+            reader({ "/p/main.lp": '#include "../secret.lp".\n#include "typo.lp".' }),
+            "/p"
+        );
+
+        expect(result.blocked).toEqual(["../secret.lp"]);
+        expect(result.errors).toEqual(["typo.lp"]);
+    });
+});

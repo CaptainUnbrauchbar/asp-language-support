@@ -7,6 +7,7 @@ const { dirname, join } = require("path");
 const fs = require("fs");
 const vscode = require("vscode");
 const Ajv = require("ajv").default;
+const { resolveInside } = require("./filePatterns.js");
 
 const RESERVED_ARGS = new Set(["models", "n", "version", "help", "h"]);
 const WASM_RESERVED_ARGS = new Set(["outf", "text"]);
@@ -20,10 +21,19 @@ const OUTPUT_FORMAT_ARGS = new Set(["outf", "text", "pre"]);
  * @returns {String | undefined} The path of the first config found
  */
 function findConfig(startDirectory, configName) {
-    const name = configName.replace(/^(\.\.(\/|\\|$))+/, "");
-    if (name.includes("/") || name.includes("\\")) {
-        const direct = join(startDirectory, name);
-        return fs.existsSync(direct) ? direct : undefined;
+    const name = configName.replace(/\\/g, "/").trim();
+
+    if (name.includes("/")) {
+        // A name that carries a path is taken relative to the file, and may not
+        // lead out of the project: stripping a leading "../" is not enough,
+        // because "sub/../../.." escapes just as well.
+        const direct = resolveInside(startDirectory, name);
+        return direct && fs.existsSync(direct) ? direct : undefined;
+    }
+    // Only a plain file name may drive the walk upwards below, where "." or ".."
+    // would climb a level per step instead of naming a config
+    if (!name || name === "." || name === "..") {
+        return undefined;
     }
 
     let directory = startDirectory;
@@ -64,7 +74,12 @@ function formatSchemaErrors(errors) {
  * @returns {String[]} One readable problem per mistake, empty when it is fine
  */
 function validateConfigObject(config, contextAbsolutePath) {
-    // allErrors so a config with several mistakes does not need several attempts
+    // allErrors so a config with several mistakes does not need several attempts.
+    // The rule this suppresses guards a server collecting errors from untrusted
+    // request bodies; here the input is one small config file the user opened in
+    // their own editor, validated against a closed schema, and reporting only the
+    // first mistake per attempt is the worse trade.
+    // nosemgrep: javascript.ajv.security.audit.ajv-allerrors-true.ajv-allerrors-true
     const ajv = new Ajv({ allErrors: true });
     const schema = require(join(contextAbsolutePath, `schema.json`));
     const validate = ajv.compile(schema);

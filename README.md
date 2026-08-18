@@ -26,7 +26,7 @@ If you want to add **additional startup arguments**, open the **solver settings*
 
 <img src="https://github.com/CaptainUnbrauchbar/asp-language-support/raw/informaticup/media/config-demo-v1_1_0.gif" height="500" alt="demo-gif"/>
 
-If you need to work with **multiple files**, write `#include "other.lp".` in your program. This is ordinary clingo syntax, is resolved relative to the file it appears in, and needs no configuration.
+If you need to work with **multiple files**, write `#include "other.lp".` in your program. This is ordinary clingo syntax, is resolved relative to the file it appears in, and needs no configuration. Includes stay inside the folder you have open: one pointing outside your workspace is reported rather than read, so opening a project you did not write cannot pull files from elsewhere on your disk into the program.
 
 If you already keep a **config.json**, point `ASPLanguage: Set Config` at it and use **Import from config.json** in the settings pane to bring its options across. **Export to config.json**, next to it, does the reverse and writes your current settings out as a file to share or commit. The file is looked up next to your program and in any folder above it, and `ASPLanguage: Initialize clingo config file in current working directory` _(Press Ctrl+Shift+P)_ still writes a sample one. Running a config file directly was removed in 1.1.0; the settings pane covers it.
 See the Clingo [Documentation](https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf) (PDF) for more details on the available arguments!

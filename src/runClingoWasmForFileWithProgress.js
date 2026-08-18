@@ -3,6 +3,7 @@ const { loadClingo, abortClingo, isAbortResult, noteThreadSupport, isThreadOptio
 const { resolveIncludes, mapMessagePositions } = require("./resolveIncludes.js");
 const { partialResultFromModels, MAX_PARTIAL_MODELS } = require("./formatWasmResult.js");
 const { formatClingoCommand } = require("./clingoCommand.js");
+const { workspaceRootFor } = require("./workspaceRoot.js");
 
 /** How often at most to push a model count into the progress UI, in ms. */
 const PROGRESS_THROTTLE_MS = 100;
@@ -32,7 +33,16 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         return null;
     }
 
-    const resolved = resolveIncludes(filePath, (path) => fs.readFileSync(path, "utf8"));
+    // Includes may not lead out of the workspace the program belongs to
+    const includeRoot = workspaceRootFor(vscode, filePath);
+
+    const resolved = resolveIncludes(filePath, (path) => fs.readFileSync(path, "utf8"), includeRoot);
+    if (resolved.blocked.length) {
+        vscode.window.showErrorMessage(
+            `Included file outside the workspace was not read: ${resolved.blocked.join(", ")}`
+        );
+        return null;
+    }
     if (resolved.errors.length) {
         vscode.window.showErrorMessage(`Included file not found: ${resolved.errors.join(", ")}`);
         return null;
@@ -54,7 +64,13 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
                 return null;
             }
             // Additional files can pull in their own includes as well
-            const extra = resolveIncludes(additionalFilePath, (path) => fs.readFileSync(path, "utf8"));
+            const extra = resolveIncludes(additionalFilePath, (path) => fs.readFileSync(path, "utf8"), includeRoot);
+            if (extra.blocked.length) {
+                vscode.window.showErrorMessage(
+                    `Included file outside the workspace was not read: ${extra.blocked.join(", ")}`
+                );
+                return null;
+            }
             if (extra.errors.length) {
                 vscode.window.showErrorMessage(`Included file not found: ${extra.errors.join(", ")}`);
                 return null;

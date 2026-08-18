@@ -66,7 +66,12 @@ async function runClingoPathForFileWithProgress(
         const args = [filePath, String(models ?? 0), ...(options ?? [])];
         // A stopped run never gets to report its own timing
         const startedAt = Date.now();
-        const child = spawn(clingoPath, args);
+        // shell: false is the default and is spelled out because it is what makes
+        // the arguments safe: with a shell in between, a file name holding "&&" or
+        // "$(...)" would be read as a command rather than passed along. clingoPath
+        // itself is what which.sync found on PATH, never a value from a config file.
+        // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process
+        const child = spawn(clingoPath, args, { shell: false });
 
         let output = "";
         let errorOutput = "";

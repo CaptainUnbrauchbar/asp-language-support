@@ -43,6 +43,15 @@
         "onLanguage:asp"
     ],
     "main": "./src/extension.js",
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": "limited",
+            "description": "In an untrusted workspace the bundled solver is always used. Running clingo from your PATH starts a process, and a folder you have not trusted should not be able to turn that on by itself.",
+            "restrictedConfigurations": [
+                "aspLanguage.usePathClingo"
+            ]
+        }
+    },
     "contributes": {
         "viewsContainers": {
             "panel": [
