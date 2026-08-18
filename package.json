@@ -8,6 +8,14 @@
         "testPathIgnorePatterns": [
             "src/integrationTests",
             "/.vscode-test/"
+        ],
+        "modulePathIgnorePatterns": [
+            "<rootDir>/.vscode-test/",
+            "<rootDir>/coverage/"
+        ],
+        "watchPathIgnorePatterns": [
+            "<rootDir>/.vscode-test/",
+            "<rootDir>/coverage/"
         ]
     },
     "engines": {

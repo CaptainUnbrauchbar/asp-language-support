@@ -3,6 +3,7 @@
 .vscode-test.js
 .github/**
 .gitignore
+coverage/**
 **/jsconfig.json
 
 # Tests and their fixtures are never run from an installed extension

@@ -10,9 +10,10 @@ import { defineConfig, globalIgnores } from "eslint/config";
  * over a thousand undefined names that were all perfectly defined.
  */
 export default defineConfig([
-    // A whole downloaded VSCode lives here, with configs of its own that ESLint
-    // tries to load and cannot resolve
-    globalIgnores([".vscode-test/**"]),
+    // Generated, not written: a whole downloaded VSCode lives in .vscode-test,
+    // with configs of its own that ESLint tries to load and cannot resolve, and
+    // coverage/ is a Jest report
+    globalIgnores([".vscode-test/**", "coverage/**"]),
 
     // The extension host
     {
