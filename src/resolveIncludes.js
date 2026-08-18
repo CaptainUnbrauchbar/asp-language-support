@@ -1,18 +1,16 @@
-const { dirname, isAbsolute, join, relative, resolve, sep } = require("path");
-
 /**
  * Inlines `#include "other.lp".` directives so a program spread over several
  * files can be handed to the WASM solver as a single string.
  *
- * Clingo itself understands `#include`, but the WASM build has no filesystem to
- * read from, so a program that runs fine against a Clingo from PATH fails with
+ * Clingo understands `#include` itself, but the WASM build has no filesystem to
+ * read from, so a program that runs fine against a clingo from PATH fails with
  * "file could not be opened" when solved with the bundled one. Resolving the
- * directives here makes both behave the same, and means composing files needs no
- * extension specific configuration at all.
+ * directives here makes both behave the same.
  *
  * `#include <incmode>` and friends are left untouched: those are built into
- * Clingo and resolve without a filesystem.
+ * clingo and resolve without a filesystem.
  */
+const { dirname, isAbsolute, join, relative, resolve, sep } = require("path");
 
 /** A quoted include, which is the only form that needs a file to exist. */
 const FILE_INCLUDE = /^\s*#include\s+"([^"]+)"\s*\.\s*$/;
@@ -28,8 +26,8 @@ function identityOf(path) {
 }
 
 /**
- * How a file should be named in messages: relative to the program's entry
- * point, which is short but still tells two same named files apart.
+ * How a file is named in messages: relative to the program's entry point, which
+ * is short but still tells two same named files apart.
  * @param {String} path
  * @param {String} entryDirectory
  */
@@ -104,9 +102,7 @@ function resolveIncludes(entryPath, readFile) {
 }
 
 /**
- * Rewrites the positions in a Clingo message so they point at the file the line
- * actually came from. Clingo sees one program read from stdin and reports
- * "-:12:3-5", which after inlining refers to a line the user never wrote.
+ * Rewrites the positions in a clingo message so they point at the file the line actually came from
  * @param {String} text
  * @param {{file: String, line: Number}[]} lineMap
  * @returns {String}

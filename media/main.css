@@ -4,10 +4,8 @@ body {
     padding: 0;
 }
 
-/*
- * The header stays put while the answers scroll under it, so the filter, the
- * actions and the statistics are always reachable no matter how far down you are.
- */
+/* Sticky, so the filter, the actions and the statistics stay reachable
+   however far down the answers you are */
 .panel-header {
     position: sticky;
     top: 0;
@@ -45,11 +43,10 @@ body {
 }
 
 /*
- * These are written as ".filter-field .filter-box" on purpose. vscode.css styles
+ * Written as ".filter-field .filter-box" on purpose: vscode.css styles
  * `input:not([type="checkbox"])`, whose specificity (0,1,1) beats a plain class
  * (0,1,0) no matter which stylesheet loads last. At lower specificity the field
- * loses its border, which makes it almost invisible against the panel, and loses
- * the left padding that keeps the placeholder clear of the search icon.
+ * loses its border and its left padding.
  */
 .filter-field .filter-box {
     width: 100%;
@@ -91,11 +88,8 @@ body {
     color: var(--vscode-input-foreground);
 }
 
-/*
- * The filter/highlight toggle lives inside the field it belongs to, the way
- * VSCode puts its own search options there, so it reads as part of the box
- * rather than as another toolbar button competing with copy and compare.
- */
+/* The filter/highlight toggle sits inside its own field, the way VSCode puts
+   its search options there, rather than competing with copy and compare */
 .filter-field .filter-mode {
     position: absolute;
     right: 2px;
@@ -136,11 +130,8 @@ body {
     cursor: default;
 }
 
-/*
- * Statistics lead the row; the auto margin pushes the filter and the actions to
- * the right. min-width lets the strip shrink and ellipsize when the panel is
- * narrow, so it never squeezes the controls out.
- */
+/* min-width lets the strip shrink and ellipsize on a narrow panel, so it never
+   squeezes the controls out */
 .stat-strip {
     display: flex;
     align-items: center;
@@ -156,7 +147,6 @@ body {
     overflow: hidden;
 }
 
-/* The outcome is the one thing worth spotting instantly, so it gets a pill */
 .result-badge {
     display: inline-flex;
     align-items: center;
@@ -200,7 +190,6 @@ body {
     opacity: 0.8;
 }
 
-/* Numbers carry the information, units are only scaffolding */
 .stat-value {
     color: var(--vscode-foreground);
     font-weight: 600;
@@ -220,10 +209,8 @@ body {
     font-weight: 600;
 }
 
-/*
- * Overflow menu. New tools only have to be added to MENU_ACTIONS in main.js,
- * the styling below already covers them.
- */
+/* Overflow menu. A new entry in MENU_ACTIONS in panel/menu.js is already
+   covered by the styling below. */
 .menu-anchor {
     position: relative;
     flex: 0 0 auto;
@@ -277,13 +264,10 @@ body {
 }
 
 /*
- * Solver settings. Laid out like VSCode's own settings editor: a label and a
- * short explanation on the left, the control on the right.
- */
-/*
- * The pane covers the whole panel rather than stacking above the answers: it is
- * a mode you enter and leave, and splitting an already short panel in two left
- * too little of either.
+ * Solver settings, laid out like VSCode's own settings editor: a label and a
+ * short explanation on the left, the control on the right. The pane covers the
+ * whole panel rather than stacking above the answers, since splitting an
+ * already short panel in two left too little of either.
  */
 .settings-pane {
     position: fixed;
@@ -301,9 +285,8 @@ body {
     display: none;
 }
 
-/* Content keeps a readable measure instead of stretching a label and its control
-   to opposite ends of a very wide panel, and sits in the middle of it so the
-   leftover room is shared by both sides rather than piling up on the right */
+/* Keeps a readable measure instead of stretching a label and its control to
+   opposite ends of a very wide panel */
 .settings-intro,
 .settings-body,
 .settings-actions {
@@ -335,11 +318,8 @@ body {
     opacity: 0.5;
 }
 
-/*
- * A setting the current solver cannot honour. Dimmed less than a disabled row,
- * because unlike those it does not become available by ticking something above
- * it: the note is the point, so it has to stay readable.
- */
+/* A setting the current solver cannot honour. Dimmed less than a disabled row:
+   the note is the point, so it has to stay readable. */
 .setting-unavailable .setting-label,
 .setting-unavailable .setting-description {
     opacity: 0.6;
@@ -415,11 +395,8 @@ body {
     outline-offset: -2px;
 }
 
-/*
- * VSCode does not draw native checkboxes anywhere in its own UI, and the browser
- * default looks foreign in a dark theme, so this is the bordered square VSCode
- * uses, with a check drawn from two borders.
- */
+/* VSCode draws no native checkboxes in its own UI, so this is the bordered
+   square it does use, with a check drawn from two borders */
 .setting-control input[type="checkbox"] {
     -webkit-appearance: none;
     appearance: none;
@@ -517,14 +494,10 @@ body {
 }
 
 /*
- * Output the panel cannot take apart into answers is a single box of text, and
- * that box is then the only thing worth looking at, so it gets the whole panel
- * rather than a fixed twenty lines with empty space under it.
- *
- * The height is taken from the viewport, which for a webview is the panel, so it
- * follows the panel being dragged taller or shorter without anything having to
- * measure it. The container becomes a column so that a command line above the
- * box takes its own height and leaves the rest to the box.
+ * Output the panel cannot take apart into answers is one box of text, and it
+ * gets the whole panel. The height comes from the viewport, which for a webview
+ * is the panel, so it follows the panel being dragged taller or shorter without
+ * anything having to measure it.
  */
 .output-container.raw-output {
     display: flex;
@@ -537,7 +510,6 @@ body {
     margin-bottom: 0.75em;
 }
 
-/* One compact line per answer, with the copy action on the right */
 .answer-header {
     display: flex;
     align-items: center;
@@ -578,22 +550,17 @@ body {
     outline-offset: -1px;
 }
 
-/*
- * Takes whatever height the column has left. The minimum keeps it readable in a
- * panel dragged down to almost nothing, where it is better to scroll the page
- * than to look at two lines of a result.
- */
+/* Takes whatever height the column has left; the minimum keeps it readable in
+   a panel dragged down to almost nothing */
 .output-container.raw-output .output-box {
     flex: 1 1 auto;
     min-height: 8em;
     resize: none;
 }
 
-/*
- * The welcome text is the one box without an inline height, so it is sized by
- * its rows attribute. Stating height explicitly keeps it that way even if
- * .output-box ever gains a height again, which once collapsed it to two lines.
- */
+/* The one box without an inline height, so it is sized by its rows attribute.
+   Stated explicitly in case .output-box ever gains a height again, which once
+   collapsed this to two lines. */
 .welcome-box {
     height: auto;
     resize: none;
@@ -612,12 +579,8 @@ body {
     cursor: pointer;
 }
 
-/*
- * Sections flow into as many newspaper columns as the panel is wide. A single
- * full width table put every figure at the far right edge, a screen away from
- * the name it belonged to; keeping each column narrow keeps the two together,
- * and a wide panel now shows more at once instead of scrolling further.
- */
+/* Sections flow into as many newspaper columns as the panel is wide: one full
+   width table put every figure a screen away from the name it belonged to */
 .stats-table {
     margin-top: 0.3em;
     padding: 0.6em 0.8em;
@@ -645,8 +608,7 @@ body {
     gap: 0.5em;
 }
 
-/* The name and a dotted leader that runs out to meet its figure, so the eye
-   can follow one line across without losing it */
+/* A dotted leader runs out to meet the figure, so the eye can follow the line */
 .stats-key {
     display: flex;
     align-items: baseline;
@@ -670,8 +632,7 @@ body {
     white-space: nowrap;
 }
 
-/* What clingo was invoked with, collapsed beside the statistics for the same
-   reason: worth having on hand, not worth the top of the panel */
+/* What clingo was invoked with, collapsed for the same reason as the statistics */
 .command-details {
     margin-bottom: 0.75em;
     font-family: var(--vscode-font-family);
@@ -693,8 +654,8 @@ body {
     border-radius: 2px;
 }
 
-/* A long line wraps rather than scrolling sideways: it is read to see which
-   options a run used, and an option pushed off the right edge is a hidden one */
+/* Wraps rather than scrolling sideways: an option pushed off the right edge is
+   a hidden one */
 .command-line {
     flex: 1 1 auto;
     min-width: 0;
@@ -706,11 +667,8 @@ body {
     user-select: text;
 }
 
-/*
- * Atoms live in a block element rather than a textarea, so an answer takes only
- * the room it needs and matches can be highlighted. Long results still cap out
- * and scroll instead of pushing everything else off screen.
- */
+/* A block element rather than a textarea, so an answer takes only the room it
+   needs and matches can be highlighted */
 .atom-list {
     max-height: 14em;
     overflow-y: auto;
@@ -733,16 +691,10 @@ body {
 }
 
 /*
- * A match has to be findable at a glance in a wall of atoms. The translucent
- * "other matches" colour that editors use for the matches you are not on is too
- * faint for that here, so this takes the stronger current-match colour and keeps
- * a border for themes whose colour is pale.
- *
- * Everything here is drawn behind and around the text without taking any room of
- * its own: no weight, no padding. Both widen the run they are applied to, which
- * reflows every atom after it, so the answers shuffled sideways with each
- * keystroke exactly while you were trying to read them. The outline overlaps the
- * surrounding text by design rather than pushing it aside.
+ * Uses the stronger current-match colour, with a border for themes whose colour
+ * is pale. Everything is drawn behind and around the text without taking room
+ * of its own: weight or padding would widen the run and reflow every atom after
+ * it, shuffling the answers sideways with each keystroke.
  */
 .match {
     color: inherit;
@@ -752,20 +704,15 @@ body {
     border-radius: 2px;
 }
 
-/*
- * While only highlighting, the answers without a match stay on screen, so the
- * ones that did match need to be findable without reading every line.
- */
+/* While only highlighting, the answers without a match stay on screen, so the
+   ones that matched have to stand out */
 .answer-container.has-match {
     border-left: 2px solid var(--vscode-editor-findMatchBackground, var(--vscode-focusBorder));
     padding-left: 0.4em;
 }
 
-/*
- * Comparison mode. Atoms every answer agrees on recede, so what is left on
- * screen is exactly what tells the answers apart: atoms only some answers have,
- * and the ones that belong to a single answer alone.
- */
+/* Comparison mode: atoms every answer agrees on recede, leaving exactly what
+   tells the answers apart */
 .atom-common {
     opacity: 0.4;
 }
@@ -832,7 +779,6 @@ body {
     border-left-color: var(--vscode-textLink-foreground, var(--vscode-focusBorder));
 }
 
-/* The copy button confirms in place, not only through a notification */
 .codicon.copied {
     color: var(--vscode-testing-iconPassed, var(--vscode-charts-green, #3fb950));
 }

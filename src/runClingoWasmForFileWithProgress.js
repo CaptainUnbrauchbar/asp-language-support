@@ -6,24 +6,8 @@ const { formatClingoCommand } = require("./clingoCommand.js");
 
 /** How often at most to push a model count into the progress UI, in ms. */
 const PROGRESS_THROTTLE_MS = 100;
-
-/** Clingo options that only exist in the multi threaded wasm build. */
 const THREAD_ARGS = /^(-t\b|--parallel-mode\b)/;
-
-/**
- * Clingo's own time limit, which the wasm build accepts and then ignores.
- * Matches both the "--time-limit=30" the extension produces and the spaced form.
- */
 const TIME_LIMIT_ARG = /^--time-limit[=\s]+(\d+)/;
-
-/**
- * Options the bundled solver cannot honour, and why.
- *
- * The settings pane keeps these out of a run in the first place, but a
- * config.json can still ask for them, and one of them fails the whole run
- * rather than being ignored. Dropping them with a word about it beats
- * reporting an error the user cannot act on.
- */
 const UNSUPPORTED_ARGS = [
     { pattern: /^--pre\b/, reason: "the preprocessor emits aspif text, which the bundled solver cannot return" },
     { pattern: /^(--verbose\b|-V\b)/, reason: "the bundled solver never carries clingo's verbose output" },
@@ -43,14 +27,11 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         message: "Starting Clingo...",
     });
 
-    // Check if the file exists
     if (!fs.existsSync(filePath)) {
         vscode.window.showErrorMessage(`File not found: ${filePath}`);
         return null;
     }
 
-    // Everything the program is made of: the file itself with its #include
-    // directives inlined, followed by any files the config adds
     const resolved = resolveIncludes(filePath, (path) => fs.readFileSync(path, "utf8"));
     if (resolved.errors.length) {
         vscode.window.showErrorMessage(`Included file not found: ${resolved.errors.join(", ")}`);
@@ -60,10 +41,8 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
     let fileContent = resolved.program;
     let lineMap = resolved.lineMap;
 
-    // Every file that ends up in the program, entry point first. The command
-    // line is built from this rather than from what the run was handed: an
-    // "#include" is resolved here instead of by clingo, so a line naming only
-    // the file that was run would leave the included ones invisible.
+    // Every file that ends up in the program, entry point first. 
+    // The visual command line is built from this rather than from what the run was handed
     const programFiles = [...resolved.files];
 
     const additionalFiles = options?.filter((arg) => arg && !arg.startsWith("-")).map((filePath) => filePath.replace(/"/g, ""));
@@ -83,13 +62,11 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
             if (extra.program.trim()) {
                 fileContent += `\n${extra.program}`;
                 lineMap = [...lineMap, { file: additionalFilePath, line: 0 }, ...extra.lineMap];
-                // Includes the extra file pulls in of its own belong on the line too
                 programFiles.push(...extra.files);
             }
         }
     }
 
-    // Filter options for Clingo
     let clingoOptions = options?.filter((arg) => arg.startsWith("-"));
 
     progress.report({
@@ -97,11 +74,6 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
     });
 
     const clingo = await loadClingo();
-
-    // Whether the multi threaded build loaded is only knowable inside the worker
-    // clingo runs in, so the options are sent and clingo is left to answer. It
-    // refuses them while parsing, before any solving, which is what the retry
-    // after the run below is for.
     const threadArgs = clingoOptions?.filter((arg) => THREAD_ARGS.test(arg)) ?? [];
 
     if (clingoOptions?.length) {
@@ -117,25 +89,20 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
 
     // clingo's --time-limit is built on an OS timer that has to fire while the
     // search runs. Under wasm the whole solve is one synchronous call that never
-    // yields to the event loop, so that timer never gets to fire and the option
-    // is accepted and then silently ignored. Enforce it here instead, using the
-    // same worker termination the stop button uses. Reading the limit off the
-    // arguments covers the settings pane and config.json in one place.
+    // yields to the event loop, so that timer never fires and the option is
+    // accepted and then silently ignored. Enforce it here instead, using the
+    // same worker termination the stop button uses.
     const timeLimitArg = clingoOptions?.find((arg) => TIME_LIMIT_ARG.test(arg));
     const timeLimitSeconds = timeLimitArg ? Number(timeLimitArg.match(TIME_LIMIT_ARG)[1]) : 0;
     if (timeLimitArg) {
         clingoOptions = clingoOptions.filter((arg) => arg !== timeLimitArg);
     }
 
-    // Reading the files above is async, so the run can already be cancelled by
-    // the time we get here. Starting it anyway would ignore the cancellation.
     if (token?.isCancellationRequested) {
         vscode.window.showInformationMessage("Clingo run cancelled.");
         return null;
     }
 
-    // Cancelling terminates the worker clingo solves in, which resolves the
-    // pending run below with an abort result instead of leaving it hanging.
     let cancelled = false;
     const cancelListener = token?.onCancellationRequested(() => {
         cancelled = true;
@@ -143,14 +110,9 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         abortClingo();
     });
 
-    // Report models as the solver finds them, so long runs show real progress
-    // instead of a spinner that never moves. Throttled so that programs with
-    // very many models do not flood the UI.
     let modelsFound = 0;
     let lastReport = 0;
-    // Terminating the worker throws away clingo's own reply, so the models are
-    // kept here as they stream in. Without them a run stopped by the time limit
-    // would report nothing at all, even though the answers had already arrived.
+
     /** @type {String[][]} */
     const streamedModels = [];
     const onModel = (witness) => {
@@ -166,8 +128,6 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         progress.report({ message: `Solving... ${modelsFound} model(s) found` });
     };
 
-    // Fires only where clingo's own limit could not: the worker is terminated,
-    // which resolves the pending run below with an abort result
     let timedOut = false;
     const timeLimitTimer =
         timeLimitSeconds > 0
@@ -183,10 +143,6 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
     let wasmResult;
     try {
         wasmResult = await clingo.run(fileContent, models, clingoOptions, onModel);
-
-        // A build without thread support rejects the parallel options outright,
-        // which would fail a run the user only asked to be faster. Ask again
-        // without them, and remember, so the settings pane stops offering them.
         if (threadArgs.length && isThreadOptionRejected(wasmResult)) {
             noteThreadSupport(false);
             vscode.window.showWarningMessage(
@@ -205,9 +161,6 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         clearTimeout(timeLimitTimer);
     }
 
-    // Built here rather than before the run, so it reports what clingo was
-    // really given: options the solver refused have been dropped by now, and
-    // saying otherwise would mislead exactly when the line is worth reading
     const command = formatClingoCommand({
         // A file reached through several routes is still one file on the line
         programs: [...new Set(programFiles)],
@@ -217,13 +170,7 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
     });
 
     // A run that was stopped, by the user or by their time limit, is an outcome
-    // rather than a failure: hand back whatever the search had already found so
-    // the answers are not thrown away along with the worker.
-    //
-    // The token only covers the Cancel button on the progress notification. The
-    // stop command, its keybinding and the status bar all terminate the worker
-    // directly, so the abort result is the only sign those leave behind and has
-    // to count as a stop just the same.
+    // rather than a failure
     const stoppedByUser = cancelled || (!timedOut && isAbortResult(wasmResult));
     if (stoppedByUser || timedOut) {
         const stopped = stoppedByUser ? { reason: "cancelled" } : { reason: "time-limit", seconds: timeLimitSeconds };
@@ -234,12 +181,8 @@ async function runClingoWasmForFileWithProgress(vscode, progress, filePath, mode
         message: "Clingo finished successfully!",
     });
 
-    // Only ERROR means the run failed. UNKNOWN is a normal outcome: the search
-    // was cut short, by a solve or time limit for instance, so whatever models
-    // were found are still worth showing and the panel says the run is partial.
+    // Only ERROR means the run failed. UNKNOWN is a normal outcome
     if (wasmResult.Result === "ERROR") {
-        // Clingo counts lines in the single program it was handed, so point
-        // the position back at the file the line really came from
         const detail = "Error" in wasmResult ? mapMessagePositions(wasmResult.Error, lineMap) : "the solver reported no details";
         vscode.window.showErrorMessage(`Clingo WASM Error: ${detail}`);
         return null;

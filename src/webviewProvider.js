@@ -3,14 +3,12 @@ const crypto = require("crypto");
 
 /**
  * The panel's scripts, relative to media/ and in the order they have to load.
- *
  * They meet on a single AspPanel object rather than going through a bundler, so
  * panel/core.js has to be first: it builds that object, and main.js is last
  * because it drives what the others put on it.
  *
  * Listed here rather than in the HTML because the panel tests load exactly this
- * list, so a script that is renamed or added cannot end up in one place and not
- * the other.
+ * list, so a renamed script cannot end up in one place and not the other.
  */
 const PANEL_SCRIPTS = [
     "panel/core.js",
@@ -23,9 +21,6 @@ const PANEL_SCRIPTS = [
     "main.js",
 ];
 
-/**
- * WebviewProvider class to manage the webview for the ASP extension.
- */
 class WebviewProvider {
     /**
      * @param {*} _extensionUri
@@ -64,10 +59,9 @@ class WebviewProvider {
     /**
      * Sends a payload to the webview and remembers it.
      *
-     * Dragging the panel to another position does not merely hide the view, it
-     * disposes the webview and builds a fresh one, so retainContextWhenHidden
-     * cannot help there. Keeping the last payload here lets the new webview ask
-     * for it as soon as its script is running, instead of coming up empty.
+     * Dragging the panel elsewhere disposes the webview and builds a fresh one,
+     * which retainContextWhenHidden cannot help with. Keeping the last payload
+     * lets the new webview ask for it instead of coming up empty.
      * @param {Object} message
      */
     post(message) {
@@ -94,10 +88,9 @@ class WebviewProvider {
         await vscode.env.clipboard.writeText(text);
     }
 
-    resolveWebviewView(webviewView, _context, _token) {
+    resolveWebviewView(webviewView) {
         this._view = webviewView;
         webviewView.webview.options = {
-            // Allow scripts in the webview
             enableScripts: true,
             localResourceRoots: [this._extensionUri],
         };
@@ -109,10 +102,9 @@ class WebviewProvider {
                     // The settings pane is part of the panel's furniture, so it is
                     // filled in whether or not there are results to restore
                     this.sendSettings();
-                    // A freshly built webview starts on the welcome screen, so give
-                    // it back whatever was on display before it was recreated. When
-                    // it restored itself from its own state there is nothing to do,
-                    // and resending would only discard the filter it just restored.
+                    // A freshly built webview starts on the welcome screen, so
+                    // give it back what was on display. One that restored itself
+                    // needs nothing: resending would discard its filter.
                     if (!data.hasState && this._lastMessage) {
                         webviewView.webview.postMessage(this._lastMessage);
                     }
@@ -190,10 +182,9 @@ class WebviewProvider {
     /**
      * Returns the HTML content for the webview.
      * @param {*} webview Reference to the webview object
-     * @returns
+     * @returns {String}
      */
     _getHtmlForWebview(webview) {
-        // Do the same for the stylesheet.
         const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "vscode.css"));
         const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "main.css"));
         // Codicons are already a dependency of this extension and give the panel
@@ -204,11 +195,10 @@ class WebviewProvider {
         const clingoSolver = vscode.workspace.getConfiguration("aspLanguage").get("usePathClingo")
             ? "your own version of Clingo from PATH"
             : "the bundled WASM Clingo Solver";
-        // Use a nonce to only allow a specific script to be run.
         const nonce = this._getNonce();
-        // One tag per panel script, in load order. Every one carries the nonce,
-        // which is what the content security policy admits them by, so splitting
-        // the panel up needs no change to that policy.
+        // One tag per panel script, in load order. Every one carries the nonce
+        // the content security policy admits them by, so splitting the panel up
+        // needs no change to that policy.
         const scriptTags = PANEL_SCRIPTS.map((name) => {
             const uri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", ...name.split("/")));
             return `<script nonce="${nonce}" src="${uri}"></script>`;
@@ -218,11 +208,7 @@ class WebviewProvider {
 			<head>
 				<meta charset="UTF-8">
 
-				<!--
-					Use a content security policy to only allow loading styles from our extension directory,
-					and only allow scripts that have a specific nonce.
-					(See the 'webview-sample' extension sample for img-src content security policy examples)
-				-->
+				<!-- Styles only from the extension directory, scripts only with the nonce above -->
 				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; font-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
 
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">

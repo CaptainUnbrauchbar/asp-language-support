@@ -1,8 +1,7 @@
-// Runs within the webview itself and cannot access the main VS Code APIs.
-//
-// The panel lives in media/panel/, which loads first and leaves everything on
-// the AspPanel object this file drives; see panel/core.js. What is left here is
-// the wiring: the extension's messages, the toolbar, and the state restore.
+// Runs inside the webview and cannot reach the VSCode API directly. The panel
+// lives in media/panel/, which loads first and leaves everything on the AspPanel
+// object this file drives; see panel/core.js. What is left here is the wiring:
+// the extension's messages, the toolbar and the state restore.
 (function () {
     const panel = window.AspPanel;
     const { vscode, el, state } = panel;
@@ -58,8 +57,8 @@
     panel.render.applyFilterMode();
 
     // Moving the panel disposes this webview and builds a new one on the welcome
-    // screen. Restoring from the state VSCode kept works even if the extension
-    // is not listening.
+    // screen. The state VSCode kept restores it even if the extension is not
+    // listening.
     const saved = vscode.getState();
     if (saved?.kind === "result") {
         state.lastResult = saved.result;

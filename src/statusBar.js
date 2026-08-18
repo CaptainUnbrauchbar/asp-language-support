@@ -2,8 +2,7 @@
  * The Clingo status bar item.
  *
  * Which solver is in use is standing information, so it belongs in the status
- * bar rather than in a notification that pops up on every activation and has to
- * be silenced with a setting.
+ * bar rather than in a notification on every activation.
  */
 
 /**
@@ -18,12 +17,6 @@ function parseClingoVersion(text) {
 
 /**
  * Whether the status bar item belongs on screen.
- *
- * This deliberately looks at every open document rather than only the active
- * editor. The extension is activated by opening an ASP file, and at that moment
- * window.activeTextEditor is usually not set yet while the editor is still being
- * restored, so relying on it alone leaves the item hidden until the user happens
- * to switch editors.
  * @param {*} activeEditor vscode.window.activeTextEditor
  * @param {Array} documents vscode.workspace.textDocuments
  * @returns {Boolean}
@@ -44,7 +37,6 @@ class ClingoStatusBar {
         this._solver = "wasm";
         this._version = undefined;
         this._running = false;
-        this._visible = false;
         this._render();
     }
 
@@ -83,7 +75,6 @@ class ClingoStatusBar {
      * @param {Boolean} visible
      */
     setVisible(visible) {
-        this._visible = visible;
         if (visible) {
             this._item.show();
         } else {

@@ -2,12 +2,8 @@
 .vscode-test/**
 .vscode-test.js
 .github/**
-test/**
 .gitignore
-vsc-extension-quickstart.md
 **/jsconfig.json
-**/*.map
-**/.eslintrc.json
 
 # Tests and their fixtures are never run from an installed extension
 src/unitTests/**
@@ -17,6 +13,7 @@ src/testFiles/**
 
 # Development tooling, run from a checkout rather than from the package
 scripts/**
+eslint.config.mjs
 
 # The readme links these from GitHub with absolute URLs, so shipping the
 # originals only makes the download bigger

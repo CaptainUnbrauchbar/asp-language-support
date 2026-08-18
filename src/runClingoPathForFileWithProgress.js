@@ -1,3 +1,12 @@
+/**
+ * Runs your own clingo from PATH.
+ *
+ * The process is spawned directly rather than through a shell: with a shell in
+ * between, killing the child kills the shell and leaves clingo running with
+ * nothing holding on to it, which is how stopped runs used to survive the stop
+ * button and even the window closing. Spawning directly also passes the
+ * arguments verbatim, so a file path with spaces needs no quoting.
+ */
 const { spawn } = require("child_process");
 const { createWitnessScan } = require("./clingoWitnesses.js");
 const { MAX_PARTIAL_MODELS } = require("./formatWasmResult.js");
@@ -6,37 +15,16 @@ const { MAX_PARTIAL_MODELS } = require("./formatWasmResult.js");
 const PROGRESS_THROTTLE_MS = 100;
 
 /**
- * Runs your own clingo from PATH.
- *
- * The process is spawned directly rather than through a shell. Going through one
- * puts cmd.exe (or sh) between the extension and clingo: killing the child then
- * kills the shell and leaves clingo running with nothing holding on to it, which
- * is how stopped runs were surviving the stop button, the panel and even the
- * window closing, burning a core in the background with no way to find them
- * short of the task manager. Spawned directly, the process this module holds is
- * clingo itself, so stopping it stops the search.
- *
- * Not using a shell also means the arguments are passed verbatim instead of
- * being concatenated into a command line and parsed again, so a file path with
- * spaces in it needs no quoting and cannot be split in half.
- */
-
-/**
- * The run in flight, so that the stop command has something to stop. Only one
- * run happens at a time: starting a second is refused while the first is going.
  * @type {{child: import("child_process").ChildProcess, stop: () => Boolean} | undefined}
  */
 let current;
 
 /**
  * How long a stopped process is given to exit on its own before it is killed
- * outright. SIGTERM is a request, and a solver deep in a search can be slow to
- * notice it or decline entirely.
  */
 const KILL_GRACE_MS = 2000;
 
 /**
- * Stops the running clingo, if there is one.
  * @returns {Boolean} Whether there was a run to stop
  */
 function stopClingoProcess() {
@@ -58,10 +46,9 @@ function isClingoProcessRunning() {
  * @param {*} token Optional vscode CancellationToken used to stop the run
  * @returns {Promise<{code: Number, signal: String | null, output: String, errorOutput: String,
  *          stopped: Boolean, seconds: Number, witnesses: String[][], totalWitnesses: Number}>}
- *          Always resolves. A run that failed to start or was stopped is an
+ *          Always resolves: a run that failed to start or was stopped is an
  *          outcome the caller reports, and a promise that never settled would
- *          leave the extension believing a solve is still in flight and refuse
- *          every later one.
+ *          leave the extension believing a solve is still in flight.
  */
 async function runClingoPathForFileWithProgress(
     vscode,
@@ -77,8 +64,7 @@ async function runClingoPathForFileWithProgress(
 
         // clingo takes the model count as a bare positional argument
         const args = [filePath, String(models ?? 0), ...(options ?? [])];
-        // A stopped run never gets to report its own timing, so the panel takes
-        // it from here instead of showing nothing
+        // A stopped run never gets to report its own timing
         const startedAt = Date.now();
         const child = spawn(clingoPath, args);
 
@@ -110,7 +96,7 @@ async function runClingoPathForFileWithProgress(
                 current = undefined;
             }
             // The answers are handed over already read, so a stopped run does
-            // not have to be scanned a second time to find what it managed
+            // not have to be scanned a second time
             resolve({
                 ...result,
                 seconds: (Date.now() - startedAt) / 1000,
@@ -119,15 +105,10 @@ async function runClingoPathForFileWithProgress(
             });
         };
 
-        // The Cancel button on the progress notification. The stop command, its
-        // keybinding and the status bar go through stopClingoProcess instead,
-        // which is the same stop by another door.
         cancelListener = token?.onCancellationRequested(() => stop());
 
         // clingo writes each answer as it finds it, so reading stdout as it
-        // arrives says how the search is going while it is still going. Waiting
-        // for the process to end would leave a long run showing a spinner and no
-        // news, which is exactly when you want to know whether to keep waiting.
+        // arrives reports progress while the search is still going
         let lastReport = 0;
         const scan = createWitnessScan({
             limit: MAX_PARTIAL_MODELS,
@@ -152,17 +133,11 @@ async function runClingoPathForFileWithProgress(
             errorOutput += data.toString();
         });
 
-        // Fires when the executable cannot be started at all, which used to
-        // leave the promise hanging forever
+        // Fires when the executable cannot be started at all
         child.on("error", (error) => {
             finish({ code: -1, output, errorOutput: errorOutput || String(error?.message ?? error), stopped });
         });
 
-        // "close" rather than "exit": it fires once the output streams have
-        // ended too, so nothing clingo printed on its way out is missed. The
-        // signal is carried along because a process killed by one reports no
-        // exit code at all, and a solver that crashed should say so rather than
-        // being reported as having exited with code null.
         child.on("close", (code, signal) => {
             progress.report({ increment: 100, message: stopped ? "Clingo stopped." : "Clingo finished." });
             finish({ code, signal, output, errorOutput, stopped });

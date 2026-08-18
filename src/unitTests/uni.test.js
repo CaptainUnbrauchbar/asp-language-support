@@ -1,5 +1,4 @@
 // @ts-nocheck
-const fs = require("fs");
 const { runClingoWasmForFileWithProgress } = require("../runClingoWasmForFileWithProgress.js");
 const { MAX_PARTIAL_MODELS } = require("../formatWasmResult.js");
 const { abortClingo } = require("../clingoWasm.js");
@@ -82,8 +81,6 @@ describe("runClingoWasmForFile", () => {
     });
 
     it("should handle errors when running Clingo WASM", async () => {
-        const filePath = "src/testFiles/sudokuComplete.lp";
-
         const result = await runClingoWasmForFileWithProgress(
             { window: { showErrorMessage: jest.fn() } },
             { report: jest.fn() },

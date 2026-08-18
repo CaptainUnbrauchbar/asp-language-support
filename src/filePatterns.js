@@ -1,17 +1,14 @@
-const fs = require("fs");
-const { join } = require("path");
-
 /**
  * Resolving lists of files that may contain globs. Shared by the JSON config and
  * by the settings pane so both understand exactly the same patterns.
  */
+const fs = require("fs");
+const { join } = require("path");
 
 /** Characters that turn an entry into a pattern rather than a plain path. */
 const GLOB_CHARACTERS = /[*?]/;
 
 /**
- * Translates a glob into a regular expression matching a path relative to the
- * base directory. Supports "**" for any depth, "*" within one segment and "?".
  * @param {String} pattern Always written with forward slashes
  * @returns {RegExp}
  */
@@ -40,8 +37,6 @@ function globToRegExp(pattern) {
 }
 
 /**
- * Every file under `directory`, as paths relative to it and using forward
- * slashes so one pattern behaves the same on every platform.
  * @param {String} directory
  * @param {String} prefix
  * @returns {String[]}
@@ -105,6 +100,4 @@ function resolvePatterns(baseDirectory, entries) {
     return { files, unmatched };
 }
 
-// globToRegExp, listFilesBelow and GLOB_CHARACTERS are how resolvePatterns works
-// rather than what it offers, so they stay inside this module
 module.exports = { resolvePatterns };

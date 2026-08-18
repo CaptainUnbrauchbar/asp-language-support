@@ -8,7 +8,7 @@
  */
 (function () {
     // Replaced rather than extended, so a panel never starts out holding what
-    // the last one left behind. The panel tests re-run these scripts per test.
+    // the last one left behind
     const panel = {};
     window.AspPanel = panel;
 
@@ -47,8 +47,8 @@
         statStrip: selectOrThrow(".stat-strip"),
     };
 
-    // Only render.js, menu.js and main.js write to this. Everything else is
-    // handed what it renders, so it can be read without tracking what has run.
+    // Only render.js, menu.js and main.js write to this; everything else is
+    // handed what it renders
     panel.state = {
         lastResult: null,
         matchIndices: [],

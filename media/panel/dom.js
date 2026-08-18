@@ -58,8 +58,7 @@
         }
     }
 
-    // Confirming on the button itself rather than with a notification, which is
-    // easy to miss and interrupts what you were doing
+    // Confirms on the button itself: a notification is easy to miss
     function flashCopied(icon) {
         icon.className = "codicon codicon-check copied";
         setTimeout(() => {
@@ -68,7 +67,7 @@
     }
 
     // Reported by the run itself rather than rebuilt from the settings, so
-    // options the solver turned out not to support are already gone from it
+    // options the solver refused are already gone from it
     function makeCommandSection(command) {
         const details = document.createElement("details");
         details.className = "command-details";

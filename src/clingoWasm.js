@@ -1,10 +1,9 @@
 /**
  * Access to the clingo-wasm package.
  *
- * Since 0.6.0 clingo-wasm is ESM-only, so this CommonJS extension cannot
- * `require()` it and has to go through a dynamic `import()` instead. The import
- * is memoized and lazy: the ~2.6 MB wasm binary is only loaded the first time
- * the user actually solves something, which keeps activation cheap.
+ * clingo-wasm is ESM-only since 0.6.0, so this CommonJS extension reaches it
+ * through a dynamic `import()`. Memoized and lazy: the ~2.6 MB wasm binary is
+ * only loaded the first time something is actually solved.
  */
 
 /** @typedef {import("clingo-wasm").ClingoResult} ClingoResult */
@@ -26,17 +25,6 @@ function loadClingo() {
 
 /**
  * Whether parallel solving works, as observed rather than predicted.
- *
- * clingo-wasm exports supportsThreads(), but it answers for whichever context
- * calls it, and the extension host is not the context that matters. VSCode's
- * host has no `navigator` global, while the worker thread clingo actually runs
- * in does, so asking on the host reports false and would switch off a feature
- * that works perfectly well. Rather than guess, the options are sent and
- * clingo's own answer is remembered: where the threaded build did not load, it
- * refuses them as unknown options while parsing, before any solving starts.
- *
- * Starts out assuming they work, which is the case in VSCode, so nothing is
- * disabled until a run has actually shown otherwise.
  */
 let threadsWork = true;
 
@@ -69,13 +57,10 @@ function isThreadOptionRejected(result) {
 /**
  * Aborts the solve that is currently running.
  *
- * clingo-wasm runs the solver in a worker, and `restart()` terminates that
- * worker: the pending run resolves with an error result instead of spinning
- * forever, and the next run transparently gets a fresh worker. Before 0.6.0
- * there was no way to interrupt a run, so an endless loop meant restarting
- * VSCode.
- *
- * Does nothing if clingo was never loaded, so calling this while idle is safe.
+ * `restart()` terminates the worker clingo solves in: the pending run resolves
+ * with an error result instead of spinning forever, and the next run gets a
+ * fresh worker. Does nothing if clingo was never loaded, so calling this while
+ * idle is safe.
  */
 async function abortClingo() {
     if (!clingoPromise) {
@@ -89,9 +74,8 @@ async function abortClingo() {
 const ABORT_ERROR = "Aborted by restart().";
 
 /**
- * Whether a result is the error that an abort produces rather than a genuine
- * solver failure. Used to tell the user their run was cancelled instead of
- * showing them an error they did not cause.
+ * Whether a result is the error an abort produces rather than a genuine solver
+ * failure, so a cancelled run is not reported as one the user caused.
  * @param {ClingoResult | ClingoError | null} result
  * @returns {Boolean}
  */
