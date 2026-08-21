@@ -12,7 +12,6 @@
     let settingsOpen = false;
     let saveTimer;
 
-    /** Debounced so typing does not spam the host. */
     function saveSettings() {
         clearTimeout(saveTimer);
         saveTimer = setTimeout(() => vscode.postMessage({ type: "saveSettings", settings }), 200);

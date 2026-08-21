@@ -100,8 +100,6 @@ async function runClingoPathForFileWithProgress(
             if (current?.child === child) {
                 current = undefined;
             }
-            // The answers are handed over already read, so a stopped run does
-            // not have to be scanned a second time
             resolve({
                 ...result,
                 seconds: (Date.now() - startedAt) / 1000,
@@ -119,8 +117,6 @@ async function runClingoPathForFileWithProgress(
             limit: MAX_PARTIAL_MODELS,
             onWitness: (count) => {
                 const now = Date.now();
-                // Reporting per answer floods the UI on a program that finds
-                // thousands a second, and the count is unreadable at that rate
                 if (now - lastReport < PROGRESS_THROTTLE_MS) {
                     return;
                 }

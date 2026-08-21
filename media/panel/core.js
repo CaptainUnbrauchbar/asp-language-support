@@ -2,17 +2,12 @@
  * The panel's scripts meet on a single AspPanel object rather than going through
  * a bundler. This file builds it and has to load first; the others extend it.
  * The load order lives in PANEL_SCRIPTS in src/webviewProvider.js.
- *
- * Reach another script through AspPanel at call time, never by destructuring it
- * while loading: only what this file puts on the object is there yet.
  */
 (function () {
-    // Replaced rather than extended, so a panel never starts out holding what
-    // the last one left behind
+    // panel replaced rather than extended
     const panel = {};
     window.AspPanel = panel;
 
-    // Throws on a second call, so it happens here and nowhere else
     panel.vscode = acquireVsCodeApi();
 
     panel.FILTER_DEBOUNCE_MS = 100;
@@ -47,12 +42,9 @@
         statStrip: selectOrThrow(".stat-strip"),
     };
 
-    // Only render.js, menu.js and main.js write to this; everything else is
-    // handed what it renders
     panel.state = {
         lastResult: null,
         matchIndices: [],
-        /** Whether a filter removes what does not match, or only marks what does. */
         hideUnmatched: true,
         compareMode: false,
     };

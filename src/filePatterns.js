@@ -21,13 +21,7 @@ function sameCharacter(a, b) {
 }
 
 /**
- * Matches one path segment against one pattern segment, where `*` stands for any
- * run of characters and `?` for exactly one.
- *
- * Written as a scan with a single backtracking point rather than as a regular
- * expression: a pattern such as `*a*a*a*a*b.lp` compiles to a regex that takes
- * exponential time on a name that almost matches, which is enough to wedge the
- * extension host, and patterns arrive from a config file in the workspace.
+ * Matches one path segment against one pattern segment
  * @param {String} pattern
  * @param {String} name
  * @returns {Boolean}
@@ -71,9 +65,6 @@ function matchesGlob(pattern, path) {
     const patternSegments = pattern.split("/");
     const pathSegments = path.split("/");
 
-    // reachable[i] is true when the pattern consumed so far covers the first i
-    // path segments. Carrying every position forward means `**` costs nothing
-    // extra instead of forcing the search to retry each split in turn.
     let reachable = new Array(pathSegments.length + 1).fill(false);
     reachable[0] = true;
 
@@ -127,10 +118,7 @@ function listFilesBelow(directory, prefix = "") {
 }
 
 /**
- * Resolves an entry against the base directory, refusing anything that lands
- * outside it. Additional files are documented as living in the workspace, and a
- * config file travels with the project it belongs to, so a `../../..` entry is
- * someone else's file rather than the user's.
+ * Resolves an entry against the base directory, refusing anything that lands outside it
  * @param {String} baseDirectory
  * @param {String} entry
  * @returns {String | undefined} The absolute path, or undefined if it escapes

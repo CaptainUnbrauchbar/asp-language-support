@@ -20,7 +20,7 @@ With v1.1.0 a running solve can be stopped, the output panel was rebuilt, and so
 <img src="https://github.com/CaptainUnbrauchbar/asp-language-support/raw/informaticup/media/usage-demo-v1_1_0.gif" height="500" alt="demo-gif"/>
 
 Just right click anywhere on a logic program (.lp) file and select `Compute all Answer Sets` or `Compute the first Answer Set`.
-This will display Clingo's results in a seperate ASP tab located in the panel. You can also use the buttons in the top right of this tab to run bundled or PATH clingo depending on your `ASPLanguage: Use PATH Clingo` setting.
+This will display Clingo's results in a seperate ASP tab located in the panel. You can also use the buttons in the top right of this tab to run bundled or PATH clingo depending on your `Clingo for VSCode: Use PATH Clingo` setting.
 
 If you want to add **additional startup arguments**, open the **solver settings** with the gear in the panel toolbar. The answer set limit, time limits, parallel solving, constants, extra files and any custom clingo arguments are set there, and apply to `Compute all Answer Sets` and `Compute the first Answer Set`.
 
@@ -28,16 +28,16 @@ If you want to add **additional startup arguments**, open the **solver settings*
 
 If you need to work with **multiple files**, write `#include "other.lp".` in your program. This is ordinary clingo syntax, is resolved relative to the file it appears in, and needs no configuration. Includes stay inside the folder you have open: one pointing outside your workspace is reported rather than read, so opening a project you did not write cannot pull files from elsewhere on your disk into the program.
 
-If you already keep a **config.json**, point `ASPLanguage: Set Config` at it and use **Import from config.json** in the settings pane to bring its options across. **Export to config.json**, next to it, does the reverse and writes your current settings out as a file to share or commit. The file is looked up next to your program and in any folder above it, and `ASPLanguage: Initialize clingo config file in current working directory` _(Press Ctrl+Shift+P)_ still writes a sample one. Running a config file directly was removed in 1.1.0; the settings pane covers it.
+If you already keep a **config.json**, use **Import from config.json** in the settings pane to bring its options across. **Export to config.json**, next to it, does the reverse and writes your current settings out as a file to share or commit. The file is looked up under that name, next to your program and in any folder above it, and `Clingo for VSCode: Initialize clingo config file in current working directory` _(Press Ctrl+Shift+P)_ still writes a sample one. Running a config file directly was removed in 1.1.0; the settings pane covers it.
 See the Clingo [Documentation](https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf) (PDF) for more details on the available arguments!
 
-If you want to use your own Version of Clingo from PATH with this extension, please enable `ASPLanguage: Use PATH Clingo` option in your settings. It gets the same output panel as the bundled solver: the extension asks it for clingo's JSON output and renders the answers, filter, comparison and statistics from that. The **Output format** setting in the pane chooses which of clingo's formats to ask for, and defaults to JSON because it is the only one answers can be read out of. Pick another, or ask for one in your custom arguments with `--outf`, `--text` or `--pre`, and the panel shows what clingo printed instead.
+If you want to use your own Version of Clingo from PATH with this extension, please enable `Clingo for VSCode: Use PATH Clingo` option in your settings. It gets the same output panel as the bundled solver: the extension asks it for clingo's JSON output and renders the answers, filter, comparison and statistics from that. The **Output format** setting in the pane chooses which of clingo's formats to ask for, and defaults to JSON because it is the only one answers can be read out of. Pick another, or ask for one in your custom arguments with `--outf`, `--text` or `--pre`, and the panel shows what clingo printed instead.
 
 ## Customization
 
 <img src="https://github.com/CaptainUnbrauchbar/asp-language-support/raw/informaticup/media/customization-demo-v1_1_0.gif" height="500" alt="customization-gif"/>
 
-When using the bundled WASM Clingo (Choose in configuration `ASPLanguage: Use PATH Clingo`), you can easily move the panel to the sidebars or change the panel position depending on your preferences.
+When using the bundled WASM Clingo (Choose in configuration `Clingo for VSCode: Use PATH Clingo`), you can easily move the panel to the sidebars or change the panel position depending on your preferences.
 The layout will adjust accordingly!
 
 ## Requirements
@@ -49,8 +49,7 @@ For the extension to work properly, please install the Answer Set Programming sy
 
 This extension contributes the following settings:
 
--   `ASPLanguage: Use PATH Clingo`: Set this option if you would like to use the Clingo version from your PATH instead of the version included! (default: False)
--   `ASPLanguage: Set Config`: Name of a clingo config file, looked up next to the .lp file you run and in any folder above it (e.g. `config.json`, default: empty)
+-   `Clingo for VSCode: Use PATH Clingo`: Set this option if you would like to use the Clingo version from your PATH instead of the version included! (default: False)
 
 Everything else is set in the panel's own settings, see below.
 
@@ -60,21 +59,21 @@ Which solver is in use is shown in the status bar while an ASP file is open, tog
 
 This extension contributes the following features:
 
--   `Compute all Answer Sets`: Get every answer set for the current logic program file, or as many as the answer set limit allows, with `Ctrl+Shift+A` / `Cmd+Shift+A`
--   `Compute the first Answer Set`: Get the first answer set for the current logic program file, with `Ctrl+Shift+X` / `Cmd+Shift+X`
+-   `Compute all Answer Sets`: Get every answer set for the current logic program file, or as many as the answer set limit allows
+-   `Compute the first Answer Set`: Get the first answer set for the current logic program file
 -   `Solver settings`: Open the panel's solver settings with the gear in its toolbar
--   `Stop the running Clingo solver`: Stop a run that is taking too long, either with the **Cancel** button on the progress notification, the stop button in the ASP panel or `Ctrl+Shift+S` / `Cmd+Shift+S`
--   `ASPLanguage: Show release notes`: Show what changed in this version again, after the one-time notice has been dismissed
+-   `Stop the running Clingo solver`: Stop a run that is taking too long, either with the **Cancel** button on the progress notification or with the stop button in the ASP panel
+-   `Clingo for VSCode: Show release notes`: Show what changed in this version again, after the one-time notice has been dismissed
 
 ### Solver settings
 
 Click the gear in the ASP panel's toolbar, next to the run buttons, to set how many answer sets to compute, time limits, parallel solving, constants, extra files and custom clingo arguments. The settings are kept per workspace and are used by `Compute all Answer Sets` and `Compute the first Answer Set`, so no config file is needed for the usual case.
 
-Not every clingo option survives being compiled to WebAssembly. Settings the bundled solver cannot honour are greyed out and say which solver they need, rather than being offered and then quietly ignored — switch on `ASPLanguage: Use PATH Clingo` and they become available again.
+Not every clingo option survives being compiled to WebAssembly. Settings the bundled solver cannot honour are greyed out and say which solver they need, rather than being offered and then quietly ignored — switch on `Clingo for VSCode: Use PATH Clingo` and they become available again.
 
 Two settings work differently than you might expect. The **time limit** is enforced by the extension rather than by clingo, whose own is inert under WebAssembly: the run is stopped and the answers found up to that point are kept. **Parallel solving** does work with the bundled solver, but only pays off on programs that take seconds rather than milliseconds — use four threads or more, and `split` mode when enumerating many answers.
 
-An existing JSON config is not lost: **Import from config.json** in the settings pane copies it into the panel, and **Export to config.json** writes the panel's current settings back out, which is how a set of options gets handed to somebody else or committed next to a program. Exporting writes the same file importing reads — the name `ASPLanguage: Set Config` looks for, next to the program you have open — and asks first if that file already exists. `ASPLanguage: Initialize clingo config file in current working directory` still creates a sample one to start from. Running a config file directly was removed in 1.1.0, so the pane is now the single place solver options live.
+An existing JSON config is not lost: **Import from config.json** in the settings pane copies it into the panel, and **Export to config.json** writes the panel's current settings back out, which is how a set of options gets handed to somebody else or committed next to a program. Exporting writes the same file importing reads — `config.json`, next to the program you have open — and asks first if that file already exists. `Clingo for VSCode: Initialize clingo config file in current working directory` still creates a sample one to start from. Running a config file directly was removed in 1.1.0, so the pane is now the single place solver options live.
 
 To solve several files together, prefer `#include "other.lp".` in the program itself: it is plain clingo syntax and needs no configuration at all.
 

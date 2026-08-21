@@ -1,7 +1,5 @@
 /**
- * Renders the clingo command line a run amounts to, so the panel can show what
- * clingo was actually asked. Shared by both runners and by the settings pane's
- * preview so all three word it the same way.
+ * Renders the clingo command line a run amounts to, so the panel can show what clingo was actually asked
  */
 const { basename } = require("path");
 

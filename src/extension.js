@@ -25,13 +25,11 @@ const {
 /** Where the panel's solver settings are kept, per workspace. */
 const SETTINGS_KEY = "aspLanguage.solverSettings";
 
-/** Used when the setConfig setting names no file, as the sample config does. */
+/** The only name import and export use, now that no setting chooses one. */
 const DEFAULT_CONFIG_NAME = "config.json";
 
 /**
  * How much text the panel is given for output it cannot take apart into answers.
- * Enough to read a result by eye, far short of what freezes a webview laying it
- * out in one box.
  */
 const MAX_RAW_OUTPUT_CHARS = 200000;
 
@@ -69,7 +67,6 @@ function clingoFailureMessage({ code, signal, errorOutput, output }) {
  */
 function activate(context) {
     let usePathClingo = vscode.workspace.getConfiguration("aspLanguage").get("usePathClingo");
-    let setConfig = vscode.workspace.getConfiguration("aspLanguage").get("setConfig");
     let path;
     let clingoRunning = false;
     let releaseNotePending = false;
@@ -90,13 +87,13 @@ function activate(context) {
         /** Fills the pane from an existing config.json so nobody has to retype it. */
         importFromConfig: async () => {
             const editor = vscode.window.activeTextEditor;
-            const configPath = editor && setConfig ? findConfig(dirname(editor.document.fileName), setConfig) : undefined;
+            if (!editor) {
+                vscode.window.showErrorMessage("Open a logic program first: the config is looked for next to it.");
+                return;
+            }
+            const configPath = findConfig(dirname(editor.document.fileName), DEFAULT_CONFIG_NAME);
             if (!configPath) {
-                vscode.window.showErrorMessage(
-                    setConfig
-                        ? `Could not find ${setConfig} next to the file or in any folder above it.`
-                        : "Set a config file name in the aspLanguage.setConfig setting first."
-                );
+                vscode.window.showErrorMessage(`Could not find ${DEFAULT_CONFIG_NAME} next to the file or in any folder above it.`);
                 return;
             }
             try {
@@ -125,9 +122,8 @@ function activate(context) {
                 return;
             }
 
-            const name = setConfig || DEFAULT_CONFIG_NAME;
-            const existing = findConfig(directory, name);
-            const target = existing ?? join(directory, name);
+            const existing = findConfig(directory, DEFAULT_CONFIG_NAME);
+            const target = existing ?? join(directory, DEFAULT_CONFIG_NAME);
             if (existing) {
                 const overwrite = await vscode.window.showWarningMessage(
                     `Overwrite ${basename(existing)} with the current solver settings?`,
@@ -141,11 +137,6 @@ function activate(context) {
 
             try {
                 fs.writeFileSync(target, `${JSON.stringify(settingsToConfig(settingsStore.read()), undefined, 4)}\n`);
-                // A config the extension cannot find again is not much of an
-                // export, so point the setting at it when it names nothing yet
-                if (!setConfig) {
-                    await vscode.workspace.getConfiguration("aspLanguage").update("setConfig", name);
-                }
                 // Opened rather than merely written: seeing the file is how you
                 // check what you are passing on
                 await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(vscode.Uri.file(target)));
@@ -448,12 +439,6 @@ function activate(context) {
         async () => await showReleaseNote(vscode, context.globalState, { force: true, extensionUri: context.extensionUri })
     );
 
-    const initClingoConfig = vscode.commands.registerCommand("answer-set-programming-language-support.initClingoConfig", function () {
-        const sampleConfig = fs.readFileSync(join(context.asAbsolutePath(""), `sampleConfig.json`));
-        fs.writeFileSync(join(dirname(vscode.window.activeTextEditor.document.fileName), DEFAULT_CONFIG_NAME), sampleConfig);
-        vscode.workspace.getConfiguration("aspLanguage").update("setConfig", DEFAULT_CONFIG_NAME);
-    });
-
     // Keep the results when the panel is hidden, otherwise switching to the
     // terminal and back throws them away and the program has to be solved again
     context.subscriptions.push(
@@ -466,7 +451,6 @@ function activate(context) {
     context.subscriptions.push(stopClingoCommand);
     context.subscriptions.push(toggleSettingsCommand);
     context.subscriptions.push(showReleaseNotesCommand);
-    context.subscriptions.push(initClingoConfig);
     context.subscriptions.push(statusBar);
 
     vscode.workspace.onDidChangeConfiguration((event) => {
@@ -478,9 +462,6 @@ function activate(context) {
             if (provider._view) {
                 provider._view.webview.html = provider._getHtmlForWebview(provider._view.webview);
             }
-        }
-        if (event.affectsConfiguration("aspLanguage.setConfig")) {
-            setConfig = vscode.workspace.getConfiguration("aspLanguage").get("setConfig");
         }
     });
 }

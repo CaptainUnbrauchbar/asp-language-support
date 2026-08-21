@@ -9,7 +9,7 @@
         if (result === "UNSATISFIABLE") {
             return { label: "UNSAT", icon: "error", tone: "unsat" };
         }
-        return { label: result ?? "?", icon: "warning", tone: "unknown" };
+        return { label: result ?? "UNKNOWN", icon: "warning", tone: "unknown" };
     }
 
     function makeStat(icon, value, unit) {
@@ -52,7 +52,8 @@
 
         statStrip.appendChild(makeStat("list-ordered", `${result.modelsNumber}${result.modelsMore ? "+" : ""}`, "models"));
         statStrip.appendChild(makeStat("watch", `${result.time.total}`, "s"));
-        // A run stopped from outside clingo never got to report its version
+        
+        // format clingo version correctly
         const solverLabel = String(result.solver ?? "").replace(/^clingo version /i, "clingo ");
         if (solverLabel) {
             statStrip.appendChild(makeStat("server-process", solverLabel, ""));
@@ -84,11 +85,6 @@
             .join("\n");
     }
 
-    /**
-     * An array of plain numbers reads better on one line than split across rows,
-     * but an array of objects has to be walked or it prints as "[object Object]",
-     * which is what clingo's lemma types used to do.
-     */
     function isStatsBranch(value) {
         if (!value || typeof value !== "object") {
             return false;
@@ -96,8 +92,6 @@
         return !Array.isArray(value) || value.some((entry) => entry && typeof entry === "object");
     }
 
-    // Clingo labels array entries with what they describe, such as the "Short"
-    // and "Conflict" lemma types, which is worth far more than the position
     function statsLabelKey(entry) {
         if (!entry || typeof entry !== "object") {
             return undefined;
@@ -110,11 +104,6 @@
         return key ? String(entry[key]) : `#${index + 1}`;
     }
 
-    /**
-     * Flattens clingo's nested statistics into "Rules / Choice / Final" rows.
-     * Which figures it reports depends on the statistics level and on what it had
-     * to do, so nothing here assumes a fixed set.
-     */
     function flattenStats(value, prefix, rows, skipKey) {
         const entries = Array.isArray(value)
             ? value.map((entry, index) => [statsEntryLabel(entry, index), entry, statsLabelKey(entry)])
@@ -125,8 +114,6 @@
         entries.forEach(([key, entry, named]) => {
             const path = prefix ? `${prefix} / ${key}` : key;
             if (isStatsBranch(entry)) {
-                // Whatever named the entry is already in the path above it, so
-                // it does not need a row of its own saying "Type: Short"
                 flattenStats(entry, path, rows, named);
             } else {
                 rows.push([path, Array.isArray(entry) ? entry.join(", ") : String(entry)]);
@@ -146,7 +133,6 @@
                 loose.push([key, Array.isArray(entry) ? entry.join(", ") : String(entry)]);
             }
         });
-        // Anything clingo reported at the top level has no section to sit under
         if (loose.length) {
             groups.unshift({ name: "", rows: loose });
         }
@@ -164,8 +150,6 @@
         summaryLine.textContent = `Solver statistics (${total})`;
         details.appendChild(summaryLine);
 
-        // Sections flow into as many columns as the panel is wide, so each figure
-        // stays next to its name instead of being flung to the far edge
         const table = document.createElement("div");
         table.className = "stats-table";
         groups.forEach((group) => {

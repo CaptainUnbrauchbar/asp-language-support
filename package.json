@@ -98,17 +98,12 @@
         ],
         "configuration": [
             {
-                "title": "ASPLanguage",
+                "title": "Clingo for VSCode",
                 "properties": {
                     "aspLanguage.usePathClingo": {
                         "description": "Set this option if you would like to use the Clingo version from your PATH instead of the version included",
                         "type": "boolean",
                         "default": false
-                    },
-                    "aspLanguage.setConfig": {
-                        "markdownDescription": "Name of the clingo config file that **Import from config.json** reads, for example `config.json`. It is looked up next to the .lp file you run and then in **every folder above it**, so one config can serve a whole project.\n\nSolver options live in the panel's own settings, opened with the gear in its toolbar; this setting only says where to import an existing config from. To solve several files together, write `#include \"other.lp\".` in your program instead.",
-                        "type": "string",
-                        "default": ""
                     }
                 }
             }
@@ -135,12 +130,8 @@
                 "icon": "$(debug-stop)"
             },
             {
-                "command": "answer-set-programming-language-support.initClingoConfig",
-                "title": "ASPLanguage: Initialize clingo config file in current working directory"
-            },
-            {
                 "command": "answer-set-programming-language-support.showreleasenotes",
-                "title": "ASPLanguage: Show release notes"
+                "title": "Clingo for VSCode: Show release notes"
             }
         ],
         "menus": {

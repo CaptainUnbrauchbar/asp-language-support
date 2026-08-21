@@ -14,8 +14,6 @@
             label: "Copy matching answer sets",
             icon: "filter",
             enabled: () => !!el.filterBox?.value.trim() && state.matchIndices.length > 0,
-            // The answers that matched, not the ones on screen: while only
-            // highlighting, everything is on screen and that would copy the lot
             run: () => vscode.postMessage({ type: "copyFiltered", indices: state.matchIndices }),
         },
         {

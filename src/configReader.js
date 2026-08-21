@@ -74,12 +74,6 @@ function formatSchemaErrors(errors) {
  * @returns {String[]} One readable problem per mistake, empty when it is fine
  */
 function validateConfigObject(config, contextAbsolutePath) {
-    // allErrors so a config with several mistakes does not need several attempts.
-    // The rule this suppresses guards a server collecting errors from untrusted
-    // request bodies; here the input is one small config file the user opened in
-    // their own editor, validated against a closed schema, and reporting only the
-    // first mistake per attempt is the worse trade.
-    // nosemgrep: javascript.ajv.security.audit.ajv-allerrors-true.ajv-allerrors-true
     const ajv = new Ajv({ allErrors: true });
     const schema = require(join(contextAbsolutePath, `schema.json`));
     const validate = ajv.compile(schema);

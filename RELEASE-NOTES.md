@@ -18,14 +18,13 @@ Running a config file directly is gone, along with its toolbar button and `Ctrl+
 
 -   **Import from config.json** in the settings pane copies one into your settings
 -   **Export to config.json**, next to it, writes your current settings back into that same file, to share or commit
--   `ASPLanguage: Initialize clingo config file in current working directory` still writes a sample one
--   `ASPLanguage: Set Config` still says which file to look for
+-   `Clingo for VSCode: Initialize clingo config file in current working directory` still writes a sample one
 
-Point `Set Config` at your file, open the settings pane, and press **Import from config.json** once. After that the panel is where your options live.
+Open the settings pane with your program open and press **Import from config.json** once. After that the panel is where your options live.
 
 ## Also new in this release
 
--   **Stop a running solve.** An endless loop no longer means restarting VSCode — use the stop button in the panel, `Ctrl+Shift+S`, or Cancel on the progress notification. Whatever answers were found are kept.
+-   **Stop a running solve.** An endless loop no longer means restarting VSCode — use the stop button in the panel or Cancel on the progress notification. Whatever answers were found are kept.
 -   **A time limit that works.** Clingo's own is inert under WebAssembly; the extension now enforces it and keeps the answers found so far.
 -   **Filter and compare answer sets.** Narrow results to the answers you want, or switch the toggle inside the filter box to highlight matches while keeping everything on screen. **Compare** dims what every answer agrees on so only the differences stand out.
 -   **Solver statistics** in the panel, whenever the statistics level is above zero.

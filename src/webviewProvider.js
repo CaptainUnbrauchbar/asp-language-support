@@ -3,12 +3,6 @@ const crypto = require("crypto");
 
 /**
  * The panel's scripts, relative to media/ and in the order they have to load.
- * They meet on a single AspPanel object rather than going through a bundler, so
- * panel/core.js has to be first: it builds that object, and main.js is last
- * because it drives what the others put on it.
- *
- * Listed here rather than in the HTML because the panel tests load exactly this
- * list, so a renamed script cannot end up in one place and not the other.
  */
 const PANEL_SCRIPTS = [
     "panel/core.js",
@@ -28,17 +22,13 @@ class WebviewProvider {
      */
     constructor(_extensionUri, settingsStore = undefined) {
         this._extensionUri = _extensionUri;
-        /** Every answer set of the last run, including those the webview did not receive. @type {String[][]} */
+        /** @type {String[][]} */
         this._answers = [];
-        /** The last payload sent to the webview, replayed whenever a new webview appears. */
         this._lastMessage = undefined;
-        /** Supplies and persists the settings the panel edits. */
         this._settingsStore = settingsStore;
     }
 
     /**
-     * Sends a one-off instruction to the panel without remembering it, so it is
-     * not replayed when the view is later rebuilt.
      * @param {Object} message
      */
     sendCommand(message) {
@@ -58,10 +48,6 @@ class WebviewProvider {
 
     /**
      * Sends a payload to the webview and remembers it.
-     *
-     * Dragging the panel elsewhere disposes the webview and builds a fresh one,
-     * which retainContextWhenHidden cannot help with. Keeping the last payload
-     * lets the new webview ask for it instead of coming up empty.
      * @param {Object} message
      */
     post(message) {
@@ -70,8 +56,7 @@ class WebviewProvider {
     }
 
     /**
-     * Stores the complete result of a run so that copying can offer every answer
-     * set, not just the ones small enough to render.
+     * Stores the complete result of a run so that copying can offer every answer set
      * @param {String[][]} answers
      */
     setAnswers(answers) {
@@ -79,9 +64,7 @@ class WebviewProvider {
     }
 
     /**
-     * Copies text through the VSCode clipboard API. The webview's own
-     * navigator.clipboard is unreliable there and fails without telling anyone.
-     * The copy buttons confirm with a checkmark of their own, so this stays quiet.
+     * Copies text through the VSCode clipboard API
      * @param {String} text
      */
     async _copy(text) {
@@ -94,25 +77,18 @@ class WebviewProvider {
             enableScripts: true,
             localResourceRoots: [this._extensionUri],
         };
-        // Registered before the HTML is set, so the webview's "ready" message
-        // cannot arrive before anything is listening for it
+
         webviewView.webview.onDidReceiveMessage(async (data) => {
             switch (data.type) {
                 case "ready": {
-                    // The settings pane is part of the panel's furniture, so it is
-                    // filled in whether or not there are results to restore
                     this.sendSettings();
-                    // A freshly built webview starts on the welcome screen, so
-                    // give it back what was on display. One that restored itself
-                    // needs nothing: resending would discard its filter.
+                    // A freshly built webview should always start on the welcome screen
                     if (!data.hasState && this._lastMessage) {
                         webviewView.webview.postMessage(this._lastMessage);
                     }
                     break;
                 }
                 case "saveSettings": {
-                    // Nothing is sent back: a redraw while someone is typing
-                    // would rebuild the field under the cursor
                     await this._settingsStore?.save(data.settings);
                     break;
                 }
@@ -127,8 +103,6 @@ class WebviewProvider {
                     break;
                 }
                 case "exportConfig": {
-                    // Nothing to send back: exporting reads the settings out, it
-                    // does not change them
                     await this._settingsStore?.exportToConfig();
                     break;
                 }
@@ -160,16 +134,13 @@ class WebviewProvider {
                 }
                 case "clearOutput": {
                     this.setAnswers([]);
-                    // Also forget the payload, so a cleared panel does not come
-                    // back to life when the view is moved
                     this._lastMessage = undefined;
                     break;
                 }
             }
         });
 
-        // Moving the panel disposes this view. Without dropping the reference the
-        // extension keeps posting results into a webview nobody can see any more.
+
         webviewView.onDidDispose?.(() => {
             if (this._view === webviewView) {
                 this._view = undefined;
@@ -187,8 +158,6 @@ class WebviewProvider {
     _getHtmlForWebview(webview) {
         const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "vscode.css"));
         const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", "main.css"));
-        // Codicons are already a dependency of this extension and give the panel
-        // the same icons VSCode uses everywhere else
         const codiconUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this._extensionUri, "node_modules", "@vscode", "codicons", "dist", "codicon.css")
         );
@@ -196,9 +165,7 @@ class WebviewProvider {
             ? "your own version of Clingo from PATH"
             : "the bundled WASM Clingo Solver";
         const nonce = this._getNonce();
-        // One tag per panel script, in load order. Every one carries the nonce
-        // the content security policy admits them by, so splitting the panel up
-        // needs no change to that policy.
+        // One tag per panel script, in load order
         const scriptTags = PANEL_SCRIPTS.map((name) => {
             const uri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "media", ...name.split("/")));
             return `<script nonce="${nonce}" src="${uri}"></script>`;

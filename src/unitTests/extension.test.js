@@ -11,7 +11,7 @@ const listeners = { activeEditor: [], openDocument: [], closeDocument: [], confi
  * The aspLanguage settings, so a test can both set and observe them. Written out
  * as literals: jest only lets a mock factory reach an outer constant that is one.
  */
-const configuration = { usePathClingo: false, setConfig: "" };
+const configuration = { usePathClingo: false };
 
 jest.mock(
     "vscode",
@@ -188,7 +188,6 @@ describe("exporting the solver settings", () => {
         jest.clearAllMocks();
         Object.values(listeners).forEach((list) => (list.length = 0));
         configuration.usePathClingo = false;
-        configuration.setConfig = "";
         vscode.window.activeTextEditor = { document: program };
         vscode.workspace.textDocuments = [program];
         jest.spyOn(fs, "writeFileSync").mockImplementation(() => {});
@@ -205,28 +204,14 @@ describe("exporting the solver settings", () => {
         expect(fs.writeFileSync.mock.calls[0][0]).toEqual(configIn("config.json"));
     });
 
-    it("uses the name the setConfig setting looks for", async () => {
-        // Importing finds the config by that name, so exporting under any other
-        // would write a file the extension then ignores
-        configuration.setConfig = "solver.json";
-
+    it("writes no setting of its own, the file name being fixed", async () => {
+        // The config name is not configurable any more: exporting must not try
+        // to write a setting that no longer exists, which VSCode rejects
         await storeFrom(fakeContext()).exportToConfig();
 
-        expect(fs.writeFileSync.mock.calls[0][0]).toEqual(configIn("solver.json"));
-    });
-
-    it("points setConfig at the file when it named none", async () => {
-        await storeFrom(fakeContext()).exportToConfig();
-
-        expect(configuration.setConfig).toEqual("config.json");
-    });
-
-    it("leaves a name the user already chose alone", async () => {
-        configuration.setConfig = "solver.json";
-
-        await storeFrom(fakeContext()).exportToConfig();
-
-        expect(configuration.setConfig).toEqual("solver.json");
+        const updates = vscode.workspace.getConfiguration.mock.results.flatMap((result) => result.value.update.mock.calls);
+        expect(updates).toEqual([]);
+        expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
     });
 
     it("asks before overwriting a config that is already there", async () => {
@@ -326,7 +311,6 @@ describe("running your own clingo from PATH", () => {
         jest.clearAllMocks();
         Object.values(listeners).forEach((list) => (list.length = 0));
         configuration.usePathClingo = true;
-        configuration.setConfig = "";
         vscode.window.activeTextEditor = { document: program };
         vscode.workspace.textDocuments = [program];
         runClingoPathForFileWithProgress.mockResolvedValue({ code: 10, output: reply, errorOutput: "" });
@@ -475,7 +459,6 @@ describe("how a run from PATH ends", () => {
         jest.clearAllMocks();
         Object.values(listeners).forEach((list) => (list.length = 0));
         configuration.usePathClingo = true;
-        configuration.setConfig = "";
         vscode.window.activeTextEditor = { document: program };
         vscode.workspace.textDocuments = [program];
     });
