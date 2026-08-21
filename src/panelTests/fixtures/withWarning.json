@@ -1,0 +1,36 @@
+{
+    "program": "a :- b.",
+    "options": [],
+    "why": "clingo has something to say",
+    "result": {
+        "Solver": "clingo version 5.8.1",
+        "Call": [
+            {
+                "Start": 0,
+                "Witnesses": [
+                    {
+                        "Time": 0.001,
+                        "Value": []
+                    }
+                ],
+                "Stop": 0.001
+            }
+        ],
+        "Result": "SATISFIABLE",
+        "Models": {
+            "Number": 1,
+            "More": "no"
+        },
+        "Calls": 1,
+        "Time": {
+            "Total": 0.001,
+            "Solve": 0,
+            "Model": 0,
+            "Unsat": 0,
+            "CPU": 0
+        },
+        "Warnings": [
+            "-:1:6-7: info: atom does not occur in any rule head:\n  b\n"
+        ]
+    }
+}

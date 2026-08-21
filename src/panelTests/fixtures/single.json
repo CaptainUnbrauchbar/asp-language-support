@@ -1,0 +1,39 @@
+{
+    "program": "a. b.",
+    "options": [],
+    "why": "nothing to compare against",
+    "result": {
+        "Solver": "clingo version 5.8.1",
+        "Call": [
+            {
+                "Start": 0,
+                "Witnesses": [
+                    {
+                        "Time": 0,
+                        "Value": [
+                            "a",
+                            "b"
+                        ]
+                    }
+                ],
+                "Stop": 0
+            }
+        ],
+        "Result": "SATISFIABLE",
+        "Models": {
+            "Number": 1,
+            "More": "no"
+        },
+        "Calls": 1,
+        "Time": {
+            "Total": 0,
+            "Solve": 0,
+            "Model": 0,
+            "Unsat": 0,
+            "CPU": 0
+        },
+        "Warnings": [
+            ""
+        ]
+    }
+}

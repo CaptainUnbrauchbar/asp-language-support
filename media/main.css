@@ -1,0 +1,784 @@
+body {
+    background-color: transparent;
+    margin: 0;
+    padding: 0;
+}
+
+/* Sticky, so the filter, the actions and the statistics stay reachable
+   however far down the answers you are */
+.panel-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    /* vscode.css gives every direct child of body a block margin, which would
+       leave a gap above the stuck header for content to scroll through */
+    margin: 0;
+    padding: 0.35em 0.5em;
+    background-color: var(--vscode-panel-background, var(--vscode-editor-background));
+    border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-input-border));
+}
+
+.panel-header[hidden] {
+    display: none;
+}
+
+/* The search field keeps a fixed, modest width instead of filling the panel */
+.filter-field {
+    position: relative;
+    flex: 0 1 18em;
+    min-width: 8em;
+    display: flex;
+    align-items: center;
+}
+
+.filter-field .codicon-search {
+    position: absolute;
+    left: 0.5em;
+    font-size: 14px;
+    color: var(--vscode-input-placeholderForeground, var(--vscode-descriptionForeground));
+    pointer-events: none;
+}
+
+/*
+ * Written as ".filter-field .filter-box" on purpose: vscode.css styles
+ * `input:not([type="checkbox"])`, whose specificity (0,1,1) beats a plain class
+ * (0,1,0) no matter which stylesheet loads last. At lower specificity the field
+ * loses its border and its left padding.
+ */
+.filter-field .filter-box {
+    width: 100%;
+    /* room on the right for the mode toggle that sits inside the field */
+    padding: 0.3em 2em 0.3em 2em;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-input-foreground);
+    background-color: var(--vscode-input-background);
+    /* input-border is undefined in many themes, so fall back until something sticks */
+    border: 1px solid var(--vscode-input-border, var(--vscode-dropdown-border, rgba(128, 128, 128, 0.4)));
+    border-radius: 3px;
+    /* strip the browser's own search styling, which draws a round clear badge
+       inside the field that does not belong in a VSCode panel */
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.filter-field .filter-box::placeholder {
+    color: var(--vscode-input-placeholderForeground, var(--vscode-descriptionForeground));
+}
+
+.filter-box::-webkit-search-cancel-button,
+.filter-box::-webkit-search-decoration,
+.filter-box::-webkit-search-results-button,
+.filter-box::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+}
+
+.filter-field .filter-box:focus {
+    border-color: var(--vscode-focusBorder);
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -2px;
+}
+
+.filter-field:focus-within .codicon-search {
+    color: var(--vscode-input-foreground);
+}
+
+/* The filter/highlight toggle sits inside its own field, the way VSCode puts
+   its search options there, rather than competing with copy and compare */
+.filter-field .filter-mode {
+    position: absolute;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+}
+
+.filter-field .filter-mode .codicon {
+    font-size: 13px;
+}
+
+.icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    padding: 0;
+    color: var(--vscode-icon-foreground, var(--vscode-input-foreground));
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.icon-button:hover:not(:disabled) {
+    background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+}
+
+.icon-button:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+}
+
+.icon-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* min-width lets the strip shrink and ellipsize on a narrow panel, so it never
+   squeezes the controls out */
+.stat-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    flex: 0 1 auto;
+    min-width: 0;
+    margin-right: auto;
+    padding-right: 0.5em;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.result-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    flex: 0 0 auto;
+    padding: 0.05em 0.55em 0.05em 0.4em;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.result-badge .codicon {
+    font-size: 13px;
+}
+
+.result-sat {
+    color: var(--vscode-testing-iconPassed, var(--vscode-charts-green, #3fb950));
+}
+
+.result-unsat {
+    color: var(--vscode-testing-iconFailed, var(--vscode-charts-red, #f85149));
+}
+
+.result-unknown {
+    color: var(--vscode-testing-iconQueued, var(--vscode-charts-yellow, #d29922));
+}
+
+.stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stat .codicon {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.stat-value {
+    color: var(--vscode-foreground);
+    font-weight: 600;
+}
+
+.stat-unit {
+    color: var(--vscode-descriptionForeground);
+}
+
+/* Only present while the list on screen is shorter than the full result */
+.shown-chip {
+    flex: 0 0 auto;
+    padding: 0.05em 0.55em;
+    border-radius: 999px;
+    color: var(--vscode-badge-foreground);
+    background-color: var(--vscode-badge-background);
+    font-weight: 600;
+}
+
+/* Overflow menu. A new entry in MENU_ACTIONS in panel/menu.js is already
+   covered by the styling below. */
+.menu-anchor {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.menu {
+    position: absolute;
+    top: 100%;
+    /* anchored to the right edge now that the actions sit there, so the popup
+       opens inwards instead of off the side of the panel */
+    right: 0;
+    z-index: 3;
+    min-width: 15em;
+    margin: 0.2em 0 0 0;
+    padding: 0.25em 0;
+    list-style: none;
+    background-color: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+    color: var(--vscode-menu-foreground, var(--vscode-editorWidget-foreground));
+    border: 1px solid var(--vscode-menu-border, var(--vscode-editorWidget-border));
+    border-radius: 4px;
+    box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+}
+
+.menu[hidden] {
+    display: none;
+}
+
+.menu-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    width: 100%;
+    padding: 0.35em 0.8em;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    text-align: left;
+    color: inherit;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+}
+
+.menu-button:hover:not(:disabled) {
+    background-color: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground));
+    color: var(--vscode-menu-selectionForeground, inherit);
+}
+
+.menu-button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/*
+ * Solver settings, laid out like VSCode's own settings editor: a label and a
+ * short explanation on the left, the control on the right. The pane covers the
+ * whole panel rather than stacking above the answers, since splitting an
+ * already short panel in two left too little of either.
+ */
+.settings-pane {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0.75em 1em 1em 1em;
+    background-color: var(--vscode-editor-background);
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+}
+
+.settings-pane[hidden] {
+    display: none;
+}
+
+/* Keeps a readable measure instead of stretching a label and its control to
+   opposite ends of a very wide panel */
+.settings-intro,
+.settings-body,
+.settings-actions {
+    max-width: 58em;
+    margin-inline: auto;
+}
+
+.settings-intro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.6em;
+    margin-bottom: 0.75em;
+}
+
+.settings-scope {
+    color: var(--vscode-descriptionForeground);
+}
+
+.setting-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5em;
+    padding: 0.5em 0;
+    border-top: 1px solid var(--vscode-panel-border, transparent);
+}
+
+.setting-disabled {
+    opacity: 0.5;
+}
+
+/* A setting the current solver cannot honour. Dimmed less than a disabled row:
+   the note is the point, so it has to stay readable. */
+.setting-unavailable .setting-label,
+.setting-unavailable .setting-description {
+    opacity: 0.6;
+}
+
+.setting-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4em;
+    margin-top: 0.2em;
+    color: var(--vscode-descriptionForeground);
+}
+
+.setting-note .codicon {
+    flex: 0 0 auto;
+    margin-top: 0.15em;
+    font-size: 1em;
+}
+
+/* Takes the space the control does not, and may shrink to nothing before the
+   row is allowed to overflow sideways */
+.setting-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.setting-label {
+    font-weight: 600;
+}
+
+.setting-description {
+    color: var(--vscode-descriptionForeground);
+    overflow-wrap: anywhere;
+}
+
+/*
+ * A fixed width holder for whatever control the field needs. Sizing the holder
+ * rather than the control means vscode.css's `input { width: 100% }` fills this
+ * box instead of the whole row, which is what flattened the labels before.
+ */
+.setting-control {
+    display: flex;
+    align-items: center;
+    flex: 0 0 18em;
+    max-width: 18em;
+}
+
+.setting-control input[type="text"],
+.setting-control input[type="number"],
+.setting-control select {
+    width: 100%;
+    padding: 0.25em 0.4em;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-input-foreground);
+    background-color: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, var(--vscode-dropdown-border, rgba(128, 128, 128, 0.4)));
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+.setting-control select {
+    color: var(--vscode-dropdown-foreground, var(--vscode-input-foreground));
+    background-color: var(--vscode-dropdown-background, var(--vscode-input-background));
+}
+
+.setting-control input:focus,
+.setting-control select:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -2px;
+}
+
+/* VSCode draws no native checkboxes in its own UI, so this is the bordered
+   square it does use, with a check drawn from two borders */
+.setting-control input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    background-color: var(--vscode-checkbox-background, var(--vscode-input-background));
+    border: 1px solid var(--vscode-checkbox-border, var(--vscode-input-border, rgba(128, 128, 128, 0.5)));
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.setting-control input[type="checkbox"]:hover:not(:disabled) {
+    border-color: var(--vscode-focusBorder);
+}
+
+.setting-control input[type="checkbox"]:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 1px;
+}
+
+.setting-control input[type="checkbox"]:checked {
+    background-color: var(--vscode-checkbox-selectBackground, var(--vscode-checkbox-background, var(--vscode-input-background)));
+    border-color: var(--vscode-checkbox-selectBorder, var(--vscode-focusBorder));
+}
+
+.setting-control input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 4px;
+    height: 9px;
+    border: solid var(--vscode-checkbox-foreground, var(--vscode-foreground));
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.setting-control input[type="checkbox"]:disabled {
+    cursor: default;
+}
+
+/* Narrow panels stack the control under its label instead of squeezing both.
+   The threshold follows the control's own width, so the label keeps the same
+   room it had before the control grew. */
+@media (max-width: 37em) {
+    .setting-row {
+        flex-direction: column;
+        gap: 0.4em;
+    }
+
+    .setting-control {
+        flex: 0 0 auto;
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
+.settings-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin-top: 1em;
+}
+
+.settings-actions button {
+    width: auto;
+    padding: 0.35em 0.9em;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground));
+    background-color: var(--vscode-button-secondaryBackground, var(--vscode-button-background));
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.settings-actions button:hover {
+    background-color: var(--vscode-button-secondaryHoverBackground, var(--vscode-button-hoverBackground));
+}
+
+.settings-actions .settings-primary {
+    color: var(--vscode-button-foreground);
+    background-color: var(--vscode-button-background);
+}
+
+.settings-actions .settings-primary:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+
+.output-container {
+    margin: 0;
+    padding: 0.5em;
+}
+
+/*
+ * Output the panel cannot take apart into answers is one box of text, and it
+ * gets the whole panel. The height comes from the viewport, which for a webview
+ * is the panel, so it follows the panel being dragged taller or shorter without
+ * anything having to measure it.
+ */
+.output-container.raw-output {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+.answer-container {
+    margin-bottom: 0.75em;
+}
+
+.answer-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 0.2em;
+}
+
+.answer-label {
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    font-weight: 600;
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.answer-header .icon-button {
+    margin-left: auto;
+}
+
+.output-box {
+    width: 100%;
+    resize: vertical;
+    padding: 0.4em;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    color: var(--vscode-input-foreground);
+    background-color: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, transparent);
+    border-radius: 2px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.output-box:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+}
+
+/* Takes whatever height the column has left; the minimum keeps it readable in
+   a panel dragged down to almost nothing */
+.output-container.raw-output .output-box {
+    flex: 1 1 auto;
+    min-height: 8em;
+    resize: none;
+}
+
+/* The one box without an inline height, so it is sized by its rows attribute.
+   Stated explicitly in case .output-box ever gains a height again, which once
+   collapsed this to two lines. */
+.welcome-box {
+    height: auto;
+    resize: none;
+}
+
+/* Solver statistics collapse behind a summary: worth having, not worth
+   spending the top of the panel on */
+.stats-details {
+    margin-bottom: 0.75em;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-descriptionForeground);
+}
+
+.stats-details summary {
+    cursor: pointer;
+}
+
+/* Sections flow into as many newspaper columns as the panel is wide: one full
+   width table put every figure a screen away from the name it belonged to */
+.stats-table {
+    margin-top: 0.3em;
+    padding: 0.6em 0.8em;
+    background-color: var(--vscode-textCodeBlock-background, var(--vscode-input-background));
+    border-radius: 2px;
+    column-width: 24em;
+    column-gap: 2.5em;
+}
+
+/* A section must not be split down the middle by a column break */
+.stats-group {
+    break-inside: avoid;
+    margin-bottom: 0.9em;
+}
+
+.stats-group-name {
+    margin-bottom: 0.2em;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+}
+
+.stats-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+}
+
+/* A dotted leader runs out to meet the figure, so the eye can follow the line */
+.stats-key {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.stats-key::after {
+    content: "";
+    flex: 1 1 auto;
+    margin-bottom: 0.25em;
+    border-bottom: 1px dotted var(--vscode-panel-border, rgba(128, 128, 128, 0.4));
+}
+
+.stats-value {
+    flex: 0 0 auto;
+    font-family: var(--vscode-editor-font-family);
+    color: var(--vscode-foreground);
+    white-space: nowrap;
+}
+
+/* What clingo was invoked with, collapsed for the same reason as the statistics */
+.command-details {
+    margin-bottom: 0.75em;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-descriptionForeground);
+}
+
+.command-details summary {
+    cursor: pointer;
+}
+
+.command-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+    margin-top: 0.3em;
+    padding: 0.6em 0.8em;
+    background-color: var(--vscode-textCodeBlock-background, var(--vscode-input-background));
+    border-radius: 2px;
+}
+
+/* Wraps rather than scrolling sideways: an option pushed off the right edge is
+   a hidden one */
+.command-line {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    color: var(--vscode-foreground);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: text;
+}
+
+/* A block element rather than a textarea, so an answer takes only the room it
+   needs and matches can be highlighted */
+.atom-list {
+    max-height: 14em;
+    overflow-y: auto;
+    padding: 0.4em 0.5em;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    line-height: 1.5;
+    color: var(--vscode-input-foreground);
+    background-color: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, transparent);
+    border-left: 2px solid var(--vscode-panel-border, var(--vscode-input-border, transparent));
+    border-radius: 2px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    user-select: text;
+}
+
+.answer-container:hover .atom-list {
+    border-left-color: var(--vscode-focusBorder);
+}
+
+/*
+ * Uses the stronger current-match colour, with a border for themes whose colour
+ * is pale. Everything is drawn behind and around the text without taking room
+ * of its own: weight or padding would widen the run and reflow every atom after
+ * it, shuffling the answers sideways with each keystroke.
+ */
+.match {
+    color: inherit;
+    background-color: var(--vscode-editor-findMatchBackground, var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.55)));
+    outline: 1px solid var(--vscode-editor-findMatchBorder, var(--vscode-focusBorder));
+    outline-offset: 0;
+    border-radius: 2px;
+}
+
+/* While only highlighting, the answers without a match stay on screen, so the
+   ones that matched have to stand out */
+.answer-container.has-match {
+    border-left: 2px solid var(--vscode-editor-findMatchBackground, var(--vscode-focusBorder));
+    padding-left: 0.4em;
+}
+
+/* Comparison mode: atoms every answer agrees on recede, leaving exactly what
+   tells the answers apart */
+.atom-common {
+    opacity: 0.4;
+}
+
+.atom-varying {
+    color: var(--vscode-charts-blue, #4daafc);
+}
+
+.atom-unique {
+    padding: 0 0.15em;
+    border-radius: 2px;
+    font-weight: 600;
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-diffEditor-insertedTextBackground, rgba(63, 185, 80, 0.25));
+}
+
+/* A pressed toolbar toggle, the way VSCode shows an active action */
+.icon-button[aria-pressed="true"] {
+    color: var(--vscode-inputOption-activeForeground, var(--vscode-foreground));
+    background-color: var(--vscode-inputOption-activeBackground, var(--vscode-toolbar-hoverBackground));
+    outline: 1px solid var(--vscode-inputOption-activeBorder, var(--vscode-focusBorder));
+    outline-offset: -1px;
+}
+
+/* Callouts for clingo's messages and for runs that produced nothing */
+.callout {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5em;
+    margin-bottom: 0.75em;
+    padding: 0.5em 0.6em;
+    border-radius: 3px;
+    border-left: 3px solid transparent;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+}
+
+.callout .codicon {
+    flex: 0 0 auto;
+    margin-top: 0.1em;
+}
+
+.callout-body {
+    min-width: 0;
+}
+
+.callout-body pre {
+    margin: 0.25em 0 0 0;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.callout-warning {
+    color: var(--vscode-inputValidation-warningForeground, var(--vscode-foreground));
+    background-color: var(--vscode-inputValidation-warningBackground);
+    border-left-color: var(--vscode-inputValidation-warningBorder, var(--vscode-charts-yellow));
+}
+
+.callout-info {
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-textBlockQuote-background, var(--vscode-input-background));
+    border-left-color: var(--vscode-textLink-foreground, var(--vscode-focusBorder));
+}
+
+.codicon.copied {
+    color: var(--vscode-testing-iconPassed, var(--vscode-charts-green, #3fb950));
+}

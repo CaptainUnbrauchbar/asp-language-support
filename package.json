@@ -1,172 +1,221 @@
 {
-	"name": "answer-set-programming-language-support",
-	"displayName": "Answer Set Programming Language Support",
-	"version": "0.7.1",
-	"description": "Language Support for Clingo ASP (developed by University of Potsdam).",
-	"publisher": "ffrankreiter",
-	"engines": {
-		"vscode": "^1.46.0"
-	},
-	"categories": [
-		"Programming Languages"
-	],
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/CaptainUnbrauchbar/ASP-Language-Support"
-	},
-	"icon": "images/19286215.png",
-	"activationEvents": [
-		"onLanguage:asp"
-	],
-	"main": "./extension.js",
-	"contributes": {
-		"languages": [
-			{
-				"id": "asp",
-				"aliases": [
-					"Answer Set Programming",
-					"Answer Set",
-					"asp",
-					"Clingo",
-					"Potassco",
-					"Logic Program",
-					"Declarative Programming"
-				],
-				"extensions": [
-					".lp",
-					".ilp",
-					".cl",
-					".clp",
-					".iclp",
-					".Clp",
-					".iClp",
-					".blp",
-					".iblp"
-				]
-			}
-		],
-		"configuration": [
-			{
-				"title": "ASPLanguage",
-				"properties": {
-					"aspLanguage.selectOperatingSystem": {
-						"description": "Please select your OS so the correct Clingo Version is used",
-						"type": "string",
-						"default": "auto",
-						"enum": [
-							"Auto",
-							"Windows",
-							"MacOS",
-							"Linux"
-						],
-						"enumDescriptions": [
-							"Auto Detect Operating System",
-							"Any Windows Version",
-							"Any MacOS Version",
-							"Any Linux Distribution"
-						]
-					},
-					"aspLanguage.usePathClingo": {
-						"description": "Set this option if you would like to use the Clingo version from your PATH instead of the version included",
-						"type": "boolean",
-						"default": false
-					},
-					"aspLanguage.turnMessagesOff": {
-						"description": "Set this option if you want to turn off all Messages (bottom right)",
-						"type": "boolean",
-						"default": false
-					},
-					"aspLanguage.terminalMode": {
-						"description": "Create new Terminal after every execution?",
-						"type": "boolean",
-						"default": false
-					},
-					"aspLanguage.setConfig": {
-						"description": "Enter your config name:",
-						"type": "string",
-						"default": ""
-					}
-				}
-			}
-		],
-		"commands": [
-			{
-				"command": "answer-set-programming-language-support.runinterminalall",
-				"title": "> Compute all Answer Sets"
-			},
-			{
-				"command": "answer-set-programming-language-support.runinterminalsingle",
-				"title": "> Compute the first Answer Set"
-			},
-			{
-				"command": "answer-set-programming-language-support.runinterminalconfig",
-				"title": "> Compute Answer Sets (config.json)"
-			},
-			{
-				"command": "answer-set-programming-language-support.initClingoConfig",
-				"title": "ASPLanguage: Initialize clingo config file in current working directory"
-			}
-		],
-		"menus": {
-			"editor/context": [
-				{
-					"when": "resourceLangId == asp",
-					"command": "answer-set-programming-language-support.runinterminalall",
-					"group": "z_commands"
-				},
-				{
-					"when": "resourceLangId == asp",
-					"command": "answer-set-programming-language-support.runinterminalsingle",
-					"group": "z_commands"
-				},
-				{
-					"when": "resourceLangId == asp",
-					"command": "answer-set-programming-language-support.runinterminalconfig",
-					"group": "z_commands"
-				}
-			]
-		},
-		"keybindings": [
-			{
-				"command": "answer-set-programming-language-support.runinterminalall",
-				"key": "ctrl+shift+a",
-				"mac": "cmd+shift+a",
-				"when": "editorTextFocus"
-			},
-			{
-				"command": "answer-set-programming-language-support.runinterminalsingle",
-				"key": "ctrl+shift+s",
-				"mac": "cmd+shift+s",
-				"when": "editorTextFocus"
-			},
-			{
-				"command": "answer-set-programming-language-support.runinterminalconfig",
-				"key": "ctrl+shift+c",
-				"mac": "cmd+shift+c",
-				"when": "editorTextFocus"
-			}
-		]
-	},
-	"scripts": {
-		"lint": "eslint .",
-		"pretest": "npm run lint",
-		"test": "node ./test/runTest.js"
-	},
-	"extensionDependencies": [
-		"abelcour.asp-syntax-highlight"
-	],
-	"devDependencies": {
-		"@types/glob": "^7.1.1",
-		"@types/mocha": "^7.0.2",
-		"@types/node": "^13.11.0",
-		"@types/vscode": "^1.46.0",
-		"eslint": "^6.8.0",
-		"glob": "^7.1.6",
-		"typescript": "^3.8.3",
-		"vscode-test": "^1.3.0"
-	},
-	"dependencies": {
-		"ajv": "^7.0.3",
-		"which": "^2.0.2"
-	}
+    "name": "answer-set-programming-language-support",
+    "displayName": "Clingo for VSCode",
+    "version": "1.1.1",
+    "description": "Language Support for Clingo ASP (developed at University of Potsdam).",
+    "publisher": "ffrankreiter",
+    "jest": {
+        "testPathIgnorePatterns": [
+            "src/integrationTests",
+            "/.vscode-test/"
+        ],
+        "modulePathIgnorePatterns": [
+            "<rootDir>/.vscode-test/",
+            "<rootDir>/coverage/"
+        ],
+        "watchPathIgnorePatterns": [
+            "<rootDir>/.vscode-test/",
+            "<rootDir>/coverage/"
+        ]
+    },
+    "engines": {
+        "vscode": ">=1.94.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Education",
+        "Visualization"
+    ],
+    "tags": [
+        "ASP",
+        "Answer Set Programming",
+        "Clingo",
+        "Potassco",
+        "Potsdam",
+        "Computational Intelligence"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/CaptainUnbrauchbar/ASP-Language-Support"
+    },
+    "icon": "images/19286215.png",
+    "activationEvents": [
+        "onLanguage:asp"
+    ],
+    "main": "./src/extension.js",
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": "limited",
+            "description": "In an untrusted workspace the bundled solver is always used. Running clingo from your PATH starts a process, and a folder you have not trusted should not be able to turn that on by itself.",
+            "restrictedConfigurations": [
+                "aspLanguage.usePathClingo"
+            ]
+        }
+    },
+    "contributes": {
+        "viewsContainers": {
+            "panel": [
+                {
+                    "id": "aspContainer",
+                    "title": "ASP",
+                    "icon": "images/19286215.png"
+                }
+            ]
+        },
+        "views": {
+            "aspContainer": [
+                {
+                    "type": "webview",
+                    "id": "ASP.aspView",
+                    "name": "ASP View"
+                }
+            ]
+        },
+        "languages": [
+            {
+                "id": "asp",
+                "aliases": [
+                    "Answer Set Programming",
+                    "Answer Set",
+                    "asp",
+                    "Clingo",
+                    "Potassco",
+                    "Logic Program",
+                    "Declarative Programming"
+                ],
+                "extensions": [
+                    ".lp",
+                    ".ilp",
+                    ".cl",
+                    ".clp",
+                    ".iclp",
+                    ".Clp",
+                    ".iClp",
+                    ".blp",
+                    ".iblp"
+                ]
+            }
+        ],
+        "configuration": [
+            {
+                "title": "Clingo for VSCode",
+                "properties": {
+                    "aspLanguage.usePathClingo": {
+                        "description": "Set this option if you would like to use the Clingo version from your PATH instead of the version included",
+                        "type": "boolean",
+                        "default": false
+                    }
+                }
+            }
+        ],
+        "commands": [
+            {
+                "command": "answer-set-programming-language-support.runinterminalall",
+                "title": "Compute all Answer Sets",
+                "icon": "$(notebook-execute-all)"
+            },
+            {
+                "command": "answer-set-programming-language-support.runinterminalsingle",
+                "title": "Compute the first Answer Set",
+                "icon": "$(notebook-execute)"
+            },
+            {
+                "command": "answer-set-programming-language-support.togglesettings",
+                "title": "Solver settings",
+                "icon": "$(settings-gear)"
+            },
+            {
+                "command": "answer-set-programming-language-support.stopclingo",
+                "title": "Stop the running Clingo solver",
+                "icon": "$(debug-stop)"
+            },
+            {
+                "command": "answer-set-programming-language-support.showreleasenotes",
+                "title": "Clingo for VSCode: Show release notes"
+            }
+        ],
+        "menus": {
+            "editor/context": [
+                {
+                    "when": "resourceLangId == asp",
+                    "command": "answer-set-programming-language-support.runinterminalall",
+                    "group": "z_commands"
+                },
+                {
+                    "when": "resourceLangId == asp",
+                    "command": "answer-set-programming-language-support.runinterminalsingle",
+                    "group": "z_commands"
+                }
+            ],
+            "view/title": [
+                {
+                    "command": "answer-set-programming-language-support.runinterminalall",
+                    "when": "view == ASP.aspView && resourceLangId == asp",
+                    "group": "navigation@2"
+                },
+                {
+                    "command": "answer-set-programming-language-support.runinterminalsingle",
+                    "when": "view == ASP.aspView && resourceLangId == asp",
+                    "group": "navigation@1"
+                },
+                {
+                    "command": "answer-set-programming-language-support.togglesettings",
+                    "when": "view == ASP.aspView",
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "answer-set-programming-language-support.stopclingo",
+                    "when": "view == ASP.aspView && aspLanguage.clingoRunning",
+                    "group": "navigation@4"
+                }
+            ]
+        },
+        "keybindings": [
+            {
+                "command": "answer-set-programming-language-support.runinterminalall",
+                "key": "ctrl+shift+a",
+                "mac": "cmd+shift+a",
+                "when": "editorTextFocus && editorLangId == 'asp'"
+            },
+            {
+                "command": "answer-set-programming-language-support.runinterminalsingle",
+                "key": "ctrl+shift+x",
+                "mac": "cmd+shift+x",
+                "when": "editorTextFocus && editorLangId == 'asp'"
+            },
+            {
+                "command": "answer-set-programming-language-support.stopclingo",
+                "key": "ctrl+shift+s",
+                "mac": "cmd+shift+s",
+                "when": "aspLanguage.clingoRunning"
+            }
+        ]
+    },
+    "scripts": {
+        "lint": "eslint .",
+        "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
+        "test:panel": "cross-env NODE_OPTIONS=--experimental-vm-modules jest src/panelTests",
+        "fixtures:panel": "node src/panelTests/fixtures/generate.mjs",
+        "probe:settings": "node scripts/probe-settings.mjs",
+        "test-e2e": "vscode-test"
+    },
+    "extensionDependencies": [
+        "abelcour.asp-syntax-highlight"
+    ],
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@vscode/test-cli": "^0.0.11",
+        "@vscode/test-electron": "^2.4.1",
+        "cross-env": "^10.1.0",
+        "eslint": "^10.8.1",
+        "globals": "^17.11.0",
+        "jest": "^30.2.0",
+        "jest-environment-jsdom": "^30.4.1"
+    },
+    "dependencies": {
+        "@vscode/codicons": "0.0.39",
+        "ajv": "^8.20.0",
+        "clingo-wasm": "^0.6.0",
+        "which": "^5.0.0"
+    }
 }

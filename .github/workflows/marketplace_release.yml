@@ -1,0 +1,62 @@
+name: marketplace_release
+
+on:
+    push:
+        tags:
+            - v*.*.*
+
+permissions:
+    contents: read
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        permissions:
+            actions: read
+            id-token: write
+            contents: write
+        outputs:
+            vsixPath: ${{ steps.packageExtension.outputs.vsixPath }}
+        steps:
+            - name: Harden the runner (Audit all outbound calls)
+              uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+              with:
+                  egress-policy: audit
+                  #ToDo: Change to block after couple of workflow runs
+
+            - name: Checkout Repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+            - name: Install Node 22
+              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version: 22
+
+            - name: Install Dependencies
+              run: npm ci
+
+            - name: Publish to Open VSX Registry
+              uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db
+              with:
+                  pat: ${{ secrets.OPEN_VSX_RELEASE_TOKEN }}
+
+            - name: Publish to Visual Studio Marketplace
+              id: packageExtension
+              uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db # v2.0.0
+              with:
+                  pat: ${{ secrets.AZURE_RELEASE_TOKEN }}
+                  registryUrl: https://marketplace.visualstudio.com/
+                  preRelease: false
+
+            - name: Create Release
+              uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+              if: startsWith(github.ref, 'refs/tags/')
+              with:
+                  files: ${{ steps.packageExtension.outputs.vsixPath }}
+
+            - name: Upload Extension Package as Artifact
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: VSIX Extension File
+                  path: ${{ steps.packageExtension.outputs.vsixPath }}
+                  retention-days: 5

@@ -1,26 +1,23 @@
 {
-    "name": "Sample Config",
-    "version": "0.1.0",
-    "description": "Documentation: https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf",
-    "author": "John Doe",
-    "additionalFiles": [
-        "filename.lp"
-    ],
+    "description": "Clingo solver options for the Clingo for VSCode extension. Bring them into the panel with 'Import from config.json' in the solver settings pane, which is what runs them. To solve several files together you do not need this file: write #include \"other.lp\". in your program instead. Clingo documentation: https://github.com/potassco/guide/releases/download/v2.2.0/guide.pdf",
+    "additionalFiles": [],
     "args": {
-        "verboseMode": 1,
-        "outputFormat": 0,
-        "parallelMode": {
-            "useParallelMode": false,
-            "mode": "compete",
-            "threads": 2
-        },
+        "models": 0,
         "timeLimit": 0,
         "solveLimit": {
             "conflicts": 0,
             "restarts": 0
         },
-        "preProcessor": false, 
-        "models": 0,
+        "parallelMode": {
+            "useParallelMode": false,
+            "threads": 4,
+            "mode": "compete"
+        },
+        "stats": 0,
+        "verboseMode": 0,
+        "outputFormat": 2,
+        "preProcessor": false,
+        "constants": [],
         "customArgs": ""
     }
 }

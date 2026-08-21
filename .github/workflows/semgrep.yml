@@ -1,0 +1,52 @@
+# Name of this GitHub Actions workflow.
+name: Semgrep
+
+on:
+  # Scan changed files in PRs (diff-aware scanning):
+  pull_request: {}
+  # Scan on-demand through GitHub Actions interface:
+  workflow_dispatch: {}
+  # Scan mainline branches and report all findings:
+  push:
+    branches: ["master", "informaticup"]
+  # Schedule the CI job (this method uses cron syntax):
+  schedule:
+    - cron: "20 17 * * *" # Sets Semgrep to scan every day at 17:20 UTC.
+    # It is recommended to change the schedule to a random time.
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+    name: semgrep/ci
+    runs-on: ubuntu-latest
+
+    container:
+      image: semgrep/semgrep
+
+    # Skip any PR created by dependabot to avoid permission issues:
+    if: (github.actor != 'dependabot[bot]')
+
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+          #ToDo: Change to block after couple of workflow runs
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: semgrep ci --sarif > semgrep.sarif
+        env:
+          # Connect to Semgrep AppSec Platform through your SEMGREP_APP_TOKEN.
+          # Generate a token from Semgrep AppSec Platform > Settings
+          # and add it to your GitHub secrets.
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      - name: Upload SARIF file for GitHub Advanced Security Dashboard
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        with:
+          sarif_file: semgrep.sarif
+        if: always()
