@@ -1,98 +1,78 @@
-// Script file to be included in the webview
-
-// This script will be run within the webview itself
-// It cannot access the main VS Code APIs directly.
+// Runs inside the webview and cannot reach the VSCode API directly. The panel
+// lives in media/panel/, which loads first and leaves everything on the AspPanel
+// object this file drives; see panel/core.js. What is left here is the wiring:
+// the extension's messages, the toolbar and the state restore.
 (function () {
-    const vscode = acquireVsCodeApi();
+    const panel = window.AspPanel;
+    const { vscode, el, state } = panel;
 
-    // Handle messages sent from the extension to the webview
     window.addEventListener("message", (event) => {
         const message = event.data;
 
         if (message.type === "updateOutput") {
-            const outputContainer = document.querySelector(".output-container");
-            outputContainer.innerHTML = ""; // Clear previous content
-
-            const result = message.answers;
-            const cfgFile = message.cfgFile;
-            const useConfig = message.useConfig;
-
-            // Create a container for metadata and config boxes
-            const infoContainer = document.createElement("div");
-            infoContainer.className = "info-container"; // Flex container for metadata and config boxes
-
-            // Create a metadata output box
-            const metadataBox = document.createElement("textarea");
-            metadataBox.className = "info-box"; // Reuse the same styling as other output boxes
-            metadataBox.readOnly = true;
-            metadataBox.value = `
-Solver: ${result.solver}
-Models: ${result.models}
-Calls: ${result.calls}
-Time: Total: ${result.time.total}s, Solve: ${result.time.solve}s, Model: ${result.time.model}s
-Result: ${result.result}
-            `.trim(); // Format metadata as text
-            metadataBox.style.height = "10em";
-
-            // Append the metadata box to the info container
-            infoContainer.appendChild(metadataBox);
-
-            if (useConfig) {
-                // Create a config file output box
-                const configBox = document.createElement("textarea");
-                configBox.className = "info-box"; // Reuse the same styling
-                configBox.readOnly = true;
-                configBox.value = `Config Options:\n${cfgFile.join("\n")}`;
-                configBox.style.height = "10em";
-
-                // Append the config box to the info container
-                infoContainer.appendChild(configBox);
-            }
-
-            // Append the info container to the output container
-            outputContainer.appendChild(infoContainer);
-
-            // Loop through the answers and create output boxes
-            result.answers.forEach((answer, index) => {
-                const answerContainer = document.createElement("div");
-                answerContainer.className = "answer-container";
-
-                const labelBox = document.createElement("button");
-                labelBox.className = "answer-label-box";
-                labelBox.textContent = `Answer ${index + 1}/${result.answers.length}`;
-                labelBox.addEventListener("click", () => {
-                    buttonCopyToClickboard(index + 1, answer);
-                });
-                answerContainer.appendChild(labelBox);
-
-                const outputBox = document.createElement("textarea");
-                outputBox.className = "output-box";
-                outputBox.readOnly = true;
-                outputBox.value = answer;
-                outputBox.style.height = "8em";
-                answerContainer.appendChild(outputBox);
-                outputContainer.appendChild(answerContainer);
-            });
+            state.lastResult = message.answers;
+            el.filterBox.value = "";
+            el.header.hidden = false;
+            panel.render.render();
         }
         if (message.type === "updateOutputString") {
-            updateOutputBox(message.answers);
-            //scroll to bottom
-            const outputBox = document.querySelector(".output-box");
-            outputBox.scrollTop = outputBox.scrollHeight;
+            state.lastResult = null;
+            panel.menu.close();
+            panel.render.showRawOutput(message.answers, message.command);
+            panel.render.updateControls();
+        }
+        if (message.type === "toggleSettings") {
+            panel.settings.toggle(!panel.settings.isOpen());
+        }
+        if (message.type === "updateSettings") {
+            panel.settings.update(message);
         }
     });
 
-    /**
-     * Updates the output box with the given text.
-     * @param {string} text
-     */
-    function updateOutputBox(text) {
-        const outputBox = document.querySelector(".output-box");
-        outputBox.value = text;
+    let filterTimer;
+    el.filterBox.addEventListener("input", () => {
+        clearTimeout(filterTimer);
+        filterTimer = setTimeout(panel.render.render, panel.FILTER_DEBOUNCE_MS);
+    });
+
+    el.compareButton.addEventListener("click", () => {
+        state.compareMode = !state.compareMode;
+        panel.render.render();
+    });
+
+    el.filterModeButton.addEventListener("click", () => {
+        state.hideUnmatched = !state.hideUnmatched;
+        panel.render.applyFilterMode();
+        panel.render.render();
+    });
+
+    el.copyAllButton.addEventListener("click", () => {
+        vscode.postMessage({ type: "copyAll" });
+        const icon = el.copyAllButton.children[0];
+        if (icon) {
+            panel.dom.flashCopied(icon);
+        }
+    });
+
+    panel.render.applyFilterMode();
+
+    // Moving the panel disposes this webview and builds a new one on the welcome
+    // screen. The state VSCode kept restores it even if the extension is not
+    // listening.
+    const saved = vscode.getState();
+    if (saved?.kind === "result") {
+        state.lastResult = saved.result;
+        el.filterBox.value = saved.filter ?? "";
+        state.compareMode = !!saved.compare;
+        state.hideUnmatched = saved.hideUnmatched !== false;
+        panel.render.applyFilterMode();
+        el.header.hidden = false;
+        panel.render.render();
+    } else if (saved?.kind === "raw") {
+        panel.render.showRawOutput(saved.text, saved.command);
     }
 
-    function buttonCopyToClickboard(answerNumber, answer) {
-        // Use the Clipboard API to copy the answer to the clipboard
-        navigator.clipboard.writeText(answer);
-    }
+    // The extension only replays its last payload when this webview had nothing
+    // of its own, so a restored filter does not get thrown away
+    vscode.postMessage({ type: "ready", hasState: !!saved });
 })();

@@ -1,18 +1,29 @@
 {
     "title": "ASP Config Schema",
-    "description": "",
+    "description": "Clingo solver options for the Clingo for VSCode extension. Read by 'Import from config.json' in the panel's solver settings, which is what carries the options into a run. Composing a program out of several files does not need this file: use #include \"other.lp\". in the program itself.",
     "type": "object",
+    "additionalProperties": false,
     "properties": {
-        "name": { "type": "string" },
-        "author": { "type": "string" },
-        "version": { "type": "string" },
-        "additionalFiles": { "type": "array" },
+        "name": { "type": "string", "description": "Optional label for this config" },
+        "author": { "type": "string", "description": "Optional" },
+        "version": { "type": "string", "description": "Optional" },
+        "description": { "type": "string", "description": "Optional" },
+        "additionalFiles": {
+            "type": "array",
+            "description": "Extra files to solve together with the program, relative to this config. Entries may be globs such as instances/*.lp",
+            "items": { "type": "string" }
+        },
         "args": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
-                "verboseMode": { "type": "integer" },
+                "verboseMode": {
+                    "type": "integer",
+                    "description": "Only has an effect with your own clingo from PATH: the bundled solver never carries this output"
+                },
                 "parallelMode": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "useParallelMode": { "type": "boolean" },
                         "mode": {
@@ -24,12 +35,37 @@
                     "required": ["useParallelMode", "mode", "threads"]
                 },
                 "timeLimit": { "type": "integer" },
-                "preProcessor": { "type": "boolean" },
-                "models": { "type": "integer" },
-                "constants": { "type": "array" },
+                "solveLimit": {
+                    "type": "object",
+                    "description": "Stops the search after this many conflicts or restarts. 0 means no limit.",
+                    "additionalProperties": false,
+                    "properties": {
+                        "conflicts": { "type": "integer", "minimum": 0, "description": "0 means no limit" },
+                        "restarts": { "type": "integer", "minimum": 0, "description": "0 means no limit" }
+                    }
+                },
+                "stats": { "type": "integer", "description": "How much solver statistics clingo reports, 0 to 2. 0 is off" },
+                "outputFormat": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3,
+                    "description": "Which output format to ask clingo for: 0 default text, 1 competition, 2 JSON, 3 none. 2 is the default and the only one the panel can read answers out of. Only applies to your own clingo from PATH; the bundled solver always uses 2"
+                },
+                "preProcessor": {
+                    "type": "boolean",
+                    "description": "Only works with your own clingo from PATH: the preprocessor emits aspif text rather than the JSON the bundled solver returns"
+                },
+                "models": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "How many answer sets to compute at most. 0 means all of them. Caps \"Compute all Answer Sets\"; \"Compute the first Answer Set\" always returns one"
+                },
+                "constants": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
                 "customArgs": { "type": "string" }
             }
         }
-    },
-    "required": ["name", "version", "author"]
+    }
 }

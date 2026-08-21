@@ -6,12 +6,18 @@ All notable changes to the "answer-set-programming-language-support" extension w
 
 If you want to contribute to the repository you are welcome to look at these planned features on your own fork :)
 
--   **Feature**: Find a way to manage the WASM Clingo Process Workers so you can terminate or restart them at any point without having to restart VSCode
 -   **QoL**: Adjust the webview UI colours so they work best with any selected colour theme
--   **Testing**: Add more Unit Tests
 -   **Testing**: Find a way to do proper Integration Testing that works with CI/CD (currently only local and limited functionality because of the webview UI)
 -   **Localization**: Look into localization need/techniques and translate text
--   **Bug**: Verify/Fix that all parameters in the ASP config.json created by this extension actually work properly and/or are still supported by clingo
+
+## 1.1.0: Stoppable Solving and a Rebuilt Output Panel :octagonal_sign:
+
+-   **A running Clingo solve process can now be stopped**, from the progress notification, the panel toolbar or `Ctrl+Shift+S`, and it keeps the answers found so far. The notification now reports how many models have been found
+-   **UI Overhaul**: Completely rebuilt the output panel to fit the VSCode Design Language, fully compatible with bundled and PATH clingo, use any version you want
+-   Added a **Solver Settings Pane** to the ASP panel: answer set limit, time limits, parallel solving, constants, additional files and custom arguments, stored per workspace, so the everyday case needs no config file at all. A config.json can still be **imported and exported**; the `Compute Answer Sets (config.json)` command and its shortcut were removed
+-   **Include additional files with `#include "other.lp".` without using the config**, resolved recursively and relative to the including file
+-   Many fixes, including `solveLimit` being ignored, crashes on a missing `models` or an empty result, a phantom "Answer 1/1" on unsatisfiable runs, and unreadable config file validation errors
+-   Updated [**WASM Clingo**](https://github.com/domoritz/clingo-wasm) from 0.3.2 to 0.6.0, which **requires VSCode 1.94 or newer** (was 1.63)
 
 ## 1.0.0: Big Feature, Security and QoL Patch :fireworks:
 

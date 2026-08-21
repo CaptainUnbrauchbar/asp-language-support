@@ -1,5 +1,10 @@
 {
     "prettier.printWidth": 140,
     "prettier.tabWidth": 4,
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    // vscode-jest defaults to watch, which starts a jest --watch process that
+    // never exits, so the Testing panel keeps a run open forever: the tests all
+    // pass but the spinner only stops when the watch session is killed by hand.
+    // On demand runs start and finish, so a run that is done reads as done.
+    "jest.runMode": "on-demand"
 }
