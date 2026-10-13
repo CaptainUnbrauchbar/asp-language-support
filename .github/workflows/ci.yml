@@ -19,7 +19,7 @@ jobs:
             vsixPath: ${{ steps.packageExtension.outputs.vsixPath }}
         steps:
             - name: Harden the runner (Audit all outbound calls)
-              uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
               with:
                   egress-policy: audit
                   #ToDo: Change to block after couple of workflow runs
@@ -28,7 +28,7 @@ jobs:
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - name: Install Node 22
-              uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
                   node-version: 22
 
@@ -40,7 +40,7 @@ jobs:
 
             - name: Package Extension
               id: packageExtension
-              uses: HaaLeo/publish-vscode-extension@ca5561daa085dee804bf9f37fe0165785a9b14db # v2.0.0
+              uses: HaaLeo/publish-vscode-extension@1b8df468b849f76a143b8c18bf0ffa2075398d12 # v2.1.0
               with:
                   # stub because this is a dry-run
                   pat: stub
@@ -48,7 +48,7 @@ jobs:
                   dryRun: true
 
             - name: Upload Extension Package as Artifact
-              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
                   name: VSIX Extension File
                   path: ${{ steps.packageExtension.outputs.vsixPath }}
